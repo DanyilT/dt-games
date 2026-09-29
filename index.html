@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <link rel="icon" href="img/snake.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="game-container">
+    <h1>Snake Game</h1>
+    <canvas id="game" width="400" height="400"></canvas>
+    <div class="score-container">
+        <p>Score: <span id="score">0</span></p>
+        <p>High Score: <span id="highScore">0</span></p>
+    </div>
+    <div class="controls">
+        <button id="restartBtn">Restart Game (r)</button>
+        <button id="pauseBtn">Pause Game (space)</button>
+        <button id="showInstructionsBtn">Show Instructions (i)</button>
+    </div>
+    <aside class="instructions">
+        <h2>How to Play:</h2>
+        <p>Use arrow keys to control the snake.</p>
+        <p>Eat the food to grow longer and earn points.</p>
+        <p>Avoid hitting the walls or your own tail!</p>
+        <hr>
+        <p>Press "SPACE" to pause the game.</p>
+        <p>Press "R" to restart the game.</p>
+    </aside>
+    <!-- JavaScript for this page -->
+    <script src="js/buttons-handler.js"></script>
+    <script src="js/extend-controls.js"></script>
+</main>
+<footer style="display: none">&copy; Dany | SnakeGame | 2025 <hr> <a href="https://github.com/DanyilT/WebDev/blob/main/Game/Snake">source code</a></footer>
+<!-- Snake Game Code -->
+<script src="snake.js"></script>
+<!-- Very important script -->
+<script src="js/qwerty.js"></script>
+</body>
+</html>

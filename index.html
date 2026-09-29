@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris Game</title>
+    <link rel="icon" href="img/block.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="game-container">
+    <h1>TETRIS GAME</h1>
+    <div class="game-area">
+        <canvas id="tetris" width="300" height="600"></canvas>
+        <div class="game-info">
+            <div class="score-box"><h2>Score</h2><span id="score">0</span></div>
+            <div class="level-box"><h2>Level</h2><span id="level">1</span></div>
+            <div class="lines-box"><h2>Lines</h2><span id="lines">0</span></div>
+            <div class="next-piece-box">
+                <h2>Next</h2>
+                <canvas id="next-piece" width="100" height="100"></canvas>
+            </div>
+            <div class="instructions">
+                <h2>Controls</h2>
+                <p><b>&larr;</b> Move Left</p>
+                <p><b>&rarr;</b> Move Right</p>
+                <p><b>&darr;</b> Move Down</p>
+                <p><b>&uarr;</b> Rotate</p>
+                <p><b>Space</b> Drop</p>
+            </div>
+            <div class="game-controls">
+                <button id="move-left">&#8678;</button>
+                <button id="move-right">&#8680;</button>
+                <button id="rotate">&#8682;</button>
+                <button id="move-down">&#8681;</button>
+                <button id="drop">&DownArrowBar;</button>
+            </div>
+            <div class="controls">
+                <button id="start-button">Pause (p)</button>
+                <button id="reset-button">Reset Game (r)</button>
+                <button id="instructions-button">Show Instructions (i)</button>
+            </div>
+        </div>
+    </div>
+    <!-- JavaScript for this page -->
+    <script src="js/buttons-handler.js"></script>
+    <script src="js/extend-controls.js"></script>
+</main>
+<footer style="display: none">&copy; Dany | TetrisGame | 2025 <hr> <a href="https://github.com/DanyilT/WebDev/blob/main/Game/Tetris">source code</a></footer>
+<!-- Tetris Game Code -->
+<script src="tetris.js"></script>
+<!-- Very important script -->
+<script src="js/qwerty.js"></script>
+</body>
+</html>

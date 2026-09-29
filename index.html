@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minesweeper Game</title>
+    <link rel="icon" href="img/mine.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="game-container">
+    <div class="window-title-bar">
+        <div class="title">
+            <img src="img/icons/minesweeper-icon-2001.ico" alt="Minesweeper Icon">
+            <h1 style="all: unset;">Minesweeper Game</h1>
+        </div>
+        <div class="window-controls">
+            <div class="window-button minimize">_</div>
+            <div class="window-button maximize">□</div>
+            <div class="window-button close">×</div>
+        </div>
+    </div>
+    <div class="game-area">
+        <div class="menu-bar">
+            <div class="menu-item">
+                <span class="menu-title">Game</span>
+                <div class="menu-dropdown">
+                    <div class="menu-option" onclick="document.getElementById('reset-button').click()">New Game</div>
+                    <div class="menu-separator"></div>
+                    <div class="menu-option difficulty-option" data-level="beginner">Beginner</div>
+                    <div class="menu-option difficulty-option" data-level="intermediate">Intermediate</div>
+                    <div class="menu-option difficulty-option" data-level="expert">Expert</div>
+                    <div class="menu-separator"></div>
+                    <div class="menu-option" id="exit-game">Exit</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                <span class="menu-title">Help</span>
+                <div class="menu-dropdown">
+                    <div class="menu-option" id="instructions-button">Instructions (i)</div>
+                    <div class="menu-option" id="about-button">About Minesweeper</div>
+                </div>
+            </div>
+            <div class="controls">
+                <button id="mode-toggle" title="Click to toggle between reveal and flag mode">🔍</button>
+            </div>
+        </div>
+        <div class="header">
+            <div class="mine-counter">000</div>
+            <button id="reset-button">😊</button>
+            <div class="timer">000</div>
+        </div>
+        <div id="game-board"></div>
+    </div>
+    <!-- JavaScript for this page -->
+    <script src="js/buttons-handler.js"></script>
+    <script src="js/extend-controls.js"></script>
+</main>
+<div class="instructions">
+    <h2>How to Play Minesweeper</h2>
+    <p>The goal is to reveal all cells that don't contain mines.</p>
+    <hr>
+    <h3>Mouse Controls:</h3>
+    <p>• <b>Left-click</b> to reveal a cell</p>
+    <p>• <b>Right-click</b> to place or remove a flag</p>
+    <p>• Click on a revealed cell to quickly reveal surrounding cells (if correctly flagged)</p>
+    <hr>
+    <h3>Touch & Toggle Mode:</h3>
+    <p>• Use the 🔍/🚩 toggle button to switch between <b>reveal</b> and <b>flag modes</b></p>
+    <hr>
+    <h3>Keyboard Controls:</h3>
+    <p>• <b>Arrow keys</b> to move selection</p>
+    <p>• <b>Space</b> to activate selected cell</p>
+    <p>• <b>Shift+Space</b> to flag selected cell</p>
+    <p>• <b>R</b> key to restart game</p>
+    <p>• <b>M</b> key to toggle between reveal/flag modes</p>
+    <p>• <b>1</b>, <b>2</b>, <b>3</b> keys to change difficulty (Beginner, Intermediate, Expert)</p>
+    <p>• <b>I</b> key to show/hide these instructions</p>
+    <p>• <b>Escape</b> key to close dialogs</p>
+    <hr>
+    <h3>Tips:</h3>
+    <p>• The numbers indicate how many mines are in the adjacent cells</p>
+    <p>• Use flags to mark where you think mines are located</p>
+    <p>• The counter at the top shows the number of mines minus the number of flags</p>
+</div>
+<footer style="display: none">&copy; Dany | MinesweeperGame | 2025 <hr> <a href="https://github.com/DanyilT/WebDev/blob/main/Game/Minesweeper">source code</a></footer>
+<!-- Minesweeper Game Code -->
+<script src="minesweeper.js"></script>
+<!-- Very important script -->
+<script src="js/qwerty.js"></script>
+</body>
+</html>

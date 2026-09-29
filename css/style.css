@@ -1,0 +1,415 @@
+* {
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    font-family: 'MS Sans Serif', 'Tahoma', 'Arial', sans-serif;
+}
+
+body {
+    background-color: #008080; /* Classic Windows teal background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100dvh;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.game-container {
+    max-width: 100%;
+    max-height: 100vh;
+    overflow: auto;
+    background-color: #c0c0c0;
+    border: 4px outset #d4d0c8;
+    padding: 3px;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.game-area {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* Windows 9x title bar */
+.window-title-bar {
+    background-color: #000080; /* Windows blue */
+    color: white;
+    padding: 5px 6px;
+    font-weight: bold;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .title {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+    }
+
+    .title img {
+        height: 18px;
+        transition: scale 10s;
+    }
+
+    .title img:hover {
+        scale: 1000%;
+    }
+
+    .window-controls {
+        display: flex;
+
+        .window-button {
+            width: 18px;
+            height: 16px;
+            background-color: #c0c0c0;
+            border: 1px outset white;
+            margin-left: 2px;
+            font-size: 9px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .window-button:first-child, .window-button:last-child {
+            color: black;
+        }
+
+        .window-button:hover {
+            cursor: wait;
+        }
+    }
+}
+
+/* Menu bar styling */
+.menu-bar {
+    display: flex;
+    background-color: #c0c0c0;
+    margin-top: 2px;
+    border-bottom: 1px solid #808080;
+    font-size: 12px;
+
+    .menu-item {
+        position: relative;
+        padding: 1px 8px;
+        cursor: default;
+    }
+
+    .menu-item:hover {
+        background-color: #000080;
+        color: white;
+    }
+
+    .menu-item:hover .menu-dropdown {
+        display: block;
+    }
+
+    .menu-dropdown {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 100%;
+        background-color: #c0c0c0;
+        border: 2px outset white;
+        box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+        min-width: 150px;
+
+        .menu-option {
+            padding: 4px 14px;
+            font-size: 12px;
+
+            .win-badge {
+                color: gold;
+                font-size: inherit;
+                font-weight: bold;
+                display: flex;
+            }
+        }
+
+        .menu-option:hover {
+            background-color: #000080;
+            color: white;
+        }
+
+        .menu-separator {
+            height: 1px;
+            background-color: #808080;
+            margin: 2px 1px;
+        }
+
+        .selected::before {
+            content: "✓";
+            margin-right: 4px;
+        }
+    }
+}
+
+.controls {
+    margin-left: 8px;
+    padding: 1px 8px;
+
+    #mode-toggle {
+        width: 32px;
+        height: 18px;
+        font-size: 10px;
+        background-color: #c0c0c0;
+        border: 2px outset white;
+        cursor: pointer;
+    }
+
+    #mode-toggle:active {
+        border: 2px inset #d4d0c8;
+    }
+}
+
+/* Modal overlay */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10vh;
+
+    /* Modal window */
+    .modal-window {
+        position: relative;
+        font-size: 12px;
+        background-color: #c0c0c0;
+        border: 3px outset #d4d0c8;
+        box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
+        min-width: 300px;
+        max-width: 80%;
+        margin: 5% auto;
+    }
+
+    /* Modal title bar */
+    .modal-title-icon {
+        height: 16px;
+        margin-right: 6px;
+    }
+
+    .modal-title {
+        display: flex;
+        align-items: center;
+    }
+
+    .modal-close {
+        background-color: #c0c0c0;
+        color: black;
+        border: 1px outset white;
+        width: 16px;
+        height: 14px;
+        font-size: 9px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .modal-close:active {
+        border-style: inset;
+    }
+
+    /* Modal content */
+    .modal-content {
+        padding: 12px;
+        font-size: 12px;
+        overflow-y: auto;
+        max-height: 60vh;
+    }
+
+    /* Modal buttons */
+    .modal-buttons {
+        display: flex;
+        justify-content: center;
+        padding: 8px;
+        gap: 10px;
+    }
+
+    .modal-button {
+        background-color: #c0c0c0;
+        border: 2px outset #ffffff;
+        padding: 3px 12px;
+        font-size: 11px;
+        min-width: 70px;
+        cursor: pointer;
+    }
+
+    .modal-button:active {
+        border-style: inset;
+    }
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #c0c0c0;
+    padding: 6px;
+    border: 3px inset #d4d0c8;
+    margin: 8px 6px;
+
+    .mine-counter, .timer {
+        background-color: black;
+        color: #ff0000;
+        font-family: 'Digital', 'LCD', monospace;
+        font-size: min(28px, 5vw);
+        padding: 2px;
+        width: min(60px, 18vw);
+        height: min(30px, 9vw);
+        line-height: min(30px, 9vw);
+        text-align: center;
+        border: 3px inset #808080;
+    }
+
+    #reset-button {
+        width: min(40px, 12vw);
+        height: min(40px, 12vw);
+        font-size: min(28px, 8vw);
+        background-color: #c0c0c0;
+        border: 3px outset #ffffff;
+        cursor: pointer;
+    }
+
+    #reset-button:active {
+        border: 3px inset #d4d0c8;
+    }
+}
+
+#game-board {
+    max-width: calc(100vw - 30px);
+    max-height: calc(100vh - 150px);
+    overflow: auto;
+    display: grid;
+    gap: 0;
+    border: 3px inset #d4d0c8;
+    margin: 0 6px 6px 6px;
+    background-color: #c0c0c0;
+    padding: 4px;
+}
+
+.cell {
+    width: min(30px, 8vw);
+    height: min(30px, 8vw);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: min(18px, 5vw);
+    border: 3px outset white;
+    background-color: #c0c0c0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.cell.revealed {
+    border: 3px solid;
+    background-color: #c0c0c0;
+    border-color: #7b7b7b #ffffff #ffffff #7b7b7b;
+}
+
+.cell.select {
+    box-shadow: 0 0 0 1px #000080 inset;
+}
+
+/* Preserve number colors */
+.cell[data-value="1"] { color: blue; }
+.cell[data-value="2"] { color: green; }
+.cell[data-value="3"] { color: red; }
+.cell[data-value="4"] { color: darkblue; }
+.cell[data-value="5"] { color: brown; }
+.cell[data-value="6"] { color: teal; }
+.cell[data-value="7"] { color: black; }
+.cell[data-value="8"] { color: gray; }
+
+/* Emoji sizing for mines and flags */
+.cell.flagged::before,
+.cell.mine::before,
+.cell.mine-flagged-correct::before,
+.cell.mine-flagged-wrong::before {
+    font-size: 16px;
+}
+
+.cell.flagged::before {
+    content: "🚩";
+}
+
+.cell.mine {
+    background-color: #c0c0c0;
+}
+
+.cell.mine::before {
+    content: "💣";
+}
+
+/* The mine that was clicked and caused game over */
+.cell.mine.triggered {
+    background-color: red;
+}
+
+/* Correctly flagged mines */
+.cell.mine-flagged-correct::before {
+    content: "🚩";
+}
+
+/* Incorrectly flagged cells - show both flag and X */
+.cell.mine-flagged-wrong {
+    position: relative;
+}
+
+.cell.mine-flagged-wrong::before {
+    content: "💣";
+}
+
+.cell.mine-flagged-wrong::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background: linear-gradient(to top right, transparent calc(50% - 1px), red calc(50% - 1px), red calc(50% + 1px), transparent calc(50% + 1px)), linear-gradient(to top left, transparent calc(50% - 1px), red calc(50% - 1px), red calc(50% + 1px), transparent calc(50% + 1px));
+}
+
+/* Responsive styles */
+@media screen and (max-width: 600px) {
+    .cell {
+        width: 26px;
+        height: 26px;
+    }
+
+    .header {
+        padding: 4px;
+    }
+
+    #reset-button {
+        border-width: 2px;
+    }
+}
+
+@media screen and (max-width: 400px) {
+    .cell {
+        width: 20px;
+        height: 20px;
+        font-size: 14px;
+        border-width: 2px;
+    }
+
+    .window-title-bar .title h1 {
+        font-size: 14px;
+    }
+
+    .controls #mode-toggle {
+        width: 24px;
+        height: 16px;
+        font-size: 8px;
+    }
+}

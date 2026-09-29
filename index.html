@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Game</title>
+    <link rel="icon" href="img/sudoku.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="game-container">
+    <h1>Sudoku Game</h1>
+    <div class="sudoku-grid">
+        <!-- 9x9 Sudoku grid -->
+        <script>
+            for (let i = 0; i < 9; i += 3) {
+                for (let j = 0; j < 9; j += 3) {
+                    document.write('<div class="subgrid subgrid' + (i / 3) + '-' + (j / 3) + '">');
+                    for (let x = i; x < i + 3; x++) {
+                        for (let y = j; y < j + 3; y++) {
+                            document.write('<input type="number" maxlength="1" class="cell cell-' + ((x % 3) * 3 + (y % 3) + 1) + '" id="cell-' + (x * 9 + y) + '" data-row="' + x + '" data-col="' + y + '" data-subgrid="' + (i / 3) + '-' + (j / 3) + '" oninput="this.value = this.value.slice(-1).match(/^[1-9]$/) ? this.value.slice(-1) : \'\';" />');
+                        }
+                    }
+                    document.write('</div>');
+                }
+            }
+        </script>
+    </div>
+    <div class="number-pad" id="numberPad">
+        <script>
+            for (let i = 1; i <= 9; i++) {
+                document.write('<button class="num-btn" data-number="' + i + '">' + i + '</button>');
+            }
+            document.write('<button class="num-btn erase" data-number="0">✕</button>');
+        </script>
+    </div>
+    <div class="controls">
+        <div class="game-buttons">
+            <button id="newGameBtn">New Game</button>
+            <button id="checkSolutionBtn">Check Solution</button>
+            <button id="solveBtn" style="display: none;" onclick="if (confirm('Are you sure you want to see the solution?')) { showSolution(); }">Solve</button>
+            <select name="difficulty" id="difficulty">
+                <option value="beginner">For a Bread</option>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+                <option value="expert">Expert</option>
+            </select>
+        </div>
+        <button id="showInfoBtn">Info</button>
+    </div>
+    <aside class="info-container">
+        <div class="score-board">
+            <h2>Your Wins:</h2>
+            <p class="scores"></p>
+        </div>
+        <div class="instructions">
+            <h2>How to Play:</h2>
+            <p>Fill the grid with numbers from 1 to 9 so that each column, row, and 3x3 subgrid should not contain the same number more than once.</p>
+            <hr>
+            <h2>Keyboard Controls:</h2>
+            <p><b>Arrow keys / WASD</b> - Navigate the grid</p>
+            <p><b>1-9</b> - Enter numbers</p>
+            <p><b>Delete/Backspace</b> - Clear cell</p>
+            <p><b>Enter</b> - Check solution (when no cell is focused)</p>
+            <p><b>Shift+Enter</b> - Check solution (anytime)</p>
+            <p><b>Shift+1-5</b> - Change difficulty level</p>
+            <p><b>r</b> - New game</p>
+            <p><b>i</b> - Show/hide this info</p>
+        </div>
+    </aside>
+    <div id="notification-container" class="notification-container"></div>
+    <!-- JavaScript for this page -->
+    <script src="js/buttons-handler.js"></script>
+    <script src="js/extend-controls.js"></script>
+</main>
+<footer style="display: none">&copy; Dany | SudokuGame | 2025 <hr> <a href="https://github.com/DanyilT/WebDev/blob/main/Game/Sudoku">source code</a></footer>
+<!-- Snake Game Code -->
+<script src="sudoku.js"></script>
+<!-- Very important script -->
+<script src="js/qwerty.js"></script>
+</body>
+</html>

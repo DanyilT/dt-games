@@ -1,0 +1,408 @@
+/* Neomorphic Sudoku Game Styles */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+:root {
+    --background: #e0e5ec;
+    --text-color: #4d5974;
+    --shadow-dark: #bec3c9;
+    --shadow-light: #ffffff;
+    --primary: #6c5ce7;
+    /*--primary-light: #8075e5;*/
+    --secondary: #00b894;
+
+    /* Cell colors */
+    --valid: #00b894;
+    --invalid: #ff6b6b;
+
+    /* Notification */
+    --error: #ff6b6b;
+    --success: #00b894;
+    --info: #0984e3;
+    --warning: #fdcb6e;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Poppins", Monospaced, sans-serif;
+    background-color: var(--background);
+    color: var(--text-color);
+    min-height: 100dvh;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    max-width: 600px;
+}
+
+h1 {
+    font-weight: 300;
+    font-size: 2rem;
+    margin-bottom: 0.5em;
+    text-align: center;
+    text-shadow: 2px 2px 3px var(--shadow-dark), -2px -2px 3px var(--shadow-light);
+}
+
+/* Sudoku Grid */
+.sudoku-grid, .subgrid {
+    display: grid;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    background-color: var(--background);
+}
+
+.sudoku-grid {
+    margin: 0 auto;
+    gap: 6px;
+    padding: 10px;
+    border-radius: 15px;
+    box-shadow: 10px 10px 20px var(--shadow-dark), -10px -10px 20px var(--shadow-light);
+}
+
+.subgrid {
+    gap: 3px;
+    padding: 5px;
+    border-radius: 10px;
+    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+}
+
+/* Cells */
+.cell {
+    width: 40px;
+    height: 40px;
+    padding: 1px;
+    font-size: 20px;
+    font-weight: 500;
+    text-align: center;
+    border: none;
+    border-radius: 10px;
+    cursor: default;
+    caret-color: transparent;
+    color: var(--text-color);
+    background-color: var(--background);
+    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+    transition: all 0.2s ease;
+}
+
+.cell {
+    /* Remove spinner buttons from number input */
+    &::-webkit-inner-spin-button, &::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+    }
+
+    /* Remove default outline, add custom focus styles */
+    &:focus {
+        outline: none;
+        color: var(--primary) !important;
+        box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+        background-color: color-mix(in srgb, var(--shadow-dark) 20%, transparent);
+    }
+
+    /* Keyboard focus selection, add custom focus outline */
+    &:focus.keyboard-selected {
+        outline: 1px solid var(--primary);
+    }
+
+    /* Initial cells */
+    &.initial {
+        font-weight: 600;
+        box-shadow: none;
+    }
+
+    /* Valid cells */
+    &.valid {
+        color: var(--valid);
+    }
+
+    /* Invalid cells */
+    &.invalid {
+        color: var(--invalid);
+    }
+
+    /* Same number cells */
+    &.same-number {
+        box-shadow: inset -2px 2px 5px var(--shadow-dark), inset 2px -2px 5px var(--shadow-light);
+        background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+    }
+}
+
+/* Number Pad */
+.number-pad {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+    padding: 15px;
+    width: 100%;
+    max-width: 440px;
+    border-radius: 20px;
+    background-color: var(--background);
+    box-shadow: 5px 5px 10px var(--shadow-dark), -5px -5px 10px var(--shadow-light);
+}
+
+.num-btn {
+    width: 100%;
+    aspect-ratio: 1/1;
+    font-size: 1.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    border-radius: 50%;
+
+    &.erase {
+        color: var(--invalid);
+    }
+}
+
+/* Controls */
+.controls {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.game-buttons {
+    display: flex;
+    justify-content: space-around;
+}
+
+/* Game buttons, and number pad buttons */
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    background-color: var(--background);
+    color: var(--text-color);
+    box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
+    transition: all 0.2s ease;
+
+    &:hover {
+        box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+    }
+
+    &:active {
+        box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+        transform: translateY(1px);
+    }
+}
+
+button {
+    &#newGameBtn {
+        color: var(--primary);
+    }
+
+    &#checkSolutionBtn {
+        color: var(--secondary);
+    }
+
+    &#solveBtn {
+        color: var(--info);
+    }
+
+    &#showInfoBtn {
+        width: 30%;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+}
+
+/* Difficulty selector */
+select {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background-color: var(--background);
+    color: var(--text-color);
+    font-family: 'Poppins', Monospaced, sans-serif;
+    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+    appearance: none;
+    cursor: pointer;
+}
+
+/* Info Container */
+.info-container {
+    width: 100%;
+    max-width: 500px;
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 20px;
+    background: var(--background);
+    box-shadow: 20px 20px 50px var(--shadow-dark), -20px -20px 50px var(--shadow-light);
+
+    h2 {
+        color: var(--primary);
+        font-size: 1.2rem;
+    }
+
+    hr {
+        margin: 10px 0;
+        border: none;
+        height: 1px;
+        background-color: var(--shadow-dark);
+    }
+}
+
+.score-board {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 20px;
+    background: var(--background);
+    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+
+    .win-badge {
+        font-size: inherit;
+        color: gold;
+        font-weight: bold;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+        transition: all 1s ease;
+        cursor: pointer;
+
+        &:hover {
+            text-shadow: 0 0 15px gold, 0 0 25px gold;
+        }
+    }
+}
+
+.star-particle {
+    position: fixed;
+    pointer-events: none;
+    color: gold;
+    font-size: 12px;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.7);
+    user-select: none;
+    z-index: 1000;
+    will-change: transform, opacity;
+
+    &.burst {
+        text-shadow: 0 0 15px gold, 0 0 25px rgba(255, 215, 0, 0.9);
+        z-index: 1001;
+    }
+}
+
+/* Notifications */
+.notification-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.notification {
+    opacity: 0;
+    min-width: 250px;
+    max-width: 350px;
+    padding: 15px 20px;
+    border-radius: 10px;
+    color: var(--text-color);
+    background-color: var(--background);
+    box-shadow: 2px 2px 6px var(--shadow-dark), -2px -2px 6px var(--shadow-light);
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+}
+
+.notification {
+    &.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    &.success {
+        /*border-left: 4px solid var(--success);*/
+        background-color: color-mix(in srgb, var(--success) 10%, transparent);
+    }
+
+    &.error {
+        /*border-left: 4px solid var(--error);*/
+        background-color: color-mix(in srgb, var(--error) 10%, transparent);
+    }
+
+    &.info {
+        /*border-left: 4px solid var(--info);*/
+        background-color: color-mix(in srgb, var(--info) 10%, transparent);
+    }
+
+    &.warning {
+        /*border-left: 4px solid var(--warning);*/
+        background-color: color-mix(in srgb, var(--warning) 10%, transparent);
+    }
+}
+
+/* Responsive styles */
+@media (max-width: 600px) {
+    .cell {
+        width: 35px;
+        height: 35px;
+        font-size: 18px;
+    }
+
+    .notification {
+        min-width: 200px;
+        max-width: 300px;
+        padding: 10px 15px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 400px) {
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    .game-container {
+        gap: 15px;
+    }
+
+    .sudoku-grid {
+        gap: 3px;
+        padding: 5px;
+    }
+
+    .subgrid {
+        gap: 0;
+    }
+
+    .cell {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+
+    .number-pad {
+        gap: 8px;
+        padding: 8px;
+        max-width: 300px;
+    }
+
+    .num-btn {
+        font-size: 1rem;
+    }
+
+    button {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+
+    .notification {
+        min-width: 150px;
+        max-width: 250px;
+        padding: 5px 10px;
+        font-size: 0.7rem;
+    }
+}

@@ -1,0 +1,57 @@
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.sudoku-grid, .subgrid {
+    display: grid;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    gap: 1px;
+}
+
+.sudoku-grid {
+    gap: 5px;
+}
+
+.cell {
+    width: 40px;
+    height: 40px;
+    padding: 1px;
+    caret-color: transparent;
+    cursor: default;
+}
+
+/* Remove spinner buttons from number input */
+.cell::-webkit-inner-spin-button,
+.cell::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cell:focus {
+    outline: none;
+    background-color: rebeccapurple;
+}
+
+.cell.keyboard-selected {
+    background-color: mediumpurple;
+}
+
+.cell.initial {
+    font-weight: 600;
+    background-color: oldlace;
+}
+
+.cell.valid {
+    background-color: silver;
+}
+
+.cell.invalid {
+    background-color: lightpink;
+}
+
+.cell.same-number {
+    background-color: aliceblue;
+}

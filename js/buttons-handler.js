@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (instructions.style.display === 'none') {
             instructions.style.display = 'block';
             instructionsBtn.textContent = 'Hide Instructions (i)';
-            instructions.scrollIntoView({behavior: 'smooth'});
+            window.scrollTo({ top: window.scrollY + instructions.getBoundingClientRect().top, behavior: 'smooth' });
         } else {
             instructions.style.display = 'none';
             instructionsBtn.textContent = 'Show Instructions (i)';
@@ -32,21 +32,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add keyboard shortcut (i key)
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'i') {
+        if (e.key === 'i' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
             toggleInstructions();
         }
     });
 
     // Restart button functionality
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'r') {
+        if (e.key === 'r' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
             restartBtn.click();
         }
     });
 
     // Pause button functionality
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'p') {
+        if (e.key === 'p' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
             pauseBtn.click();
         }
     });
@@ -70,5 +70,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     dropBtn.addEventListener('click', function() {
         document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+    });
+
+    // A button clicked with the mouse doesn't keep the focus, so Space doesn't press it again
+    document.querySelectorAll('button').forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            if (e.detail > 0) button.blur();
+        });
     });
 });

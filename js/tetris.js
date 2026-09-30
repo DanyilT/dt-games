@@ -35,6 +35,7 @@ const resetButton = document.getElementById('reset-button');
 const scoreElement = document.getElementById('score');
 const levelElement = document.getElementById('level');
 const linesElement = document.getElementById('lines');
+const bestScoreElement = document.getElementById('best-score');
 
 // Game constants
 const COLS = 10;
@@ -45,6 +46,8 @@ const GAME_SPEED = 1000; // Initial speed in ms
 
 // Game variables
 let score = 0;
+let highScore = 0; // The best score (Best)
+let gameData = null; // What's saved (js/storage.js), once it has loaded: the game doesn't wait for it
 let level = 1;
 let lines = 0;
 let gameInterval;
@@ -53,10 +56,34 @@ let gamePause = false;
 let dropStart = Date.now();
 let gameSpeed = GAME_SPEED;
 
+// What's saved: the best score shows as soon as it has loaded
+loadGameData().then((data) => {
+    gameData = data;
+    if (highScore > gameData.highScore) {
+        // Beaten while it was loading
+        gameData.highScore = highScore;
+        saveGameData(gameData);
+    }
+    highScore = gameData.highScore;
+    bestScoreElement.textContent = highScore;
+});
+
 // Set the game score (cheat)
 function setScore(newScore) {
     score = newScore;
-    document.getElementById("score").textContent = score;
+    document.getElementById('score').textContent = score;
+}
+
+// Show the best score, and save a new one (js/storage.js) once what's saved has loaded
+function updateHighScore() {
+    if (score > highScore) {
+        highScore = score;
+        if (gameData) {
+            gameData.highScore = highScore;
+            saveGameData(gameData);
+        }
+    }
+    bestScoreElement.textContent = highScore;
 }
 
 // Initialize the board
@@ -153,8 +180,10 @@ function resetGame() {
     gamePause = false;
 
     scoreElement.textContent = score;
+    updateHighScore();
     levelElement.textContent = level;
     linesElement.textContent = lines;
+    startButton.textContent = 'Pause (p)';
 
     currentPiece = randomPiece();
     nextPiece = randomPiece();
@@ -182,14 +211,14 @@ function drawSquare(x, y, color, canvas, blockSize) {
     context.strokeRect(x * blockSize, y * blockSize, blockSize, blockSize);
 
     // Add a gradient effect to make it look 3D
-    context.fillStyle = "rgba(255, 255, 255, 0.2)";
+    context.fillStyle = 'rgba(255, 255, 255, 0.2)';
     context.beginPath();
     context.moveTo(x * blockSize, y * blockSize);
     context.lineTo((x + 1) * blockSize, y * blockSize);
     context.lineTo(x * blockSize, (y + 1) * blockSize);
     context.fill();
 
-    context.fillStyle = "rgba(0, 0, 0, 0.2)";
+    context.fillStyle = 'rgba(0, 0, 0, 0.2)';
     context.beginPath();
     context.moveTo((x + 1) * blockSize, y * blockSize);
     context.lineTo((x + 1) * blockSize, (y + 1) * blockSize);
@@ -202,7 +231,7 @@ function drawBoard() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw the grid lines
-    ctx.strokeStyle = "gray";
+    ctx.strokeStyle = 'gray';
     ctx.lineWidth = 0.5;
 
     // Draw horizontal lines
@@ -238,7 +267,7 @@ function drawPiece() {
             if (currentPiece.shape[y][x]) {
                 drawSquare(
                     currentPiece.x + x,
-                    currentPiece.y + y - 1,
+                    currentPiece.y + y,
                     currentPiece.color,
                     canvas,
                     BLOCK_SIZE
@@ -353,6 +382,7 @@ function lockPiece() {
 
     // Update UI
     scoreElement.textContent = score;
+    updateHighScore();
     levelElement.textContent = level;
     linesElement.textContent = lines;
 
@@ -473,18 +503,18 @@ function pauseGame() {
         clearInterval(gameInterval);
 
         // Draw pause message
-        ctx.fillStyle = "white";
-        ctx.textAlign = "center";
-        ctx.font = "30px Arial";
-        ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2);
-        startButton.textContent = "Resume";
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.font = '30px Arial';
+        ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+        startButton.textContent = 'Resume (p)';
     } else if (gameActive && gamePause) {
         // Resume the game
         gamePause = false;
         gameInterval = setInterval(gameLoop, gameSpeed);
         drawBoard();
         drawPiece();
-        startButton.textContent = "Pause";
+        startButton.textContent = 'Pause (p)';
     }
 }
 
@@ -495,18 +525,20 @@ function gameOver() {
 
     // Draw the game over screen in the next frame to ensure it's not overwritten
     requestAnimationFrame(() => {
+        if (gameActive) return; // A new game has already started
+
         // Semi-transparent overlay
-        ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Draw game over text
-        ctx.fillStyle = "white";
-        ctx.textAlign = "center";
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
         ctx.font = "40px 'Pixelify Sans'";
-        ctx.fillText("GAME OVER!", canvas.width / 2, canvas.height / 2 - 30);
-        ctx.font = "20px Arial";
+        ctx.fillText('GAME OVER!', canvas.width / 2, canvas.height / 2 - 30);
+        ctx.font = '20px Arial';
         ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
-        ctx.font = "14px Arial";
+        ctx.font = '14px Arial';
         ctx.fillText("Press 'Reset Game' to play again", canvas.width / 2, canvas.height / 2 + 50);
     });
 }
@@ -516,24 +548,34 @@ document.addEventListener('keydown', event => {
     if (!gameActive || gamePause) {
         return;
     }
+    if (event.ctrlKey || event.metaKey || event.altKey) return; // The browser's shortcuts
+
+    // The game's keys don't scroll the page, or press a button that still has focus
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(event.key)) {
+        event.preventDefault();
+    }
+    // Holding Space drops one piece, not one after another
+    if (event.repeat && event.key === ' ') {
+        return;
+    }
 
     switch(event.key) {
-        case "ArrowLeft":
+        case 'ArrowLeft':
             movePieceLeft();
             dropStart = Date.now();
             break;
-        case "ArrowUp":
+        case 'ArrowUp':
             rotatePiece();
             dropStart = Date.now();
             break;
-        case "ArrowRight":
+        case 'ArrowRight':
             movePieceRight();
             dropStart = Date.now();
             break;
-        case "ArrowDown":
+        case 'ArrowDown':
             movePieceDown();
             break;
-        case " ":
+        case ' ':
             hardDrop();
             break;
     }

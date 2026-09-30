@@ -2,19 +2,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const gameCanvas = document.getElementById('tetris');
 
     // Swipe detection variables
-    let startX, startY, endX, endY;
+    let startX, startY, endX, endY, touchStartTime;
 
     // Detect swipe gestures, and taps
     gameCanvas.addEventListener('touchstart', function(e) {
         e.preventDefault(); // Prevent default touch behavior like page refresh, scrolling, zooming
         const touch = e.touches[0];
-        startX = touch.clientX;
-        startY = touch.clientY;
+        startX = endX = touch.clientX;
+        startY = endY = touch.clientY;
         touchStartTime = Date.now(); // Record the start time of the touch
     });
 
     gameCanvas.addEventListener('touchmove', function(e) {
-        e.preventDefault() // Prevent default touch behavior like page refresh, scrolling, zooming
+        e.preventDefault(); // Prevent default touch behavior like page refresh, scrolling, zooming
         const touch = e.touches[0];
         endX = touch.clientX;
         endY = touch.clientY;
@@ -24,7 +24,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const diffX = endX - startX;
         const diffY = endY - startY;
 
-        if (Math.abs(diffX) > Math.abs(diffY)) {
+        const isTap = Math.abs(diffX) < 10 && Math.abs(diffY) < 10; // A tap, not a swipe
+        if (!isTap && Math.abs(diffX) > Math.abs(diffY)) {
             // Horizontal swipe
             if (diffX > 0) {
                 // Swipe right
@@ -35,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             // Vertical swipe
-            if (diffY > 0) {
+            if (!isTap && diffY > 0) {
                 // Swipe down
                 document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
             } else {
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Remap WASD keys to arrow keys
     document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return; // The browser's shortcuts
         switch (!e.shiftKey && e.key.toLowerCase()) {
             case 'w':
                 document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' }));

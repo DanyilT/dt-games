@@ -4,16 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tetris Game</title>
+    <meta name="description" content="The classic block-stacking puzzle game. Rotate and move falling blocks to create complete lines.">
     <link rel="icon" href="img/block.png">
     <link rel="stylesheet" href="css/style.css">
+    <!-- GameHub support, before the game's own scripts: saves, and centring the play area -->
+    <script src="js/gamehub.js" data-game="tetris"></script>
 </head>
 <body>
 <main class="game-container">
     <h1>TETRIS GAME</h1>
     <div class="game-area">
-        <canvas id="tetris" width="300" height="600"></canvas>
+        <canvas id="tetris" width="300" height="600" data-play-area></canvas>
         <div class="game-info">
-            <div class="score-box"><h2>Score</h2><span id="score">0</span></div>
+            <div class="score-box">
+                <div><h2>Score</h2><span id="score">0</span></div>
+                <div><h2>Best</h2><span id="best-score">0</span></div>
+            </div>
             <div class="level-box"><h2>Level</h2><span id="level">1</span></div>
             <div class="lines-box"><h2>Lines</h2><span id="lines">0</span></div>
             <div class="next-piece-box">
@@ -22,10 +28,10 @@
             </div>
             <div class="instructions">
                 <h2>Controls</h2>
-                <p><b>&larr;</b> Move Left</p>
-                <p><b>&rarr;</b> Move Right</p>
-                <p><b>&darr;</b> Move Down</p>
-                <p><b>&uarr;</b> Rotate</p>
+                <p><b>A | &larr;</b> Move Left</p>
+                <p><b>D | &rarr;</b> Move Right</p>
+                <p><b>S | &darr;</b> Move Down</p>
+                <p><b>W | &uarr;</b> Rotate</p>
                 <p><b>Space</b> Drop</p>
             </div>
             <div class="game-controls">
@@ -46,9 +52,10 @@
     <script src="js/buttons-handler.js"></script>
     <script src="js/extend-controls.js"></script>
 </main>
-<footer style="display: none">&copy; Dany | TetrisGame | 2025 <hr> <a href="https://github.com/DanyilT/WebDev/blob/main/Game/Tetris">source code</a></footer>
+<footer style="display: none">&copy; Dany | TetrisGame | 2025-2026 <hr> <a href="https://github.com/DanyilT/dt-games/tree/tetris">source code</a></footer>
 <!-- Tetris Game Code -->
-<script src="tetris.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/tetris.js"></script>
 <!-- Very important script -->
 <script src="js/qwerty.js"></script>
 </body>

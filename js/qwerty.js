@@ -22,11 +22,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 let easterEggActive = false;
 
+// The Easter egg: hold Shift and type Q W E R T Y (or call it from the console)
 function activateQwertyEasterEgg(activate = 'all') {
     if (easterEggActive) return;
     easterEggActive = true;
 
-    console.log("🎮 QWERTY Easter Egg Activated! 🎮");
+    console.log('🎮 QWERTY Easter Egg Activated! 🎮');
 
     activate = activate !== 'all' ? activate : ['setScore', 'gradientBorder', 'blockTeleport', 'blocks3D'];    // 1. Set score to negative maximum integer
     if (activate.includes('setScore') && typeof setScore === 'function') {

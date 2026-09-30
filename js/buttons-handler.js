@@ -31,8 +31,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Keyboard shortcut for instructions
     document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return; // The browser's shortcuts
+
         if (e.key === 'i') {
-            if (instructionsModal.style.display === 'flex') {
+            if (e.repeat) return; // Held down: toggle once
+            if (isModalOpen(instructionsModal)) {
                 hideModal(instructionsModal);
             } else {
                 showModal(instructionsModal);
@@ -42,21 +45,29 @@ document.addEventListener('DOMContentLoaded', function() {
         // Close any open modal with Escape
         if (e.key === 'Escape') {
             document.querySelectorAll('.modal-overlay').forEach(modal => {
-                if (modal.style.display === 'flex') {
+                if (isModalOpen(modal)) {
                     hideModal(modal);
                 }
             });
         }
     });
 
+    // Show a dialog
     function showModal(modal) {
         modal.style.display = 'flex';
     }
 
+    // Hide a dialog
     function hideModal(modal) {
         modal.style.display = 'none';
     }
 
+    // Whether a dialog is showing (dragging one sets display to block)
+    function isModalOpen(modal) {
+        return modal.style.display === 'flex' || modal.style.display === 'block';
+    }
+
+    // Build the Help dialogs from the page's instructions and footer
     function createModalWindows() {
         // Create instructions modal
         const instructionsContent = document.querySelector('.instructions').innerHTML;
@@ -74,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('.instructions').style.display = 'none';
     }
 
+    // A Windows 9x style dialog, with a title bar and an OK button
     function createModal(id, title, content) {
         const iconPath = 'img/icons/minesweeper-icon-1995.ico';
 
@@ -106,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return modal;
     }
 
+    // Let a dialog be moved by dragging its title bar
     function makeDraggable(modalElement) {
         const titleBar = modalElement.querySelector('.window-title-bar');
         const modalWindow = modalElement.querySelector('.modal-window');
@@ -163,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to update win indicators
     function updateWinIndicators() {
-        const winLevels = JSON.parse(localStorage.getItem('winLevels')) || {'beginner': 0, 'intermediate': 0, 'expert': 0};
+        const winLevels = gameData ? gameData.wins : {}; // None until what's saved has loaded
 
         difficultyOptions.forEach(option => {
             const level = option.dataset.level;
@@ -179,7 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Add selected class if this is the current level
-            if (level === localStorage.getItem('minesweeperLevel')) {
+            if (level === currentLevel) {
                 option.classList.add('selected');
             } else {
                 option.classList.remove('selected');
@@ -189,6 +202,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add keyboard shortcut
     document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return; // The browser's shortcuts
+        if (e.repeat) return; // Held down: act once
+
+        // A dialog is open: the keys are for it, not for the board behind it
+        const dialogOpen = [...document.querySelectorAll('.modal-overlay')].some(m => m.style.display === 'flex' || m.style.display === 'block');
+        if (dialogOpen && e.key !== 'Escape') return;
+
         // Restart game with 'r' key
         if (e.key === 'r') {
             document.getElementById('reset-button').click();
@@ -230,10 +250,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize win indicators on page load
     updateWinIndicators();
 
-    // Listen for game wins to update indicators
+    // Update them once what's saved has loaded, and after each win
+    document.addEventListener('minesweeper:loaded', updateWinIndicators);
+    document.addEventListener('minesweeper:win', updateWinIndicators);
+
+    // A win in another tab of this game (the storage event only fires there): take its save, so this tab doesn't save
+    // over it (js/gamehub.js keeps the save under minesweeperGameData)
     window.addEventListener('storage', (event) => {
-        if (event.key === 'winLevels') {
-            updateWinIndicators();
+        if (event.key !== 'minesweeperGameData' || !event.newValue || !gameData) return;
+        try {
+            gameData = checkGameData(JSON.parse(event.newValue));
+        } catch (error) {
+            return; // Not readable: keep this tab's
         }
+        updateWinIndicators();
     });
 });

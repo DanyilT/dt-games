@@ -1,4 +1,5 @@
 # Minesweeper Game
+[![minesweeper@v1.0.0](https://img.shields.io/badge/minesweeper-v1.0.0-blue)](https://github.com/DanyilT/dt-games/releases/tag/minesweeper@v1.0.0)
 
 Test your logic and luck in this classic minesweeper game. Clear the board without hitting any mines.
 
@@ -6,7 +7,7 @@ Test your logic and luck in this classic minesweeper game. Clear the board witho
 
 **[Play in GameHub](https://game-hub.danyt.workers.dev/g/minesweeper)** · [Play directly](https://minesweeper.dt-games.pages.dev) · [Source code](https://github.com/DanyilT/dt-games/tree/minesweeper)
 
-## 👾 Controls
+## 🕹️ Controls
 
 | Keys | Action |
 | --- | --- |
@@ -36,6 +37,23 @@ On a phone or tablet:
 - Classic Windows 9x style
 - Mobile-friendly
 - Easter Egg
+
+## 💾 Saved data
+
+The game saves everything as one object: `{ "level": "beginner", "wins": { "beginner": 3, "intermediate": 1, "expert": 0 }, "bestTimes": { "beginner": 42, "intermediate": 187, "expert": null } }`.
+`level` is the difficulty you picked, `wins` counts your wins on each level (the ⭐ in the Game menu), and `bestTimes` keeps your fastest win on each level, in seconds (`null` until you've won it).
+It's kept in the browser, in `localStorage` under `minesweeperGameData`, and in your GameHub account when you play in GameHub signed in (see below).
+If the browser blocks storage (some do inside an iframe), the game still plays, but it doesn't remember anything.
+
+## 👾 GameHub
+
+[GameHub](https://game-hub.danyt.workers.dev) plays this game in a frame. `js/gamehub.js` connects the two: it's the same file in every game, loaded before the game's own scripts.
+
+- **Saves:** the game saves only through `window.GameHub`. Every save stays in this browser, as before. When you play in GameHub signed in, your progress also goes to your GameHub account, and the game loads the account's copy, so it follows you from device to device. The first time you play signed in on a device, if your account has no save for this game yet, this device's goes up.
+- **The play area:** GameHub asks the game to put its play area in the middle of the frame (the `gamehub:center` message).
+- **Only GameHub:** it loads GameHub's script (`/hub-bridge.js`) only when the game is in a frame on GameHub's own address.
+
+The game works without it: played on its own, or when GameHub can't be reached (the game gives it 3 seconds at most), everything stays in this browser.
 
 ## 👀 Links
 

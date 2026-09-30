@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectionActive = false;
     let flagMode = false; // Default mode is reveal
 
-    const toggleButton = document.getElementById("mode-toggle");
+    const toggleButton = document.getElementById('mode-toggle');
 
     // Toggle mode when button is clicked
     toggleButton.addEventListener('click', function() {
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     window.handleRightClick = function(row, col) {
-        if (flagMode) {
+        if (flagMode && !board[row][col].isFlagged) {
             originalCellClick(row, col);
         } else {
             originalRightClick(row, col);
@@ -85,6 +85,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Keyboard controls
     document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return; // The browser's shortcuts
+
+        // A dialog is open: the keys are for it, not for the board behind it
+        const dialogOpen = [...document.querySelectorAll('.modal-overlay')].some(m => m.style.display === 'flex' || m.style.display === 'block');
+        if (dialogOpen && e.key !== 'Escape') return;
+
         if (gameOver) return;
 
         switch (e.key) {
@@ -115,8 +121,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
             case ' ': // Space
             case 'Enter':
-                activateCell(e.shiftKey);
                 e.preventDefault();
+                if (!e.repeat) activateCell(e.shiftKey); // Held down: act once (the arrows keep repeating)
                 break;
         }
     });

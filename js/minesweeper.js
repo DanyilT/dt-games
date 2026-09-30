@@ -36,7 +36,8 @@ let gameSettings = {
 };
 
 // Game state
-let currentLevel = localStorage.getItem('minesweeperLevel') || 'beginner';
+let gameData = null; // What's saved (js/storage.js), once it has loaded: the board is built then
+let currentLevel = defaultGameData().level;
 let board = [];
 let mineCount = gameSettings[currentLevel].mines;
 let flaggedCount = 0;
@@ -51,18 +52,17 @@ const gameBoard = document.getElementById('game-board');
 const resetButton = document.getElementById('reset-button');
 const mineCounter = document.querySelector('.mine-counter');
 const timer = document.querySelector('.timer');
-const beginnerBtn = document.getElementById('beginner');
-const intermediateBtn = document.getElementById('intermediate');
-const expertBtn = document.getElementById('expert');
 
-// Initialize game
-initGame();
+// Initialize game, at the saved level
+loadGameData().then((data) => {
+    gameData = data;
+    currentLevel = gameData.level;
+    initGame();
+    document.dispatchEvent(new Event('minesweeper:loaded')); // The Game menu shows the level and the ⭐
+});
 
 // Event listeners
 resetButton.addEventListener('click', resetGame);
-beginnerBtn.addEventListener('click', () => changeLevel('beginner'));
-intermediateBtn.addEventListener('click', () => changeLevel('intermediate'));
-expertBtn.addEventListener('click', () => changeLevel('expert'));
 
 // Initialize game board
 function initGame() {
@@ -162,17 +162,17 @@ function handleCellClick(row, col) {
         return;
     }
 
+    // If cell is flagged, handle right click
+    if (board[row][col].isFlagged) {
+        handleRightClick(row, col);
+        return;
+    }
+
     // Handle first click
     if (firstClick) {
         firstClick = false;
         plantMines(row, col);
         startTimer();
-    }
-
-    // If cell is flagged, handle right click
-    if (board[row][col].isFlagged) {
-        handleRightClick(row, col);
-        return;
     }
 
     // If the cell is already revealed and has neighbors
@@ -226,7 +226,7 @@ function revealUnflaggedNeighbors(row, col) {
             if (r !== row || c !== col) {
                 if (!board[r][c].isRevealed && !board[r][c].isFlagged) {
                     if (board[r][c].isMine) {
-                        setGameOver();
+                        setGameOver(r, c);
                         return;
                     }
                     revealCell(r, c);
@@ -272,16 +272,18 @@ function handleRightClick(row, col) {
         return;
     }
 
-    if (board[row][col].isRevealed && board[row][col].neighbors > 0) {
-        // Count flagged neighbors
-        const flaggedNeighbors = countFlaggedNeighbors(row, col);
+    if (board[row][col].isRevealed) {
+        if (board[row][col].neighbors > 0) {
+            // Count flagged neighbors
+            const flaggedNeighbors = countFlaggedNeighbors(row, col);
 
-        // If flagged neighbors matches the number, reveal unflagged neighbors
-        if (flaggedNeighbors === board[row][col].neighbors) {
-            revealUnflaggedNeighbors(row, col);
-            checkWinCondition();
+            // If flagged neighbors matches the number, reveal unflagged neighbors
+            if (flaggedNeighbors === board[row][col].neighbors) {
+                revealUnflaggedNeighbors(row, col);
+                checkWinCondition();
+            }
         }
-        return;
+        return; // Opened cells can't be flagged
     }
 
     const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
@@ -301,6 +303,8 @@ function handleRightClick(row, col) {
 
 // Reveal all mines when game is over; or can be a cheat - should init the board first, before using the function (cheat)
 function revealAllMines(triggeredRow = null, triggeredCol = null) {
+    if (!board.length) return; // No board yet: what's saved is still loading
+
     const { rows, cols } = gameSettings[currentLevel];
 
     for (let row = 0; row < rows; row++) {
@@ -327,6 +331,7 @@ function revealAllMines(triggeredRow = null, triggeredCol = null) {
     }
 }
 
+// Game over: stop the timer and show all the mines
 function setGameOver(triggeredRow, triggeredCol) {
     gameOver = true;
     resetButton.textContent = '😵';
@@ -338,13 +343,20 @@ function setGameOver(triggeredRow, triggeredCol) {
 
 // Check win condition, if all non-mine cells are revealed, the player wins
 function checkWinCondition() {
+    if (gameOver) return; // Lost already (a chord that opened a mine)
+
     const { rows, cols, mines } = gameSettings[currentLevel];
     const totalCells = rows * cols;
 
     if (revealedCount === totalCells - mines) {
-        let winLevels = JSON.parse(localStorage.getItem('winLevels')) || {'beginner': 0, 'intermediate': 0, 'expert': 0};
-        winLevels[currentLevel]++;
-        localStorage.setItem('winLevels', JSON.stringify(winLevels));
+        // Count the win, and keep the time if it's the fastest on this level
+        gameData.wins[currentLevel]++;
+        const bestTime = gameData.bestTimes[currentLevel];
+        if (bestTime === null || seconds < bestTime) {
+            gameData.bestTimes[currentLevel] = seconds;
+        }
+        saveGameData(gameData);
+        document.dispatchEvent(new Event('minesweeper:win')); // The Game menu shows the new ⭐ count
 
         gameOver = true;
         resetButton.textContent = '😎';
@@ -384,17 +396,22 @@ function updateTimer() {
 // Update mine counter display
 function updateMineCounter() {
     const remainingMines = mineCount - flaggedCount;
-    mineCounter.textContent = remainingMines.toString().padStart(3, '0');
+    mineCounter.textContent = remainingMines < 0
+        ? '-' + String(-remainingMines).padStart(2, '0')
+        : remainingMines.toString().padStart(3, '0');
 }
 
 // Reset game to initial state
 function resetGame() {
+    if (!gameData) return; // What's saved is still loading: the board comes with it
     initGame();
 }
 
 // Change game level
 function changeLevel(level) {
+    if (!gameData) return; // What's saved is still loading: the board comes with it
     currentLevel = level;
-    localStorage.setItem('minesweeperLevel', level);
+    gameData.level = level;
+    saveGameData(gameData);
     resetGame();
 }

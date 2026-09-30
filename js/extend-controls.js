@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add keyboard navigation for Sudoku grid
     document.addEventListener('keydown', function(e) {
         // Handle navigation keys (arrows and WASD)
-        if (isNavigationKey(e.key)) {
+        if (isNavigationKey(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault(); // Prevent scrolling
             navigationMethod = 'keyboard';
             navigateGrid(e.key);
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!currentCell || !currentCell.classList.contains('cell')) {
             // If no reference point, start with the first non-initial cell
             isFirstInteraction = true;
-            currentCell = document.querySelector('.cell:not([readonly])' || document.querySelector('.cell'));
+            currentCell = document.querySelector('.cell:not([readonly])') || document.querySelector('.cell');
         }
 
         const row = parseInt(currentCell.dataset.row);

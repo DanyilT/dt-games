@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sudoku Game</title>
+    <meta name="description" content="Challenge your mind with this classic Japanese number puzzle game. Fill the grid following Sudoku rules.">
     <link rel="icon" href="img/sudoku.png">
     <link rel="stylesheet" href="css/style.css">
+    <!-- GameHub support, before the game's own scripts: saves, and centring the play area -->
+    <script src="js/gamehub.js" data-game="sudoku"></script>
 </head>
 <body>
 <main class="game-container">
     <h1>Sudoku Game</h1>
-    <div class="sudoku-grid">
+    <div class="sudoku-grid" data-play-area>
         <!-- 9x9 Sudoku grid -->
         <script>
             for (let i = 0; i < 9; i += 3) {
@@ -74,9 +77,10 @@
     <script src="js/buttons-handler.js"></script>
     <script src="js/extend-controls.js"></script>
 </main>
-<footer style="display: none">&copy; Dany | SudokuGame | 2025 <hr> <a href="https://github.com/DanyilT/WebDev/blob/main/Game/Sudoku">source code</a></footer>
-<!-- Snake Game Code -->
-<script src="sudoku.js"></script>
+<footer style="display: none">&copy; Dany | SudokuGame | 2025-2026 <hr> <a href="https://github.com/DanyilT/dt-games/tree/sudoku">source code</a></footer>
+<!-- Sudoku Game Code -->
+<script src="js/storage.js"></script>
+<script src="js/sudoku.js"></script>
 <!-- Very important script -->
 <script src="js/qwerty.js"></script>
 </body>

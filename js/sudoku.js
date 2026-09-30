@@ -1,19 +1,33 @@
 // Global variables
-let board = []; // Current state
-let solution = []; // Complete solution
-let initialBoard = []; // Initial state with clues
-let difficulty = localStorage.getItem('sudokuLevel') || 'medium';
-let winLevels = JSON.parse(localStorage.getItem('winLevels')) || {'beginner': 0, 'easy': 0, 'medium': 0, 'hard': 0, 'expert': 0};
+let board = emptyGrid(); // Current state (empty until what's saved has loaded)
+let solution = emptyGrid(); // Complete solution
+let initialBoard = emptyGrid(); // Initial state with clues
+let gameData = null; // What's saved (js/storage.js), once it has loaded: the puzzle comes with it
+let difficulty = defaultGameData().level;
+let winLevels = defaultGameData().wins;
 let gameWon = false;
+let puzzleTime = 0; // ms spent on the puzzle in progress, up to when its clock last stopped (no timer is shown)
+let clockStartedAt = null; // performance.now() while the clock runs, null while it's stopped
 
-// Initialize game on load
-document.addEventListener('DOMContentLoaded', function() {
-    if (localStorage.getItem('sudokuBoard') === null) {
-        // Then initialize game if needed
+// Initialize game with what's saved: the puzzle in progress, or a new one
+loadGameData().then((data) => {
+    gameData = data;
+    difficulty = gameData.level; // A new puzzle is at the saved level
+    winLevels = gameData.wins;
+    if (gameData.board === null) {
         initGame();
     }
-    // Load saved game state first
     loadGameState();
+});
+
+// The clock stops while the page is hidden (another tab, a locked phone), and the time so far is saved
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        stopClock();
+        saveGameState();
+    } else {
+        startClock();
+    }
 });
 
 // Add event listeners for cells
@@ -21,8 +35,13 @@ setupCellListeners();
 
 // Add event listener to the difficulty selector
 document.getElementById('difficulty').addEventListener('change', function() {
+    if (!gameData) {
+        this.value = difficulty; // What's saved is still loading: keep the level it had
+        return;
+    }
     difficulty = this.value;
-    localStorage.setItem('sudokuLevel', difficulty);
+    gameData.level = difficulty;
+    saveGameData(gameData);
     initGame();
 });
 
@@ -40,10 +59,16 @@ document.getElementById('checkSolutionBtn').addEventListener('click', checkSolut
 
 // Function to initialize the game
 function initGame() {
+    if (!gameData) return; // What's saved is still loading: the puzzle comes with it
     gameWon = false;
 
+    // A new puzzle: its clock starts from zero
+    puzzleTime = 0;
+    clockStartedAt = null;
+    startClock();
+
     // Clear saved game state when starting a new game
-    localStorage.removeItem('sudokuBoard');
+    gameData.board = null;
 
     // Generate a complete solution
     solution = generateSolution();
@@ -57,9 +82,36 @@ function initGame() {
 
     // Display the board
     updateBoard();
+    saveGameState(); // Save the new puzzle, so a reload keeps it
 
     // Show notification
     showNotification('New game started!', 'info');
+}
+
+// An empty 9×9 grid (0 is an empty cell)
+function emptyGrid() {
+    return Array.from({ length: 9 }, () => Array(9).fill(0));
+}
+
+// Start the clock of the puzzle in progress (while it's unsolved and the page is on screen)
+function startClock() {
+    if (clockStartedAt === null && !gameWon && !document.hidden) {
+        clockStartedAt = performance.now();
+    }
+}
+
+// Stop the clock, keeping the time so far
+function stopClock() {
+    if (clockStartedAt !== null) {
+        puzzleTime += performance.now() - clockStartedAt;
+        clockStartedAt = null;
+    }
+}
+
+// Seconds spent on the puzzle in progress
+function puzzleSeconds() {
+    const running = clockStartedAt === null ? 0 : performance.now() - clockStartedAt;
+    return Math.round((puzzleTime + running) / 1000);
 }
 
 // Function to generate a complete Sudoku solution
@@ -243,7 +295,7 @@ function setupCellListeners() {
             }
 
             // Prevent direct typing in cells
-            if (e.key >= '1' && e.key <= '9') {
+            if (e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 e.preventDefault();
                 if (!this.readOnly) {
                     const row = parseInt(this.dataset.row);
@@ -260,6 +312,8 @@ function setupCellListeners() {
             } else if (e.key === 'Escape' || e.key === 'Enter' || e.key === 'Tab' || e.key === ' ') {
                 e.preventDefault();
                 this.blur(); // Remove focus from the input
+            } else if (e.key.length === 1 && e.key !== '0' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault(); // Letters and signs would empty the cell (the i and r shortcuts still work; 0 still clears it, as before)
             }
         });
 
@@ -302,7 +356,7 @@ function setupCellListeners() {
             const num = parseInt(this.getAttribute('data-number'));
             const selectedCell = window.currentSelectedCell;
 
-            if (selectedCell && !selectedCell.readOnly) {
+            if (selectedCell && !initialBoard[selectedCell.dataset.row][selectedCell.dataset.col]) {
                 const row = parseInt(selectedCell.dataset.row);
                 const col = parseInt(selectedCell.dataset.col);
                 updateCell(row, col, num);
@@ -336,32 +390,35 @@ function updateCell(row, col, value) {
 
 // Function to save the complete game state
 function saveGameState() {
+    if (!gameData) return; // What's saved is still loading: don't save over it
+
     if (!gameWon) {
-        const gameState = {
+        gameData.board = {
             board: board,
             initialBoard: initialBoard,
             solution: solution,
             difficulty: difficulty,
-            gameWon: gameWon
+            time: puzzleSeconds()
         };
-        localStorage.setItem('sudokuBoard', JSON.stringify(gameState));
     } else {
-        localStorage.removeItem('sudokuBoard');
+        gameData.board = null;
     }
 
     // Save win statistics
-    localStorage.setItem('winLevels', JSON.stringify(winLevels));
+    gameData.wins = winLevels;
 
     // Save current difficulty
-    localStorage.setItem('sudokuLevel', difficulty);
+    gameData.level = difficulty;
+
+    saveGameData(gameData);
 }
 
 // Function to load the complete game state
 function loadGameState() {
     const difficultySelect = document.getElementById('difficulty');
-    const savedGame = localStorage.getItem('sudokuBoard');
-    difficulty = localStorage.getItem('sudokuLevel') || 'medium';
-    winLevels = JSON.parse(localStorage.getItem('winLevels')) || {'beginner': 0, 'easy': 0, 'medium': 0, 'hard': 0, 'expert': 0};
+    const savedGame = gameData.board;
+    difficulty = gameData.level;
+    winLevels = gameData.wins;
 
     // Update difficulty dropdown to match saved state
     if (difficultySelect) {
@@ -369,12 +426,16 @@ function loadGameState() {
     }
 
     if (savedGame) {
-        const sudokuBoard = JSON.parse(savedGame);
-        board = sudokuBoard.board;
-        initialBoard = sudokuBoard.initialBoard;
-        solution = sudokuBoard.solution;
-        difficulty = sudokuBoard.difficulty;
-        gameWon = sudokuBoard.gameWon || false;
+        board = savedGame.board;
+        initialBoard = savedGame.initialBoard;
+        solution = savedGame.solution;
+        difficulty = savedGame.difficulty;
+        gameWon = false; // Won games aren't saved
+
+        // Its clock goes on from the time saved with it
+        puzzleTime = savedGame.time * 1000;
+        clockStartedAt = null;
+        startClock();
 
         // Display the loaded board
         updateBoard();
@@ -408,9 +469,17 @@ function checkForCompletion() {
         }
     }
 
-    // Record the win for the current difficulty
+    // Record the win for the current difficulty, and the time if it's the fastest on it
     if (!gameWon) {
+        stopClock();
+        const time = puzzleSeconds();
         winLevels[difficulty]++;
+        if (gameData) {
+            const bestTime = gameData.bestTimes[difficulty];
+            if (bestTime === null || time < bestTime) {
+                gameData.bestTimes[difficulty] = time;
+            }
+        }
         gameWon = true;
         saveGameState();
         showNotification('Congratulations! You solved the puzzle!', 'success');
@@ -442,6 +511,7 @@ function showSolution(setGameWon = true) {
     showNotification('Solution revealed', 'info');
     showNotification('You are not getting a win-badge for this', 'warning'); // gameWon is set to true (next line) and to get a badge it must be false before calling the `checkForCompletion` function
     gameWon = setGameWon;
+    if (gameWon) stopClock(); // Shown, not solved: no time for this one
     board = JSON.parse(JSON.stringify(solution));
     updateBoard();
     saveGameState();

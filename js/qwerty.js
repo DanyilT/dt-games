@@ -22,11 +22,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 let easterEggActive = false;
 
+// The Easter egg: hold Shift and type Q W E R T Y (or call it from the console)
 function activateQwertyEasterEgg(activate = 'all') {
     if (easterEggActive) return;
     easterEggActive = true;
 
-    console.log("🎮 QWERTY Easter Egg Activated! 🎮");
+    console.log('🎮 QWERTY Easter Egg Activated! 🎮');
 
     activate = activate !== 'all' ? activate : ['style', 'solution', 'matrix', 'followers'];
     // 1. Switch CSS file from style.css to basic-style.css
@@ -35,7 +36,7 @@ function activateQwertyEasterEgg(activate = 'all') {
         if (styleLink) {
             styleLink.dataset.originalHref = styleLink.href;
             styleLink.href = styleLink.href.replace('style.css', 'basic-style.css');
-            console.log("👺 Style switched to basic mode");
+            console.log('👺 Style switched to basic mode');
         }
     }
 
@@ -47,14 +48,15 @@ function activateQwertyEasterEgg(activate = 'all') {
             }
             gameWon = false;
         }, 16); // ~60fps
-        console.log("👀 Solution shown");
+        console.log('👀 Solution shown');
     }
 
     // 3. Matrix effect going on the background
     if (activate.includes('matrix')) {
         createMatrixEffect();
-        console.log("🔢 Matrix effect activated");
+        console.log('🔢 Matrix effect activated');
 
+        // Numbers falling down a canvas behind the page
         function createMatrixEffect() {
             // Create canvas for better performance
             const canvas = document.createElement('canvas');
@@ -84,6 +86,7 @@ function activateQwertyEasterEgg(activate = 'all') {
             // Numbers only for Sudoku theme
             const characters = '0123456789';
 
+            // One frame: fade what is there a little, then draw the next number of each column
             function draw() {
                 // Create fade effect with semi-transparent white rectangle
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
@@ -118,8 +121,9 @@ function activateQwertyEasterEgg(activate = 'all') {
     // 4. Create numbers that follow the mouse cursor
     if (activate.includes('followers')) {
         createNumbersFollowEffect();
-        console.log("🧙‍♂️ Numbers have come alive!");
+        console.log('🧙‍♂️ Numbers have come alive!');
 
+        // Copies of the grid's numbers that float around and follow the mouse
         function createNumbersFollowEffect() {
             // Track mouse position
             let mouseX = window.innerWidth / 2;

@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to toggle info visibility
     function toggleInfo() {
         // Update the score board with win levels
-        document.querySelector('.score-board .scores').innerHTML = `<p>${Object.entries({beginner: 0, easy: 0, medium: 0, hard: 0, expert: 0, ...JSON.parse(localStorage.getItem('winLevels') || '{}')}).map(([level, wins]) => {
+        document.querySelector('.score-board .scores').innerHTML = `<p>${Object.entries({beginner: 0, easy: 0, medium: 0, hard: 0, expert: 0, ...winLevels}).map(([level, wins]) => {
             const winBadge = wins > 0 ? ` <span class="win-badge">${wins} ⭐</span>` : `<b>${wins}</b>`;
             return `${level.charAt(0).toUpperCase() + level.slice(1)}: ${winBadge}`;
         }).join(' | ')}</p>`;
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (infoContainer.style.display === 'none') {
             infoContainer.style.display = 'block';
             infoBtn.textContent = 'Hide Info (i)';
-            infoContainer.scrollIntoView({behavior: 'smooth'});
+            window.scrollTo({ top: window.scrollY + infoContainer.getBoundingClientRect().top, behavior: 'smooth' });
         } else {
             infoContainer.style.display = 'none';
             infoBtn.textContent = 'Show Info (i)';
@@ -38,48 +38,42 @@ document.addEventListener('DOMContentLoaded', function() {
     infoBtn.addEventListener('click', toggleInfo);
 
     document.addEventListener('keydown', function(e) {
+        if (e.altKey || ((e.ctrlKey || e.metaKey) && e.key !== 'Enter')) return; // The browser's shortcuts (Ctrl/Cmd+Enter is ours)
+
         // Show/hide info panel
-        if (e.key === 'i') {
+        if (e.key === 'i' && !e.repeat) {
             toggleInfo();
         }
 
         // New game shortcut
-        if (e.key === 'r') {
+        if (e.key === 'r' && !e.repeat) {
             restartBtn.click();
         }
 
-        // Check solution with Enter only when no cell is focused
+        // Check the solution: Shift/Ctrl/Cmd+Enter anytime, Enter when no cell, button or list has the focus
         if (e.key === 'Enter') {
-            // Check if the event originated from a cell (not just what's currently focused)
-            if (!e.target.classList || !e.target.classList.contains('cell')) {
+            if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                e.preventDefault(); // Not the focused element's Enter as well
+                checkSolutionBtn.click();
+            } else if (!(e.target.closest && e.target.closest('.cell, button, select'))) {
                 checkSolutionBtn.click();
             }
         }
 
-        // Check solution with Shift+Enter, Ctrl+Enter, or Cmd+Enter (regardless of focus)
-        if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
-            e.preventDefault(); // Prevent default actions
-            checkSolutionBtn.click();
-        }
+        // Change difficulty level with Shift+1-5 (not where Shift+1-5 types the digits, as on AZERTY)
+        if (e.shiftKey && !e.repeat && /^Digit[1-5]$/.test(e.code) && !/^[0-9]$/.test(e.key)) {
+            e.preventDefault();
+            const difficultyIndex = Number(e.code.slice(-1)) - 1; // Digit1 → 0
+            const difficultyOptions = ['beginner', 'easy', 'medium', 'hard', 'expert'];
 
-        // Change difficulty level with Shift+number
-        if (e.shiftKey) {
-            // Check for number keys by their key codes (49-53 are key codes for 1-5)
-            const keyCode = e.keyCode || e.which;
-            if (keyCode >= 49 && keyCode <= 53) {
-                e.preventDefault();
-                const difficultyIndex = keyCode - 49; // Convert to 0-based index
-                const difficultyOptions = ['beginner', 'easy', 'medium', 'hard', 'expert'];
+            difficultySelect.value = difficultyOptions[difficultyIndex];
 
-                difficultySelect.value = difficultyOptions[difficultyIndex];
-
-                // Manually trigger change event
-                const event = new Event('change', {
-                    'bubbles': true,
-                    'cancelable': true
-                });
-                difficultySelect.dispatchEvent(event);
-            }
+            // Manually trigger change event
+            const event = new Event('change', {
+                'bubbles': true,
+                'cancelable': true
+            });
+            difficultySelect.dispatchEvent(event);
         }
     });
 

@@ -6,14 +6,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Detect swipe gestures
     gameCanvas.addEventListener('touchstart', function(e) {
-        e.preventDefault() // Prevent default touch behavior like page refresh, scrolling, zooming
+        e.preventDefault(); // Prevent default touch behavior like page refresh, scrolling, zooming
         const touch = e.touches[0];
-        startX = touch.clientX;
-        startY = touch.clientY;
+        startX = endX = touch.clientX;
+        startY = endY = touch.clientY;
     });
 
     gameCanvas.addEventListener('touchmove', function(e) {
-        e.preventDefault() // Prevent default touch behavior like page refresh, scrolling, zooming
+        e.preventDefault(); // Prevent default touch behavior like page refresh, scrolling, zooming
         const touch = e.touches[0];
         endX = touch.clientX;
         endY = touch.clientY;
@@ -46,21 +46,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Remap WASD keys to arrow keys
     document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return; // The browser's shortcuts
         switch (!e.shiftKey && e.key.toLowerCase()) {
             case 'w':
-                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' }));
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', repeat: e.repeat }));
                 e.preventDefault();
                 break;
             case 'a':
-                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', repeat: e.repeat }));
                 e.preventDefault();
                 break;
             case 's':
-                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', repeat: e.repeat }));
                 e.preventDefault();
                 break;
             case 'd':
-                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', repeat: e.repeat }));
                 e.preventDefault();
                 break;
         }

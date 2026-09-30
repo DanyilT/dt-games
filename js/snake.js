@@ -44,11 +44,14 @@ let tileCount = 20;
 let tileSize;
 let gameActive = false;
 let gamePause = false;
+let gameInterval;
 
 // Snake variables
 let snake = [];
 let velocityX = 0;
 let velocityY = 0;
+let movedX = 0; // Direction of the last move (a turn may not reverse it)
+let movedY = 0;
 const SNAKE_LENGTH = 5; // Initial length of the snake
 let snakeLength = SNAKE_LENGTH;
 
@@ -58,7 +61,20 @@ let foodY;
 
 // Score
 let score = 0;
-let highScore = localStorage.getItem('snakeHighScore') || 0;
+let highScore = 0;
+let gameData = null; // What's saved (js/storage.js), once it has loaded: the game doesn't wait for it
+
+// What's saved: the high score shows as soon as it has loaded
+loadGameData().then((data) => {
+    gameData = data;
+    if (highScore > gameData.highScore) {
+        // Beaten while it was loading
+        gameData.highScore = highScore;
+        saveGameData(gameData);
+    }
+    highScore = gameData.highScore;
+    document.getElementById('highScore').textContent = highScore;
+});
 
 // Set game parameters (game speed and tile count)
 function setGameParameters(speed, tiles) {
@@ -70,19 +86,19 @@ function setGameParameters(speed, tiles) {
 // Set the game score (cheat)
 function setScore(newScore) {
     score = newScore;
-    document.getElementById("score").textContent = score;
+    document.getElementById('score').textContent = score;
 }
 
 // Initialize the game
 window.onload = function() {
-    canvas = document.getElementById("game");
-    ctx = canvas.getContext("2d");
+    canvas = document.getElementById('game');
+    ctx = canvas.getContext('2d');
     tileSize = canvas.width / tileCount;
 
-    document.getElementById("highScore").textContent = highScore;
+    document.getElementById('highScore').textContent = highScore;
 
     showIntro();
-    document.addEventListener("keydown", keyDown);
+    document.addEventListener('keydown', keyDown);
 };
 
 // Reset game to initial state
@@ -95,10 +111,12 @@ function resetGame() {
     snake.push({x: canvas.width / 2 / tileSize, y: canvas.height / 2 / tileSize}); // Starting at center
     velocityX = 0;
     velocityY = 0;
+    movedX = 0;
+    movedY = 0;
 
     // Reset score
     score = 0;
-    document.getElementById("score").textContent = score;
+    document.getElementById('score').textContent = score;
 
     // Place food
     placeFood();
@@ -130,22 +148,29 @@ function gameLoop() {
         return;
     }
 
+    // The snake moves: remember which way (for the next turn)
+    movedX = velocityX;
+    movedY = velocityY;
+
+    // Add new head segment
+    snake.unshift({x: headX, y: headY});
+
     // Check for food collision
     if (headX === foodX && headY === foodY) {
         placeFood();
         snakeLength++;
         score++;
-        document.getElementById("score").textContent = score;
+        document.getElementById('score').textContent = score;
 
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('snakeHighScore', highScore);
-            document.getElementById("highScore").textContent = highScore;
+            if (gameData) {
+                gameData.highScore = highScore;
+                saveGameData(gameData);
+            }
+            document.getElementById('highScore').textContent = highScore;
         }
     }
-
-    // Add new head segment
-    snake.unshift({x: headX, y: headY});
 
     // Remove tail if didn't eat food
     if (snake.length > snakeLength) {
@@ -158,42 +183,49 @@ function gameLoop() {
 
 // Handle keyboard input
 function keyDown(e) {
+    // Keys held with Ctrl, Cmd or Alt are the browser's (Ctrl+S, Alt+←…)
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // The game's keys don't scroll the page, or press a button that still has focus
+    if (e.key.startsWith('Arrow') || (e.key === ' ' && gameActive)) e.preventDefault();
+    // A held-down key doesn't start a new game, restart or flicker the pause
+    if (e.repeat && (!gameActive || e.key === ' ' || e.key === 'r')) return;
+
     // If game is not active, start it with any arrow key
-    if (!gameActive && !gamePause && (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+    if (!gameActive && !gamePause && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         resetGame();
     }
 
     // Prevent reversing direction directly
     switch(e.key) {
-        case "ArrowUp":
-            if (velocityY !== 1) { // Not going down
+        case 'ArrowUp':
+            if (movedY !== 1) { // Not going down
                 velocityX = 0;
                 velocityY = -1;
             }
             break;
-        case "ArrowDown":
-            if (velocityY !== -1) { // Not going up
+        case 'ArrowDown':
+            if (movedY !== -1) { // Not going up
                 velocityX = 0;
                 velocityY = 1;
             }
             break;
-        case "ArrowLeft":
-            if (velocityX !== 1) { // Not going right
+        case 'ArrowLeft':
+            if (movedX !== 1) { // Not going right
                 velocityX = -1;
                 velocityY = 0;
             }
             break;
-        case "ArrowRight":
-            if (velocityX !== -1) { // Not going left
+        case 'ArrowRight':
+            if (movedX !== -1) { // Not going left
                 velocityX = 1;
                 velocityY = 0;
             }
             break;
-        case " ":
+        case ' ':
             // Pause game
             pauseGame();
             break;
-        case "r":
+        case 'r':
             gameActive = false;
             gamePause = false;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -214,6 +246,8 @@ function checkSnakeCollision(x, y) {
 
 // Place food at random position
 function placeFood() {
+    if (snake.length >= tileCount * tileCount) return; // No free cell left
+
     // Keep generating positions until we find one that's not on the snake
     do {
         foodX = Math.floor(Math.random() * canvas.width / tileSize);
@@ -223,12 +257,12 @@ function placeFood() {
 
 // Intro screen
 function showIntro() {
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.font = "50px Arial";
-    ctx.fillText("Snake Game", canvas.width / 2, canvas.height / 2);
-    ctx.font = "20px Arial";
-    ctx.fillText("Press an arrow key to start", canvas.width / 2, canvas.height / 2 + 50);
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.font = '50px Arial';
+    ctx.fillText('Snake Game', canvas.width / 2, canvas.height / 2);
+    ctx.font = '20px Arial';
+    ctx.fillText('Press an arrow key to start', canvas.width / 2, canvas.height / 2 + 50);
 }
 
 // Pause game
@@ -239,12 +273,12 @@ function pauseGame() {
         clearInterval(gameInterval);
 
         // Draw pause message
-        ctx.fillStyle = "white";
-        ctx.textAlign = "center";
-        ctx.font = "30px Arial";
-        ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2);
-        ctx.font = "20px Arial";
-        ctx.fillText("Press `SPACE` to resume", canvas.width / 2, canvas.height / 2 + 30);
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.font = '30px Arial';
+        ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+        ctx.font = '20px Arial';
+        ctx.fillText('Press `SPACE` to resume', canvas.width / 2, canvas.height / 2 + 30);
     } else if (gamePause) {
         // Resume the game
         gamePause = false;
@@ -258,37 +292,37 @@ function gameOver() {
     clearInterval(gameInterval);
 
     // Semi-transparent overlay
-    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw game over text
-    ctx.fillStyle = "white";
-    ctx.textAlign = "center";
-    ctx.font = "40px Arial";
-    ctx.fillText("Game Over!", canvas.width / 2, canvas.height / 2);
-    ctx.font = "20px Arial";
-    ctx.fillText("Press an arrow key or click Restart", canvas.width / 2, canvas.height / 2 + 30);
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.font = '40px Arial';
+    ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2);
+    ctx.font = '20px Arial';
+    ctx.fillText('Press an arrow key to restart', canvas.width / 2, canvas.height / 2 + 30);
 }
 
 // Render the game
 function render() {
     // Clear canvas
-    ctx.fillStyle = "black";
+    ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw snake
     for (let i = 0; i < snake.length; i++) {
         if (i === 0) {
             // Draw head
-            ctx.fillStyle = "lightgray";
+            ctx.fillStyle = 'lightgray';
         } else {
             // Draw body
-            ctx.fillStyle = "darkgray";
+            ctx.fillStyle = 'darkgray';
         }
         ctx.fillRect(snake[i].x * tileSize, snake[i].y * tileSize, tileSize - 1, tileSize - 1);
     }
 
     // Draw food
-    ctx.fillStyle = "purple";
+    ctx.fillStyle = 'red';
     ctx.fillRect(foodX * tileSize, foodY * tileSize, tileSize - 1, tileSize - 1);
 }

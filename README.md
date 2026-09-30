@@ -1,4 +1,5 @@
 # Snake Game
+[![snake@v1.0.0](https://img.shields.io/badge/snake-v1.0.0-blue)](https://github.com/DanyilT/dt-games/releases/tag/snake@v1.0.0)
 
 Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!
 
@@ -6,7 +7,7 @@ Classic Snake game where you control a snake to eat food and grow longer. Avoid 
 
 **[Play in GameHub](https://game-hub.danyt.workers.dev/g/snake)** · [Play directly](https://snake.dt-games.pages.dev) · [Source code](https://github.com/DanyilT/dt-games/tree/snake)
 
-## 👾 Controls
+## 🕹️ Controls
 
 Press an arrow key (or tap/swipe on a phone) to start.
 
@@ -32,6 +33,22 @@ On a phone or tablet:
 - High score system (kept in the browser)
 - Mobile-friendly: swipe to turn
 - Easter Egg
+
+## 💾 Saved data
+
+The game saves your high score as one object: `{ "highScore": <int> }`.
+It's kept in the browser, in `localStorage` under `snakeGameData`, and in your GameHub account when you play in GameHub signed in (see below).
+If the browser blocks storage (some do inside an iframe), the game still plays, but it doesn't remember your high score.
+
+## 👾 GameHub
+
+[GameHub](https://game-hub.danyt.workers.dev) plays this game in a frame. `js/gamehub.js` connects the two: it's the same file in every game, loaded before the game's own scripts.
+
+- **Saves:** the game saves only through `window.GameHub`. Every save stays in this browser, as before. When you play in GameHub signed in, your progress also goes to your GameHub account, and the game loads the account's copy, so it follows you from device to device. The first time you play signed in on a device, if your account has no save for this game yet, this device's goes up.
+- **The play area:** GameHub asks the game to put its play area in the middle of the frame (the `gamehub:center` message).
+- **Only GameHub:** it loads GameHub's script (`/hub-bridge.js`) only when the game is in a frame on GameHub's own address.
+
+The game works without it: played on its own, or when GameHub can't be reached (the game gives it 3 seconds at most), everything stays in this browser.
 
 ## 👀️ Links
 

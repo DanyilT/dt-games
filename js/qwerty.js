@@ -22,11 +22,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 let easterEggActive = false;
 
+// The Easter egg: hold Shift and type Q W E R T Y (or call it from the console)
 function activateQwertyEasterEgg(activate = 'all') {
     if (easterEggActive) return;
     easterEggActive = true;
 
-    console.log("🎮 QWERTY Easter Egg Activated! 🎮");
+    console.log('🎮 QWERTY Easter Egg Activated! 🎮');
 
     activate = activate !== 'all' ? activate : ['snakeLength', 'setScore', 'glowSnake', 'rotateCanvas'];
     // 1. Set snake length to maximum integer
@@ -52,7 +53,7 @@ function activateQwertyEasterEgg(activate = 'all') {
             if (!ctx || !snake || !tileSize) return;
 
             ctx.shadowBlur = 20;
-            ctx.shadowColor = "rgba(255, 255, 0, 0.8)";
+            ctx.shadowColor = 'rgba(255, 255, 0, 0.8)';
 
             for (let i = 0; i < snake.length; i++) {
                 const hue = (Date.now() / 20 + i * 10) % 360;

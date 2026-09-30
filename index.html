@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snake Game</title>
+    <meta name="description" content="Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!">
     <link rel="icon" href="img/snake.png">
     <link rel="stylesheet" href="css/style.css">
+    <!-- GameHub support, before the game's own scripts: saves, and centring the play area -->
+    <script src="js/gamehub.js" data-game="snake"></script>
 </head>
 <body>
 <main class="game-container">
     <h1>Snake Game</h1>
-    <canvas id="game" width="400" height="400"></canvas>
+    <canvas id="game" width="400" height="400" data-play-area></canvas>
     <div class="score-container">
         <p>Score: <span id="score">0</span></p>
         <p>High Score: <span id="highScore">0</span></p>
@@ -33,9 +36,10 @@
     <script src="js/buttons-handler.js"></script>
     <script src="js/extend-controls.js"></script>
 </main>
-<footer style="display: none">&copy; Dany | SnakeGame | 2025 <hr> <a href="https://github.com/DanyilT/WebDev/blob/main/Game/Snake">source code</a></footer>
+<footer style="display: none">&copy; Dany | SnakeGame | 2025-2026 <hr> <a href="https://github.com/DanyilT/dt-games/tree/snake">source code</a></footer>
 <!-- Snake Game Code -->
-<script src="snake.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/snake.js"></script>
 <!-- Very important script -->
 <script src="js/qwerty.js"></script>
 </body>

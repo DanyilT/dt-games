@@ -14,9 +14,9 @@ let run = null;
 
 const LEVELS = ['beginner', 'easy', 'medium', 'hard', 'expert'];
 
-// Initialize game with what's saved: the puzzle in progress, or a new one; or GameHub opened the game to play a replay,
-// which makes the puzzle it was played on
-loadGameData().then((data) => {
+// Initialize game with what's saved: the puzzle in progress, or a new one (once GameHub has handed over its tickets, so
+// it gets one too); or GameHub opened the game to play a replay, which makes the puzzle it was played on
+Promise.all([loadGameData(), GameHub.ready()]).then(([data]) => {
     gameData = data;
     difficulty = gameData.level; // A new puzzle is at the saved level
     winLevels = gameData.wins;

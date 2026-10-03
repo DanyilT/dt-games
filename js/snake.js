@@ -18,6 +18,8 @@
  * - Touch controls for mobile devices (with use extend-controls.js)
  * - Customizable game parameters (speed and tile count)
  * - Cheat code to set score
+ * - GameHub's panel and replays (js/gamehub.js): each game is a run, with the food placed from the run's seed, and every
+ *   turn recorded with the step it came after, so GameHub can play it again
  *
  * Instructions:
  * - Use arrow keys to control the snake's direction.
@@ -30,7 +32,8 @@
  * - Tile count: Change the number of tiles on the canvas by modifying the `tileCount` variable.
  *
  * Cheat code:
- * - You can set the score directly by calling the `setScore` function with a new score value.
+ * - You can set the score directly by calling the `setScore` function with a new score value (the game then isn't kept
+ *   to watch again).
  *
  * Easter Egg:
  * - `qwerty.js`
@@ -62,7 +65,11 @@ let foodY;
 // Score
 let score = 0;
 let highScore = 0;
+let bestBefore = 0; // The high score when this game started (did this one beat it?)
 let gameData = null; // What's saved (js/storage.js), once it has loaded: the game doesn't wait for it
+
+// The game under way, recorded so GameHub can play it again (js/gamehub.js): its random numbers place the food
+let run = null;
 
 // What's saved: the high score shows as soon as it has loaded
 loadGameData().then((data) => {
@@ -74,10 +81,23 @@ loadGameData().then((data) => {
     }
     highScore = gameData.highScore;
     document.getElementById('highScore').textContent = highScore;
+    showStatus();
 });
 
-// Set game parameters (game speed and tile count)
+// GameHub's panel: the score and the high score
+function showStatus() {
+    GameHub.status({
+        main: [
+            { label: 'Score', value: score },
+            { label: 'Best', value: highScore },
+        ],
+        ongoing: gameActive,
+    });
+}
+
+// Set game parameters (game speed and tile count): a game under way isn't kept to watch again
 function setGameParameters(speed, tiles) {
+    run?.discard();
     gameSpeed = speed;
     tileCount = tiles;
     tileSize = canvas.width / tileCount;
@@ -85,6 +105,7 @@ function setGameParameters(speed, tiles) {
 
 // Set the game score (cheat)
 function setScore(newScore) {
+    GameHub.cheated();
     score = newScore;
     document.getElementById('score').textContent = score;
 }
@@ -99,11 +120,26 @@ window.onload = function() {
 
     showIntro();
     document.addEventListener('keydown', keyDown);
+
+    // GameHub opened the game to play a replay: the replay plays the game, from its own steps and turns
+    if (GameHub.replaying) {
+        GameHub.onReplay({
+            begin(replayRun) {
+                tileCount = replayRun.mode ? Number(replayRun.mode) : 20; // the board it was played on
+                tileSize = canvas.width / tileCount;
+                resetGame(replayRun);
+            },
+            input: turn,
+            step: gameLoop,
+        });
+    }
 };
 
-// Reset game to initial state
-function resetGame() {
+// Reset game to initial state: a new run, or in a replay, the run being played (its steps come from the replay)
+function resetGame(replayRun = null) {
     gameActive = true;
+    run = replayRun || GameHub.startRun({ mode: tileCount === 20 ? null : String(tileCount), tick: gameSpeed });
+    bestBefore = highScore;
 
     // Reset snake
     snake = [];
@@ -125,12 +161,14 @@ function resetGame() {
     if (typeof gameInterval !== 'undefined') {
         clearInterval(gameInterval);
     }
-    gameInterval = setInterval(gameLoop, gameSpeed);
+    if (!replayRun) gameInterval = setInterval(gameLoop, gameSpeed);
+    showStatus();
 }
 
 // Main game loop
 function gameLoop() {
     if (!gameActive) return;
+    run.step();
 
     // Move snake
     let headX = snake[0].x + velocityX;
@@ -170,6 +208,7 @@ function gameLoop() {
             }
             document.getElementById('highScore').textContent = highScore;
         }
+        showStatus();
     }
 
     // Remove tail if didn't eat food
@@ -185,6 +224,8 @@ function gameLoop() {
 function keyDown(e) {
     // Keys held with Ctrl, Cmd or Alt are the browser's (Ctrl+S, Alt+←…)
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // A replay plays by itself
+    if (GameHub.replaying) return;
     // The game's keys don't scroll the page, or press a button that still has focus
     if (e.key.startsWith('Arrow') || (e.key === ' ' && gameActive)) e.preventDefault();
     // A held-down key doesn't start a new game, restart or flicker the pause
@@ -195,43 +236,43 @@ function keyDown(e) {
         resetGame();
     }
 
-    // Prevent reversing direction directly
     switch(e.key) {
         case 'ArrowUp':
-            if (movedY !== 1) { // Not going down
-                velocityX = 0;
-                velocityY = -1;
-            }
+            turn('U');
             break;
         case 'ArrowDown':
-            if (movedY !== -1) { // Not going up
-                velocityX = 0;
-                velocityY = 1;
-            }
+            turn('D');
             break;
         case 'ArrowLeft':
-            if (movedX !== 1) { // Not going right
-                velocityX = -1;
-                velocityY = 0;
-            }
+            turn('L');
             break;
         case 'ArrowRight':
-            if (movedX !== -1) { // Not going left
-                velocityX = 1;
-                velocityY = 0;
-            }
+            turn('R');
             break;
         case ' ':
             // Pause game
             pauseGame();
             break;
         case 'r':
+            run?.discard(); // Restarted before it ended: not kept
             gameActive = false;
             gamePause = false;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             showIntro();
+            showStatus();
             break;
     }
+}
+
+// Turn the snake: 'U', 'D', 'L' or 'R' (never straight back: it would run into itself). A turn is recorded with the run,
+// so a replay turns the same way at the same step.
+function turn(direction) {
+    const [x, y] = { U: [0, -1], D: [0, 1], L: [-1, 0], R: [1, 0] }[direction] ?? [0, 0];
+    if ((x === 0 && y === 0) || (x !== 0 && movedX === -x) || (y !== 0 && movedY === -y)) return;
+    if (velocityX === x && velocityY === y) return; // Going that way already
+    velocityX = x;
+    velocityY = y;
+    run?.input(direction);
 }
 
 // Check if snake collides with itself
@@ -248,10 +289,11 @@ function checkSnakeCollision(x, y) {
 function placeFood() {
     if (snake.length >= tileCount * tileCount) return; // No free cell left
 
-    // Keep generating positions until we find one that's not on the snake
+    // Keep generating positions until we find one that's not on the snake (from the run's numbers, so a replay puts the
+    // food in the same places)
     do {
-        foodX = Math.floor(Math.random() * canvas.width / tileSize);
-        foodY = Math.floor(Math.random() * canvas.height / tileSize);
+        foodX = Math.floor(run.random() * canvas.width / tileSize);
+        foodY = Math.floor(run.random() * canvas.height / tileSize);
     } while (checkSnakeCollision(foodX, foodY));
 }
 
@@ -290,6 +332,8 @@ function pauseGame() {
 function gameOver() {
     gameActive = false;
     clearInterval(gameInterval);
+    run.finish({ outcome: 'over', result: [{ label: 'Score', value: score }], best: score > bestBefore });
+    showStatus();
 
     // Semi-transparent overlay
     ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
@@ -301,7 +345,7 @@ function gameOver() {
     ctx.font = '40px Arial';
     ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2);
     ctx.font = '20px Arial';
-    ctx.fillText('Press an arrow key to restart', canvas.width / 2, canvas.height / 2 + 30);
+    ctx.fillText(GameHub.replaying ? 'The end of the replay' : 'Press an arrow key to restart', canvas.width / 2, canvas.height / 2 + 30);
 }
 
 // Render the game

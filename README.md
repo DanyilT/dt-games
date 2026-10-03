@@ -51,6 +51,7 @@ If the browser blocks storage (some do inside an iframe), the game still plays, 
 - **Saves:** the game saves only through `window.GameHub`. Every save stays in this browser, as before. When you play in GameHub signed in, your progress also goes to your GameHub account, and the game loads the account's copy, so it follows you from device to device. The first time you play signed in on a device, if your account has no save for this game yet, this device's goes up.
 - **The play area:** GameHub asks the game to put its play area in the middle of the frame (the `gamehub:center` message).
 - **Offline:** you can download the game in GameHub (the Download button on its page there) to play it offline.
+- **The panel and replays:** under the game, GameHub shows what the game tells it with `GameHub.status()` (the score now, your best, and more behind its More button), and each game you finish is kept as a run, so you can watch it again there: the run's random seed and your moves, never a video. The game moves in fixed 50 ms steps (a piece falls every few, sooner at higher levels), the pieces come from the run's seed, and each move is recorded with the step it came after. Runs stay in your browser. A cheat (the console, the Easter egg) means that game isn't kept.
 - **Only GameHub:** it loads GameHub's script (`/hub-bridge.js`) only when the game is in a frame on GameHub's own address.
 
 The game works without it: played on its own, or when GameHub can't be reached (the game gives it 3 seconds at most), everything stays in this browser.

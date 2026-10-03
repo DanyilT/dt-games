@@ -11,6 +11,8 @@
  * - Line clearing and scoring
  * - Game over detection
  * - Pause and resume functionality
+ * - GameHub's panel and replays (js/gamehub.js): each game is a run, with the pieces drawn from the run's seed, the game
+ *   moving in fixed steps (TICK), and every move recorded with the step it came after, so GameHub can play it again
  *
  * Instructions:
  * - Use the arrow keys to move and rotate the tetrominoes.
@@ -19,7 +21,8 @@
  * - Long tap (touch control) / 's' key / drop button to hard drop the tetromino.
  *
  * Cheat code:
- * - You can set the score directly by calling the `setScore` function with a new score value. *
+ * - You can set the score directly by calling the `setScore` function with a new score value (the game then isn't kept
+ *   to watch again).
  *
  * Easter Egg:
  * - `qwerty.js`
@@ -43,10 +46,12 @@ const ROWS = 20;
 const BLOCK_SIZE = canvas.width / COLS;
 const NEXT_BLOCK_SIZE = nextPieceCanvas.width / 4;
 const GAME_SPEED = 1000; // Initial speed in ms
+const TICK = 50; // ms: the game moves in steps this long, and a piece falls every few (gameSpeed / TICK)
 
 // Game variables
 let score = 0;
 let highScore = 0; // The best score (Best)
+let bestBefore = 0; // The best score when this game started (did this one beat it?)
 let gameData = null; // What's saved (js/storage.js), once it has loaded: the game doesn't wait for it
 let level = 1;
 let lines = 0;
@@ -55,6 +60,11 @@ let gameActive = false;
 let gamePause = false;
 let dropStart = Date.now();
 let gameSpeed = GAME_SPEED;
+let stepsSinceFall = 0; // Steps since the piece last fell by itself
+
+// The game under way, recorded so GameHub can play it again (js/gamehub.js): its random numbers draw the pieces
+let run = null;
+let movedThisGame = false; // The player has moved a piece in this game (it starts by itself)
 
 // What's saved: the best score shows as soon as it has loaded
 loadGameData().then((data) => {
@@ -66,10 +76,25 @@ loadGameData().then((data) => {
     }
     highScore = gameData.highScore;
     bestScoreElement.textContent = highScore;
+    showStatus();
 });
+
+// GameHub's panel: the score, lines, level and best score
+function showStatus() {
+    GameHub.status({
+        main: [
+            { label: 'Score', value: score },
+            { label: 'Lines', value: lines },
+            { label: 'Level', value: level },
+            { label: 'Best', value: highScore },
+        ],
+        ongoing: gameActive && movedThisGame,
+    });
+}
 
 // Set the game score (cheat)
 function setScore(newScore) {
+    GameHub.cheated();
     score = newScore;
     document.getElementById('score').textContent = score;
 }
@@ -159,9 +184,9 @@ function Piece(shape, color) {
     this.rotation = 0;
 }
 
-// Generate random piece
+// Generate random piece (from the run's numbers, so a replay gets the same pieces)
 function randomPiece() {
-    const randomIndex = Math.floor(Math.random() * SHAPES.length);
+    const randomIndex = Math.floor(run.random() * SHAPES.length);
     return new Piece(SHAPES[randomIndex], COLORS[randomIndex]);
 }
 
@@ -169,8 +194,12 @@ function randomPiece() {
 let currentPiece;
 let nextPiece;
 
-// Reset the game
-function resetGame() {
+// Reset the game: a new run, or in a replay, the run being played (its steps come from the replay)
+function resetGame(replayRun = null) {
+    if (GameHub.replaying && !replayRun) return; // A replay plays by itself
+    run = replayRun || GameHub.startRun({ tick: TICK });
+    bestBefore = highScore;
+    movedThisGame = false;
     board = createBoard(ROWS, COLS);
     score = 0;
     level = 1;
@@ -197,8 +226,9 @@ function resetGame() {
     drawNextPiece();
 
     dropStart = Date.now();
-    // gameInterval = setInterval(gameLoop, gameSpeed);
     updateGameSpeed();
+    if (!replayRun) gameInterval = setInterval(gameLoop, TICK);
+    showStatus();
 }
 
 // Draw a square on the canvas
@@ -396,6 +426,7 @@ function lockPiece() {
     }
 
     drawNextPiece();
+    showStatus();
 }
 
 // Move piece down
@@ -477,22 +508,27 @@ function hardDrop() {
     lockPiece();
 }
 
-// Game loop
+// Game loop: one step (TICK). The piece falls every gameSpeed / TICK steps.
 function gameLoop() {
     if (!gameActive || gamePause) {
         return;
     }
+    run.step();
 
+    stepsSinceFall++;
+    if (stepsSinceFall < gameSpeed / TICK) {
+        return;
+    }
+    stepsSinceFall = 0;
     movePieceDown();
     drawBoard();
     drawPiece();
 }
 
-// When resetting the game or changing level
+// When resetting the game or changing level: the piece falls sooner, counting from now
 function updateGameSpeed() {
     gameSpeed = Math.max(100, 1000 - (level - 1) * 100);
-    clearInterval(gameInterval);
-    gameInterval = setInterval(gameLoop, gameSpeed);
+    stepsSinceFall = 0;
 }
 
 // Pause game
@@ -511,7 +547,7 @@ function pauseGame() {
     } else if (gameActive && gamePause) {
         // Resume the game
         gamePause = false;
-        gameInterval = setInterval(gameLoop, gameSpeed);
+        gameInterval = setInterval(gameLoop, TICK);
         drawBoard();
         drawPiece();
         startButton.textContent = 'Pause (p)';
@@ -522,6 +558,12 @@ function pauseGame() {
 function gameOver() {
     gameActive = false;
     clearInterval(gameInterval);
+    run.finish({
+        outcome: 'over',
+        result: [{ label: 'Score', value: score }, { label: 'Lines', value: lines }],
+        best: score > bestBefore,
+    });
+    showStatus();
 
     // Draw the game over screen in the next frame to ensure it's not overwritten
     requestAnimationFrame(() => {
@@ -539,13 +581,16 @@ function gameOver() {
         ctx.font = '20px Arial';
         ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
         ctx.font = '14px Arial';
-        ctx.fillText("Press 'Reset Game' to play again", canvas.width / 2, canvas.height / 2 + 50);
+        ctx.fillText(GameHub.replaying ? 'The end of the replay' : "Press 'Reset Game' to play again", canvas.width / 2, canvas.height / 2 + 50);
     });
 }
 
+// The game's moves: 'L' and 'R' (left, right), 'U' (rotate), 'D' (down a row) and 'H' (hard drop)
+const MOVE_KEYS = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D', ' ': 'H' };
+
 // Event listeners
 document.addEventListener('keydown', event => {
-    if (!gameActive || gamePause) {
+    if (!gameActive || gamePause || GameHub.replaying) {
         return;
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return; // The browser's shortcuts
@@ -559,32 +604,40 @@ document.addEventListener('keydown', event => {
         return;
     }
 
-    switch(event.key) {
-        case 'ArrowLeft':
+    if (MOVE_KEYS[event.key]) move(MOVE_KEYS[event.key]);
+});
+
+// One move. It's recorded with the run first (a drop can end the game), so a replay makes it at the same step.
+function move(code) {
+    run.input(code);
+    movedThisGame = true;
+    switch(code) {
+        case 'L':
             movePieceLeft();
             dropStart = Date.now();
             break;
-        case 'ArrowUp':
+        case 'U':
             rotatePiece();
             dropStart = Date.now();
             break;
-        case 'ArrowRight':
+        case 'R':
             movePieceRight();
             dropStart = Date.now();
             break;
-        case 'ArrowDown':
+        case 'D':
             movePieceDown();
             break;
-        case ' ':
+        case 'H':
             hardDrop();
             break;
     }
 
     drawBoard();
     drawPiece();
-});
+}
 
 startButton.addEventListener('click', () => {
+    if (GameHub.replaying) return; // A replay plays by itself
     if (!gameActive) {
         resetGame();
         return;
@@ -593,7 +646,16 @@ startButton.addEventListener('click', () => {
     pauseGame();
 });
 
-resetButton.addEventListener('click', resetGame);
+resetButton.addEventListener('click', () => resetGame());
 
-// Initialize the game
-resetGame();
+// Initialize the game; or GameHub opened it to play a replay, which plays the game from its own steps and moves
+if (GameHub.replaying) {
+    drawBoard();
+    GameHub.onReplay({
+        begin: (replayRun) => resetGame(replayRun),
+        input: move,
+        step: gameLoop,
+    });
+} else {
+    resetGame();
+}

@@ -648,14 +648,17 @@ startButton.addEventListener('click', () => {
 
 resetButton.addEventListener('click', () => resetGame());
 
-// Initialize the game; or GameHub opened it to play a replay, which plays the game from its own steps and moves
+// Initialize the game (once GameHub has handed over its tickets, so the first game gets one too); or GameHub opened it
+// to play a replay, which plays the game from its own steps and moves
+drawBoard();
 if (GameHub.replaying) {
-    drawBoard();
     GameHub.onReplay({
         begin: (replayRun) => resetGame(replayRun),
         input: move,
         step: gameLoop,
     });
 } else {
-    resetGame();
+    GameHub.ready().then(() => {
+        if (!gameActive) resetGame();
+    });
 }

@@ -59,6 +59,12 @@
  *   - run.save() and GameHub.resumeRun(saved), for a game kept half-way (Sudoku's puzzle in progress): save() gives
  *     what to keep with it (an object JSON can hold), and resumeRun() carries on recording from there, as a run.
  *   - run.time: the game's time so far, in ms (steps × tick, or the time on screen since it started).
+ * - Tickets: for a signed-in player, GameHub hands the game a few tickets, each a seed its server chose. startRun() takes
+ *   one, so GameHub can check the run on its server afterwards by playing it again (records come only from runs it has
+ *   checked); a run that starts without one (a guest's, or offline once they've run out) stays the player's own.
+ *   GameHub.ready(): a Promise that settles once GameHub has handed them over (or isn't there, or the player isn't
+ *   signed in; 3 s at most). A game that starts a run by itself as it loads (Tetris, Minesweeper, a new Sudoku) waits
+ *   for it first, so that run gets a ticket too.
  * - GameHub.cheated(): a cheat was used on this page (the console, an Easter egg), so neither the run under way nor any
  *   later one is kept.
  * - Replays: GameHub opens the game with #gamehub-replay at the end of its address to play one. GameHub.replaying is
@@ -97,6 +103,7 @@ window.addEventListener('message', (event) => {
     const REPLAY_MAX_WAIT = 2000; // ms: a replay of a game without a tick skips longer waits between inputs
     const REPLAY_REPORT_EVERY = 250; // ms: how often a replay tells the hub how far it has got
     const REPLAY_SPEEDS = [1, 2, 4];
+    const TICKETS_WAIT = 3000; // ms: ready() waits this long for the tickets, once the hub has attached
 
     const game = document.currentScript?.dataset.game;
     if (!game) {
@@ -193,6 +200,7 @@ window.addEventListener('message', (event) => {
     const hubOrigin = findHub();
     // GameHub opened the game to play a replay (see the top of this file)
     const replaying = Boolean(hubOrigin) && location.hash === '#gamehub-replay';
+    let signedIn = false; // what the hub said when it attached
     const attached = new Promise((resolve) => {
         if (!hubOrigin) {
             resolve();
@@ -380,6 +388,34 @@ window.addEventListener('message', (event) => {
     let runsOff = replaying; // GameHub.cheated(), or a replay: no run is kept
     let currentRun = null; // The run being recorded (one at a time)
 
+    // Tickets from the hub: [{ id, seed }], one per run. One taken on this page is never taken again, even if the hub
+    // still lists it.
+    let tickets = [];
+    const usedTickets = new Set();
+    let markReady = null;
+    const ready = new Promise((resolve) => {
+        markReady = resolve;
+    });
+    if (!hubOrigin) markReady();
+    attached.then(() => {
+        if (!panel || !signedIn || replaying) markReady();
+        else setTimeout(markReady, TICKETS_WAIT);
+    });
+
+    function setTickets(list) {
+        if (!Array.isArray(list)) return;
+        tickets = list.filter((ticket) => isData(ticket) && typeof ticket.id === 'string' && ticket.id.length <= 40
+            && Number.isSafeInteger(ticket.seed) && ticket.seed >= 0 && ticket.seed < 4294967296 && !usedTickets.has(ticket.id))
+            .map(({ id, seed }) => ({ id, seed }));
+        markReady();
+    }
+
+    function takeTicket() {
+        const ticket = tickets.shift() ?? null;
+        if (ticket) usedTickets.add(ticket.id);
+        return ticket;
+    }
+
     // A run that records nothing (a replay, a cheat, or a run the game asked for wrongly)
     function idleRun(mode) {
         return {
@@ -463,6 +499,7 @@ window.addEventListener('message', (event) => {
                 const record = {
                     v: 1,
                     id: state.id,
+                    ticket: state.ticket,
                     seed: state.seed,
                     mode: state.mode,
                     tick: state.tick,
@@ -480,7 +517,10 @@ window.addEventListener('message', (event) => {
             },
             save() {
                 if (ended) return null;
-                return { v: 1, id: state.id, seed: state.seed, mode: state.mode, tick: state.tick, length: now(), last: state.last, draws: state.draws, inputs: state.inputs.slice() };
+                return {
+                    v: 1, id: state.id, ticket: state.ticket, seed: state.seed, mode: state.mode, tick: state.tick, length: now(),
+                    last: state.last, draws: state.draws, inputs: state.inputs.slice(),
+                };
             },
             get time() {
                 return state.tick ? state.length * state.tick : now();
@@ -496,7 +536,12 @@ window.addEventListener('message', (event) => {
             if (!runsOff) console.warn('GameHub.startRun() takes { mode: a short text or null, tick: whole ms or null }');
             return idleRun(mode);
         }
-        currentRun = recordingRun({ id: newRunId(), seed: newSeed(), mode, tick, length: 0, last: 0, draws: 0, inputs: [] });
+        const ticket = takeTicket();
+        currentRun = recordingRun({
+            id: newRunId(), ticket: ticket?.id ?? null, seed: ticket ? ticket.seed : newSeed(), mode, tick, length: 0, last: 0,
+            draws: 0, inputs: [],
+        });
+        tellPanel('runStart', { ticket: ticket?.id ?? null });
         return currentRun;
     }
 
@@ -504,13 +549,14 @@ window.addEventListener('message', (event) => {
     function resumeRun(saved) {
         currentRun?.discard();
         const valid = isData(saved) && saved.v === 1 && typeof saved.id === 'string' && saved.id.length <= 40
+            && (saved.ticket === undefined || saved.ticket === null || (typeof saved.ticket === 'string' && saved.ticket.length <= 40))
             && Number.isSafeInteger(saved.seed) && saved.seed >= 0 && saved.seed < 4294967296 && isMode(saved.mode)
             && isTick(saved.tick) && [saved.length, saved.last, saved.draws].every((n) => Number.isSafeInteger(n) && n >= 0)
             && saved.last <= saved.length && Array.isArray(saved.inputs) && saved.inputs.length % 2 === 0
             && saved.inputs.length <= MAX_INPUTS * 2
             && saved.inputs.every((value, i) => (i % 2 === 0 ? Number.isSafeInteger(value) && value >= 0 : isCode(value)));
         if (runsOff || !valid) return idleRun(isData(saved) ? saved.mode : null);
-        currentRun = recordingRun({ ...saved, inputs: saved.inputs.slice() });
+        currentRun = recordingRun({ ...saved, ticket: saved.ticket ?? null, inputs: saved.inputs.slice() });
         return currentRun;
     }
 
@@ -693,11 +739,11 @@ window.addEventListener('message', (event) => {
     }
 
     // For the hub's script: { version: 1, 2 or 3, signedIn, load: () => Promise, save: (data, seq) => void }, and from
-    // version 3 { status(info), run(record), replayState(state) } for its panel (state: { state: 'playing', 'paused',
-    // 'ended' or 'error', position, length }, in ms of the game's time). Version 2's load() answers { data, updatedAt } or
-    // null, and so does version 3's; attaching either returns { synced(seq, updatedAt), replay(command) } for the script
-    // to call when a save lands, or when the panel asks something of a replay. Version 1's load() answers the data or
-    // null.
+    // version 3 { status(info), run(record), runStart({ ticket }), replayState(state) } for its panel (state: { state:
+    // 'playing', 'paused', 'ended' or 'error', position, length }, in ms of the game's time). Version 2's load() answers
+    // { data, updatedAt } or null, and so does version 3's; attaching either returns { synced(seq, updatedAt),
+    // replay(command), tickets(list) } for the script to call when a save lands, when the panel asks something of a
+    // replay, or with the player's tickets ([{ id, seed }]). Version 1's load() answers the data or null.
     function attach(adapter) {
         if (!stopWaiting) return false; // Not asked for, or too late: the game went on without the hub
 
@@ -709,11 +755,12 @@ window.addEventListener('message', (event) => {
         }
         if (valid && version === 3) {
             panel = adapter;
+            signedIn = adapter.signedIn === true;
             if (status) sendStatus(); // The numbers the game gave before the hub was there
         }
         stopWaiting();
         if (!valid) return false;
-        return version === 1 ? true : Object.freeze({ synced: onSynced, replay: replayCommand });
+        return version === 1 ? true : Object.freeze({ synced: onSynced, replay: replayCommand, tickets: setTickets });
     }
 
     window.GameHub = Object.freeze({
@@ -727,6 +774,9 @@ window.addEventListener('message', (event) => {
         cheated,
         onReplay,
         replaying,
+        ready() {
+            return ready;
+        },
         get connected() {
             return hub !== null;
         },

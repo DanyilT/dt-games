@@ -6,7 +6,8 @@
  *       "board": { … } | null }
  * level is the difficulty picked, wins counts the puzzles solved on each level, and bestTimes keeps the fastest solve on
  * each level, in seconds, or null before the first one. board is the puzzle in progress, or null: board, initialBoard and
- * solution (9×9 arrays of 0-9), its difficulty, and time (the seconds spent on it so far). The times aren't shown.
+ * solution (9×9 arrays of 0-9), its difficulty, time (the seconds spent on it so far; the times aren't shown), and run:
+ * GameHub's record of it so far (js/gamehub.js run.save(), checked by GameHub.resumeRun()), or null.
  * js/gamehub.js keeps it: in this browser (localStorage, key sudokuGameData), and in the player's GameHub account when
  * they play in GameHub signed in. This file knows what's in it: the defaults, and what to keep.
  */
@@ -45,7 +46,8 @@ function checkGameData(saved) {
     const puzzle = saved?.board;
     if (isGrid(puzzle?.board) && isGrid(puzzle.initialBoard) && isGrid(puzzle.solution) && levels.includes(puzzle.difficulty)) {
         const time = Number.isInteger(puzzle.time) && puzzle.time >= 0 ? puzzle.time : 0;
-        data.board = { board: puzzle.board, initialBoard: puzzle.initialBoard, solution: puzzle.solution, difficulty: puzzle.difficulty, time };
+        const run = puzzle.run !== null && typeof puzzle.run === 'object' && !Array.isArray(puzzle.run) ? puzzle.run : null;
+        data.board = { board: puzzle.board, initialBoard: puzzle.initialBoard, solution: puzzle.solution, difficulty: puzzle.difficulty, time, run };
     }
     return data;
 }

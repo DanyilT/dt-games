@@ -39,7 +39,7 @@ On a phone or tablet:
 ## 💾 Saved data
 
 The game saves everything as one object: `{ "level": "medium", "wins": { … }, "bestTimes": { … }, "board": { … } }`.
-`level` is the difficulty you picked, `wins` counts the puzzles you solved on each of the 5 levels, and `bestTimes` keeps your fastest solve on each level, in seconds (`null` until you've solved one). `board` is the puzzle in progress (or `null`), with `time`: the seconds you've spent on it so far.
+`level` is the difficulty you picked, `wins` counts the puzzles you solved on each of the 5 levels, and `bestTimes` keeps your fastest solve on each level, in seconds (`null` until you've solved one). `board` is the puzzle in progress (or `null`), with `time`: the seconds you've spent on it so far, and `run`: GameHub's record of it so far, to watch it again once it's solved (see below).
 The game times you without showing a timer: the clock runs only while the page is on screen, and a saved puzzle carries on from its time.
 It's kept in the browser, in `localStorage` under `sudokuGameData`, and in your GameHub account when you play in GameHub signed in (see below).
 If the browser blocks storage (some do inside an iframe), the game still plays, but it doesn't remember anything.
@@ -51,6 +51,7 @@ If the browser blocks storage (some do inside an iframe), the game still plays, 
 - **Saves:** the game saves only through `window.GameHub`. Every save stays in this browser, as before. When you play in GameHub signed in, your progress also goes to your GameHub account, and the game loads the account's copy, so it follows you from device to device. The first time you play signed in on a device, if your account has no save for this game yet, this device's goes up.
 - **The play area:** GameHub asks the game to put its play area in the middle of the frame (the `gamehub:center` message).
 - **Offline:** you can download the game in GameHub (the Download button on its page there) to play it offline.
+- **The panel and replays:** under the game, GameHub shows what the game tells it with `GameHub.status()` (the score now, your best, and more behind its More button), and each game you finish is kept as a run, so you can watch it again there: the run's random seed and your moves, never a video. The puzzle is made from the run's seed, and each number you enter or clear is recorded with its time. The run is saved with the puzzle in progress, so it carries on after a reload, or on another device. Runs stay in your browser. A cheat (the console, the Easter egg) means that game isn't kept.
 - **Only GameHub:** it loads GameHub's script (`/hub-bridge.js`) only when the game is in a frame on GameHub's own address.
 
 The game works without it: played on its own, or when GameHub can't be reached (the game gives it 3 seconds at most), everything stays in this browser.

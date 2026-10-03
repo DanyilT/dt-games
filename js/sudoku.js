@@ -8,17 +8,63 @@ let winLevels = defaultGameData().wins;
 let gameWon = false;
 let puzzleTime = 0; // ms spent on the puzzle in progress, up to when its clock last stopped (no timer is shown)
 let clockStartedAt = null; // performance.now() while the clock runs, null while it's stopped
+// The puzzle in progress, recorded so GameHub can play it again (js/gamehub.js): its random numbers make the puzzle, and
+// it's kept with the puzzle when that's saved, so it carries on after a reload (or on another device)
+let run = null;
 
-// Initialize game with what's saved: the puzzle in progress, or a new one
+const LEVELS = ['beginner', 'easy', 'medium', 'hard', 'expert'];
+
+// Initialize game with what's saved: the puzzle in progress, or a new one; or GameHub opened the game to play a replay,
+// which makes the puzzle it was played on
 loadGameData().then((data) => {
     gameData = data;
     difficulty = gameData.level; // A new puzzle is at the saved level
     winLevels = gameData.wins;
+    if (GameHub.replaying) {
+        GameHub.onReplay({ begin: (replayRun) => initGame(replayRun), input: replayInput });
+        return;
+    }
     if (gameData.board === null) {
         initGame();
     }
     loadGameState();
 });
+
+// A level's name, as the difficulty list shows it
+function levelName(level) {
+    return document.querySelector(`#difficulty option[value="${level}"]`)?.textContent ?? level;
+}
+
+// GameHub's panel: the level, how much of the puzzle is filled in, and the best time; then the wins and best times per
+// level
+function showStatus() {
+    if (!gameData) return;
+    let toFill = 0;
+    let filled = 0;
+    for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+            if (initialBoard[row][col] === 0) {
+                toFill++;
+                if (board[row][col] > 0) filled++;
+            }
+        }
+    }
+    GameHub.status({
+        main: [
+            { label: 'Level', value: levelName(difficulty) },
+            { label: 'Filled', value: gameWon ? 'Solved' : `${filled} of ${toFill}` },
+            { label: 'Best time', value: gameData.bestTimes[difficulty], format: 'time' },
+        ],
+        more: LEVELS.map((level) => ({
+            title: levelName(level),
+            items: [
+                { label: 'Solved', value: winLevels[level] },
+                { label: 'Best time', value: gameData.bestTimes[level], format: 'time' },
+            ],
+        })),
+        ongoing: false, // The puzzle in progress is saved: a replay doesn't lose it
+    });
+}
 
 // The clock stops while the page is hidden (another tab, a locked phone), and the time so far is saved
 document.addEventListener('visibilitychange', function() {
@@ -35,8 +81,8 @@ setupCellListeners();
 
 // Add event listener to the difficulty selector
 document.getElementById('difficulty').addEventListener('change', function() {
-    if (!gameData) {
-        this.value = difficulty; // What's saved is still loading: keep the level it had
+    if (!gameData || GameHub.replaying) {
+        this.value = difficulty; // What's saved is still loading (or a replay plays): keep the level it had
         return;
     }
     difficulty = this.value;
@@ -57,9 +103,15 @@ document.getElementById('newGameBtn').addEventListener('click', function() {
 });
 document.getElementById('checkSolutionBtn').addEventListener('click', checkSolution);
 
-// Function to initialize the game
-function initGame() {
+// Function to initialize the game: a new puzzle and run, or in a replay, the puzzle of the run being played
+function initGame(replayRun = null) {
     if (!gameData) return; // What's saved is still loading: the puzzle comes with it
+    if (GameHub.replaying && !replayRun) return; // A replay plays by itself
+    if (replayRun && LEVELS.includes(replayRun.mode)) {
+        difficulty = replayRun.mode;
+        document.getElementById('difficulty').value = difficulty;
+    }
+    run = replayRun || GameHub.startRun({ mode: difficulty });
     gameWon = false;
 
     // A new puzzle: its clock starts from zero
@@ -83,9 +135,10 @@ function initGame() {
     // Display the board
     updateBoard();
     saveGameState(); // Save the new puzzle, so a reload keeps it
+    showStatus();
 
     // Show notification
-    showNotification('New game started!', 'info');
+    showNotification(replayRun ? 'Replay' : 'New game started!', 'info');
 }
 
 // An empty 9×9 grid (0 is an empty cell)
@@ -166,10 +219,10 @@ function findEmptyCell(board) {
     return null;
 }
 
-// Function to shuffle an array (Fisher-Yates algorithm)
+// Function to shuffle an array (Fisher-Yates algorithm), with the run's numbers: a replay makes the same puzzle
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(run.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
     }
 }
@@ -238,13 +291,13 @@ function updateBoard() {
             // Set value
             cell.value = board[row][col] > 0 ? board[row][col] : '';
 
-            // Style initial cells differently
+            // Style initial cells differently (and in a replay, no cell takes the player's input)
             if (initialBoard[row][col] > 0) {
                 cell.classList.add('initial');
                 cell.readOnly = true;
             } else {
                 cell.classList.remove('initial');
-                cell.readOnly = false;
+                cell.readOnly = GameHub.replaying;
             }
 
             cell.classList.remove('valid', 'invalid');
@@ -351,7 +404,7 @@ function setupCellListeners() {
     const numButtons = document.querySelectorAll('.num-btn');
     numButtons.forEach(button => {
         button.addEventListener('click', function() {
-            if (gameWon) return;
+            if (gameWon || GameHub.replaying) return;
 
             const num = parseInt(this.getAttribute('data-number'));
             const selectedCell = window.currentSelectedCell;
@@ -365,8 +418,21 @@ function setupCellListeners() {
     });
 }
 
-// Function to update cell value
+// The player changes a cell. It's recorded with the run first (it can solve the puzzle): one number, cell × 10 + value.
 function updateCell(row, col, value) {
+    if (GameHub.replaying) return;
+    if (board[row][col] !== value) run?.input((row * 9 + col) * 10 + value);
+    setCell(row, col, value);
+}
+
+// A replay's change to a cell
+function replayInput(code) {
+    const cell = Math.floor(code / 10);
+    setCell(Math.floor(cell / 9), cell % 9, code % 10);
+}
+
+// Function to update cell value
+function setCell(row, col, value) {
     board[row][col] = value;
     const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
 
@@ -386,6 +452,7 @@ function updateCell(row, col, value) {
 
     // Save game state after each cell update
     saveGameState();
+    showStatus();
 }
 
 // Function to save the complete game state
@@ -398,7 +465,8 @@ function saveGameState() {
             initialBoard: initialBoard,
             solution: solution,
             difficulty: difficulty,
-            time: puzzleSeconds()
+            time: puzzleSeconds(),
+            run: run ? run.save() : null // The run, to carry on recording it
         };
     } else {
         gameData.board = null;
@@ -431,6 +499,7 @@ function loadGameState() {
         solution = savedGame.solution;
         difficulty = savedGame.difficulty;
         gameWon = false; // Won games aren't saved
+        run = GameHub.resumeRun(savedGame.run); // Recording carries on (a puzzle saved before runs isn't recorded)
 
         // Its clock goes on from the time saved with it
         puzzleTime = savedGame.time * 1000;
@@ -439,9 +508,11 @@ function loadGameState() {
 
         // Display the loaded board
         updateBoard();
+        showStatus();
         return true;
     }
 
+    showStatus();
     return false;
 }
 
@@ -469,20 +540,26 @@ function checkForCompletion() {
         }
     }
 
-    // Record the win for the current difficulty, and the time if it's the fastest on it
+    // Record the win for the current difficulty, and the time if it's the fastest on it (not a replay's: it was then)
     if (!gameWon) {
         stopClock();
         const time = puzzleSeconds();
-        winLevels[difficulty]++;
-        if (gameData) {
-            const bestTime = gameData.bestTimes[difficulty];
-            if (bestTime === null || time < bestTime) {
+        const bestTime = gameData ? gameData.bestTimes[difficulty] : null;
+        if (!GameHub.replaying) {
+            winLevels[difficulty]++;
+            if (gameData && (bestTime === null || time < bestTime)) {
                 gameData.bestTimes[difficulty] = time;
             }
         }
         gameWon = true;
+        run?.finish({
+            outcome: 'won',
+            result: [{ label: 'Level', value: levelName(difficulty) }, { label: 'Time', value: time, format: 'time' }],
+            best: bestTime === null || time < bestTime,
+        });
         saveGameState();
-        showNotification('Congratulations! You solved the puzzle!', 'success');
+        showStatus();
+        showNotification(GameHub.replaying ? 'Solved!' : 'Congratulations! You solved the puzzle!', 'success');
     }
 
     // Puzzle solved!
@@ -506,8 +583,9 @@ function checkSolution() {
     }
 }
 
-// Function to show the solution (cheat)
+// Function to show the solution (cheat: the puzzle isn't kept to watch again)
 function showSolution(setGameWon = true) {
+    GameHub.cheated();
     showNotification('Solution revealed', 'info');
     showNotification('You are not getting a win-badge for this', 'warning'); // gameWon is set to true (next line) and to get a badge it must be false before calling the `checkForCompletion` function
     gameWon = setGameWon;

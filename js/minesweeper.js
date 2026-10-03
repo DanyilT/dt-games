@@ -13,6 +13,8 @@
  * - Auto-reveal of empty cells
  * - Win condition check
  * - Game over condition when clicking on a mine
+ * - GameHub's panel and replays (js/gamehub.js): each board is a run, with the mines placed from the run's seed, and every
+ *   open and flag recorded with its time, so GameHub can play it again
  *
  * Instructions:
  * - Click on a cell to reveal it.
@@ -22,7 +24,8 @@
  * - Use the keyboard arrow keys to navigate the board. (extend controls)
  *
  * Cheat code:
- * - You can reveal all mines by running the function `revealAllMines()`, but the board must be initialized first.
+ * - You can reveal all mines by running the function `revealAllMines()`, but the board must be initialized first (the
+ *   game then isn't kept to watch again).
  *
  * Easter Egg:
  * - `qwerty.js`
@@ -37,6 +40,8 @@ let gameSettings = {
 
 // Game state
 let gameData = null; // What's saved (js/storage.js), once it has loaded: the board is built then
+let run = null; // The board under way, recorded so GameHub can play it again (js/gamehub.js)
+let firstClickTime = 0; // run.time at the first click, when the timer starts
 let currentLevel = defaultGameData().level;
 let board = [];
 let mineCount = gameSettings[currentLevel].mines;
@@ -53,19 +58,73 @@ const resetButton = document.getElementById('reset-button');
 const mineCounter = document.querySelector('.mine-counter');
 const timer = document.querySelector('.timer');
 
-// Initialize game, at the saved level
+// Initialize game, at the saved level; or GameHub opened it to play a replay, which builds the board it was played on
 loadGameData().then((data) => {
     gameData = data;
     currentLevel = gameData.level;
-    initGame();
+    if (GameHub.replaying) {
+        GameHub.onReplay({
+            begin(replayRun) {
+                initGame(replayRun);
+                document.dispatchEvent(new Event('minesweeper:loaded')); // The Game menu shows the replay's level
+            },
+            input: replayInput,
+        });
+    } else {
+        initGame();
+    }
     document.dispatchEvent(new Event('minesweeper:loaded')); // The Game menu shows the level and the ⭐
 });
 
 // Event listeners
 resetButton.addEventListener('click', resetGame);
 
-// Initialize game board
-function initGame() {
+const LEVEL_NAMES = { beginner: 'Beginner', intermediate: 'Intermediate', expert: 'Expert' };
+
+// GameHub's panel: the level, the time on the board under way and the best one, then the wins and best times per level
+function showStatus() {
+    if (!gameData) return;
+    GameHub.status({
+        main: [
+            { label: 'Level', value: LEVEL_NAMES[currentLevel] },
+            { label: 'Time', value: seconds, format: 'time' },
+            { label: 'Best time', value: gameData.bestTimes[currentLevel], format: 'time' },
+        ],
+        more: Object.keys(LEVEL_NAMES).map((level) => ({
+            title: LEVEL_NAMES[level],
+            items: [
+                { label: 'Wins', value: gameData.wins[level] },
+                { label: 'Best time', value: gameData.bestTimes[level], format: 'time' },
+            ],
+        })),
+        ongoing: !firstClick && !gameOver,
+    });
+}
+
+// What a run records: an open or a flag on a cell, as one number (cell × 2, + 1 for a flag)
+function cellInput(row, col, flag) {
+    return (row * gameSettings[currentLevel].cols + col) * 2 + (flag ? 1 : 0);
+}
+
+// A replay's open or flag, with the timer as it was then
+function replayInput(code) {
+    if (!firstClick && !gameOver) {
+        seconds = Math.floor((run.time - firstClickTime) / 1000);
+        updateTimer();
+    }
+    const { cols } = gameSettings[currentLevel];
+    const cell = Math.floor(code / 2);
+    if (code % 2) {
+        flagCell(Math.floor(cell / cols), cell % cols);
+    } else {
+        openCell(Math.floor(cell / cols), cell % cols);
+    }
+}
+
+// Initialize game board: a new run, or in a replay, the run being played (its level, and its mines)
+function initGame(replayRun = null) {
+    if (replayRun) currentLevel = LEVEL_NAMES[replayRun.mode] ? replayRun.mode : currentLevel;
+    run = replayRun || GameHub.startRun({ mode: currentLevel });
     // Reset game state
     gameOver = false;
     firstClick = true;
@@ -109,6 +168,7 @@ function initGame() {
             gameBoard.appendChild(cell);
         }
     }
+    showStatus();
 }
 
 // Plant mines on the board
@@ -117,8 +177,9 @@ function plantMines(firstRow, firstCol) {
     let minesPlanted = 0;
 
     while (minesPlanted < mines) {
-        const randomRow = Math.floor(Math.random() * rows);
-        const randomCol = Math.floor(Math.random() * cols);
+        // From the run's numbers, so a replay gets the same mines
+        const randomRow = Math.floor(run.random() * rows);
+        const randomCol = Math.floor(run.random() * cols);
 
         // Ensure we don't plant a mine on the first clicked cell or where a mine already exists
         if ((randomRow !== firstRow || randomCol !== firstCol) && !board[randomRow][randomCol].isMine) {
@@ -156,23 +217,42 @@ function countMineNeighbors(row, col) {
     return count;
 }
 
-// Handle cell click event
+// Handle cell click event: the player opens a cell. It's recorded with the run first (it can end the game).
 function handleCellClick(row, col) {
+    if (gameOver || GameHub.replaying || !board.length) {
+        return;
+    }
+    run.input(cellInput(row, col, false));
+    openCell(row, col);
+}
+
+// Handle right click event: the player flags a cell (or opens around a number)
+function handleRightClick(row, col) {
+    if (gameOver || GameHub.replaying || !board.length) {
+        return;
+    }
+    run.input(cellInput(row, col, true));
+    flagCell(row, col);
+}
+
+// Open a cell
+function openCell(row, col) {
     if (gameOver) {
         return;
     }
 
-    // If cell is flagged, handle right click
+    // If cell is flagged, take the flag off
     if (board[row][col].isFlagged) {
-        handleRightClick(row, col);
+        flagCell(row, col);
         return;
     }
 
     // Handle first click
     if (firstClick) {
         firstClick = false;
+        firstClickTime = run.time;
         plantMines(row, col);
-        startTimer();
+        if (!GameHub.replaying) startTimer(); // A replay's timer follows the replay
     }
 
     // If the cell is already revealed and has neighbors
@@ -266,8 +346,8 @@ function revealCell(row, col) {
     }
 }
 
-// Handle right-click to flag/unflag a cell
-function handleRightClick(row, col) {
+// Flag or unflag a cell
+function flagCell(row, col) {
     if (gameOver) {
         return;
     }
@@ -304,6 +384,7 @@ function handleRightClick(row, col) {
 // Reveal all mines when game is over; or can be a cheat - should init the board first, before using the function (cheat)
 function revealAllMines(triggeredRow = null, triggeredCol = null) {
     if (!board.length) return; // No board yet: what's saved is still loading
+    if (!gameOver) GameHub.cheated(); // Not the end of a game: a cheat
 
     const { rows, cols } = gameSettings[currentLevel];
 
@@ -336,6 +417,11 @@ function setGameOver(triggeredRow, triggeredCol) {
     gameOver = true;
     resetButton.textContent = '😵';
     clearInterval(timerInterval);
+    run.finish({
+        outcome: 'lost',
+        result: [{ label: 'Level', value: LEVEL_NAMES[currentLevel] }, { label: 'Time', value: seconds, format: 'time' }],
+    });
+    showStatus();
 
     // Reveal all mines, marking the triggered one
     revealAllMines(triggeredRow, triggeredCol);
@@ -349,13 +435,20 @@ function checkWinCondition() {
     const totalCells = rows * cols;
 
     if (revealedCount === totalCells - mines) {
-        // Count the win, and keep the time if it's the fastest on this level
-        gameData.wins[currentLevel]++;
+        // Count the win, and keep the time if it's the fastest on this level (not a replay's: it was counted then)
         const bestTime = gameData.bestTimes[currentLevel];
-        if (bestTime === null || seconds < bestTime) {
-            gameData.bestTimes[currentLevel] = seconds;
+        if (!GameHub.replaying) {
+            gameData.wins[currentLevel]++;
+            if (bestTime === null || seconds < bestTime) {
+                gameData.bestTimes[currentLevel] = seconds;
+            }
+            saveGameData(gameData);
         }
-        saveGameData(gameData);
+        run.finish({
+            outcome: 'won',
+            result: [{ label: 'Level', value: LEVEL_NAMES[currentLevel] }, { label: 'Time', value: seconds, format: 'time' }],
+            best: bestTime === null || seconds < bestTime,
+        });
         document.dispatchEvent(new Event('minesweeper:win')); // The Game menu shows the new ⭐ count
 
         gameOver = true;
@@ -374,6 +467,7 @@ function checkWinCondition() {
         }
 
         updateMineCounter();
+        showStatus();
     }
 }
 
@@ -385,6 +479,7 @@ function startTimer() {
     timerInterval = setInterval(() => {
         seconds++;
         updateTimer();
+        showStatus();
     }, 1000);
 }
 
@@ -403,13 +498,13 @@ function updateMineCounter() {
 
 // Reset game to initial state
 function resetGame() {
-    if (!gameData) return; // What's saved is still loading: the board comes with it
+    if (!gameData || GameHub.replaying) return; // What's saved is still loading: the board comes with it
     initGame();
 }
 
 // Change game level
 function changeLevel(level) {
-    if (!gameData) return; // What's saved is still loading: the board comes with it
+    if (!gameData || GameHub.replaying) return; // What's saved is still loading: the board comes with it
     currentLevel = level;
     gameData.level = level;
     saveGameData(gameData);

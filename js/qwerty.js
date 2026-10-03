@@ -26,6 +26,7 @@ let easterEggActive = false;
 function activateQwertyEasterEgg(activate = 'all') {
     if (easterEggActive) return;
     easterEggActive = true;
+    GameHub.cheated(); // It changes the game: neither the game under way nor later ones are kept to watch again in GameHub
 
     console.log('🎮 QWERTY Easter Egg Activated! 🎮');
 

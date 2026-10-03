@@ -58,8 +58,9 @@ const resetButton = document.getElementById('reset-button');
 const mineCounter = document.querySelector('.mine-counter');
 const timer = document.querySelector('.timer');
 
-// Initialize game, at the saved level; or GameHub opened it to play a replay, which builds the board it was played on
-loadGameData().then((data) => {
+// Initialize game, at the saved level (once GameHub has handed over its tickets, so the first board gets one too); or
+// GameHub opened it to play a replay, which builds the board it was played on
+Promise.all([loadGameData(), GameHub.ready()]).then(([data]) => {
     gameData = data;
     currentLevel = gameData.level;
     if (GameHub.replaying) {

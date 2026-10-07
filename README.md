@@ -5,7 +5,7 @@ Test your logic and luck in this classic minesweeper game. Clear the board witho
 
 ![Minesweeper Game on a computer](img/desktop-screenshot.png)
 
-**[Play in GameHub](https://game-hub.danyt.workers.dev/g/minesweeper)** · [Play directly](https://minesweeper.dt-games.pages.dev) · [Source code](https://github.com/DanyilT/dt-games/tree/minesweeper)
+**[Play in GameHub](https://gamehub.foo/g/minesweeper)** · [Play directly](https://minesweeper.dt-games.pages.dev) · [Source code](https://github.com/DanyilT/dt-games/tree/minesweeper)
 
 ## 🕹️ Controls
 
@@ -30,11 +30,12 @@ On a phone or tablet:
 ## 💿 Features
 
 - Multiple difficulty levels: Beginner (9×9, 10 mines), Intermediate (16×16, 40 mines) and Expert (30×16, 99 mines)
-- Timer and mine counter
+- Timer and mine counter: the timer runs only while the page is on screen (another tab, or a locked phone, pauses it)
 - First-click safety: the first cell you open is never a mine
 - Flag system, with a flag mode for touch screens
 - Wins counted for each level (the ⭐ in the Game menu)
 - Classic Windows 9x style
+- Fits the screen: when there isn't room for the whole board, only the board scrolls
 - Mobile-friendly
 - Easter Egg
 
@@ -47,20 +48,21 @@ If the browser blocks storage (some do inside an iframe), the game still plays, 
 
 ## 👾 GameHub
 
-[GameHub](https://game-hub.danyt.workers.dev) plays this game in a frame. `js/gamehub.js` connects the two: it's the same file in every game, loaded before the game's own scripts.
+[GameHub](https://gamehub.foo) plays this game in a frame. `js/gamehub.js` connects the two: it's the same file in every game, loaded before the game's own scripts.
 
 - **Saves:** the game saves only through `window.GameHub`. Every save stays in this browser, as before. When you play in GameHub signed in, your progress also goes to your GameHub account, and the game loads the account's copy, so it follows you from device to device. The first time you play signed in on a device, if your account has no save for this game yet, this device's goes up.
 - **The play area:** GameHub asks the game to put its play area in the middle of the frame (the `gamehub:center` message).
+- **The frame view:** in GameHub's frame, the game shows only what's needed to play: the window, in the middle of its teal desktop. In full screen it shows the whole page. `js/gamehub.js` sets `data-gamehub-view` on the page (`frame`, or `full` when GameHub's `gamehub:view` message says so), and `css/page.css` says what the frame shows.
 - **Offline:** you can download the game in GameHub (the Download button on its page there) to play it offline.
 - **The panel and replays:** under the game, GameHub shows what the game tells it with `GameHub.status()` (the score now, your best, and more behind its More button), and each game you finish is kept as a run, so you can watch it again there: the run's random seed and your moves, never a video. The mines are placed from the run's seed (still after your first click, never under it), and each open and flag is recorded with its time. Runs stay in your browser. A cheat (the console, the Easter egg) means that game isn't kept.
-- **Checked runs:** signed in, GameHub hands the game a few tickets, each a seed its server chose, and each run takes one. GameHub then plays the run again on its server with this game's rules, so only results it got itself count as your records (it does this offline too, once you're back online). The first board waits for them (`GameHub.ready()`), so it gets one too.
+- **Checked runs:** signed in, GameHub hands the game a few tickets, each a seed its server chose, and each run takes one. GameHub then plays the run again on its server with this game's own rules (`js/rules.js`, the code the game plays by), so only results it got itself count as your records (it does this offline too, once you're back online). The first board waits for them (`GameHub.ready()`), so it gets one too.
 - **Only GameHub:** it loads GameHub's script (`/hub-bridge.js`) only when the game is in a frame on GameHub's own address.
 
 The game works without it: played on its own, or when GameHub can't be reached (the game gives it 3 seconds at most), everything stays in this browser.
 
 ## 👀 Links
 
-- **Play in GameHub:** https://game-hub.danyt.workers.dev/g/minesweeper
+- **Play in GameHub:** https://gamehub.foo/g/minesweeper
 - **Play directly:** https://minesweeper.dt-games.pages.dev
 - **Source code:** https://github.com/DanyilT/dt-games/tree/minesweeper
 - **The other games:** [Snake](https://github.com/DanyilT/dt-games/tree/snake), [Tetris](https://github.com/DanyilT/dt-games/tree/tetris) and [Sudoku](https://github.com/DanyilT/dt-games/tree/sudoku), each on its own branch of [DanyilT/dt-games](https://github.com/DanyilT/dt-games)

@@ -4,6 +4,8 @@
  * A simple implementation of the classic Minesweeper game using JavaScript, HTML, and CSS.
  * This game allows players to select difficulty levels, plant mines, reveal cells, and flag potential mines.
  * It also includes a timer and mine counter.
+ * The rules (the levels, the mines, opening and flagging, the win and the loss) are in js/rules.js: this file shows the
+ * board, takes the player's clicks, and plays the game through GameRules.
  *
  * Features:
  * - Three difficulty levels: Beginner, Intermediate, and Expert
@@ -31,26 +33,24 @@
  * - `qwerty.js`
  */
 
-// Game settings
-let gameSettings = {
-    beginner: { rows: 9, cols: 9, mines: 10 },
-    intermediate: { rows: 16, cols: 16, mines: 40 },
-    expert: { rows: 16, cols: 30, mines: 99 }
-};
+
+// Game settings: the levels' rows, columns and mines (js/rules.js)
+const gameSettings = GameRules.LEVELS;
+const LEVEL_NAMES = Object.fromEntries(Object.entries(gameSettings).map(([level, settings]) => [level, settings.name]));
 
 // Game state
 let gameData = null; // What's saved (js/storage.js), once it has loaded: the board is built then
 let run = null; // The board under way, recorded so GameHub can play it again (js/gamehub.js)
-let firstClickTime = 0; // run.time at the first click, when the timer starts
+let game = null; // The board under way (js/rules.js): its cells, its mines, and whether it's won or lost
 let currentLevel = defaultGameData().level;
-let board = [];
+let board = []; // The board's cells (game.board): { isMine, isRevealed, isFlagged, neighbors }
 let mineCount = gameSettings[currentLevel].mines;
 let flaggedCount = 0;
-let revealedCount = 0;
 let gameOver = false;
-let timerInterval;
-let seconds = 0;
-let firstClick = true;
+let timerInterval = null; // While the timer runs (a game under way, from its first click)
+let seconds = 0; // The timer: whole seconds since the first click, while the page was on screen
+let timerTime = 0; // ms on the timer, up to when its clock last stopped
+let timerStartedAt = null; // performance.now() while the timer's clock runs, null while it's stopped
 
 // DOM elements
 const gameBoard = document.getElementById('game-board');
@@ -80,7 +80,6 @@ Promise.all([loadGameData(), GameHub.ready()]).then(([data]) => {
 // Event listeners
 resetButton.addEventListener('click', resetGame);
 
-const LEVEL_NAMES = { beginner: 'Beginner', intermediate: 'Intermediate', expert: 'Expert' };
 
 // GameHub's panel: the level, the time on the board under way and the best one, then the wins and best times per level
 function showStatus() {
@@ -98,27 +97,26 @@ function showStatus() {
                 { label: 'Best time', value: gameData.bestTimes[level], format: 'time' },
             ],
         })),
-        ongoing: !firstClick && !gameOver,
+        ongoing: Boolean(game) && !game.firstClick && !gameOver,
     });
 }
 
 // What a run records: an open or a flag on a cell, as one number (cell × 2, + 1 for a flag)
 function cellInput(row, col, flag) {
-    return (row * gameSettings[currentLevel].cols + col) * 2 + (flag ? 1 : 0);
+    return (row * game.cols + col) * 2 + (flag ? 1 : 0);
 }
 
 // A replay's open or flag, with the timer as it was then
 function replayInput(code) {
-    if (!firstClick && !gameOver) {
-        seconds = Math.floor((run.time - firstClickTime) / 1000);
+    if (!game.firstClick && !gameOver) {
+        seconds = Math.floor((run.time - game.firstClickAt) / 1000);
         updateTimer();
     }
-    const { cols } = gameSettings[currentLevel];
     const cell = Math.floor(code / 2);
     if (code % 2) {
-        flagCell(Math.floor(cell / cols), cell % cols);
+        flagCell(Math.floor(cell / game.cols), cell % game.cols);
     } else {
-        openCell(Math.floor(cell / cols), cell % cols);
+        openCell(Math.floor(cell / game.cols), cell % game.cols);
     }
 }
 
@@ -126,35 +124,30 @@ function replayInput(code) {
 function initGame(replayRun = null) {
     if (replayRun) currentLevel = LEVEL_NAMES[replayRun.mode] ? replayRun.mode : currentLevel;
     run = replayRun || GameHub.startRun({ mode: currentLevel });
+    // A new board (js/rules.js): its mines go in at the first open, from the run's numbers, so a replay gets the same ones
+    game = GameRules.newGame(run.random, currentLevel);
+    board = game.board;
     // Reset game state
     gameOver = false;
-    firstClick = true;
-    board = [];
     flaggedCount = 0;
-    revealedCount = 0;
+    clearInterval(timerInterval);
+    timerInterval = null;
+    timerTime = 0;
+    timerStartedAt = null;
     seconds = 0;
     updateTimer();
-    clearInterval(timerInterval);
-    mineCount = gameSettings[currentLevel].mines;
+    mineCount = game.mines;
     updateMineCounter();
     resetButton.textContent = '😊';
 
     // Create game board
     gameBoard.innerHTML = '';
-    gameBoard.style.gridTemplateColumns = `repeat(${gameSettings[currentLevel].cols}, auto)`;
-    gameBoard.style.gridTemplateRows = `repeat(${gameSettings[currentLevel].rows}, auto)`;
+    gameBoard.style.gridTemplateColumns = `repeat(${game.cols}, auto)`;
+    gameBoard.style.gridTemplateRows = `repeat(${game.rows}, auto)`;
 
-    // Initialize board with empty cells
-    for (let row = 0; row < gameSettings[currentLevel].rows; row++) {
-        board[row] = [];
-        for (let col = 0; col < gameSettings[currentLevel].cols; col++) {
-            board[row][col] = {
-                isMine: false,
-                isRevealed: false,
-                isFlagged: false,
-                neighbors: 0
-            };
-
+    // A cell element for each cell, row by row
+    for (let row = 0; row < game.rows; row++) {
+        for (let col = 0; col < game.cols; col++) {
             const cell = document.createElement('div');
             cell.classList.add('cell');
             cell.dataset.row = row;
@@ -170,52 +163,6 @@ function initGame(replayRun = null) {
         }
     }
     showStatus();
-}
-
-// Plant mines on the board
-function plantMines(firstRow, firstCol) {
-    const { rows, cols, mines } = gameSettings[currentLevel];
-    let minesPlanted = 0;
-
-    while (minesPlanted < mines) {
-        // From the run's numbers, so a replay gets the same mines
-        const randomRow = Math.floor(run.random() * rows);
-        const randomCol = Math.floor(run.random() * cols);
-
-        // Ensure we don't plant a mine on the first clicked cell or where a mine already exists
-        if ((randomRow !== firstRow || randomCol !== firstCol) && !board[randomRow][randomCol].isMine) {
-            board[randomRow][randomCol].isMine = true;
-            minesPlanted++;
-        }
-    }
-
-    // Calculate neighbor counts
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            if (!board[row][col].isMine) {
-                board[row][col].neighbors = countMineNeighbors(row, col);
-            }
-        }
-    }
-}
-
-// Helper function to count mines around a cell
-function countMineNeighbors(row, col) {
-    let count = 0;
-    const { rows, cols } = gameSettings[currentLevel];
-
-    // Check all 8 adjacent cells
-    for (let r = Math.max(0, row - 1); r <= Math.min(rows - 1, row + 1); r++) {
-        for (let c = Math.max(0, col - 1); c <= Math.min(cols - 1, col + 1); c++) {
-            if (r !== row || c !== col) {
-                if (board[r][c].isMine) {
-                    count++;
-                }
-            }
-        }
-    }
-
-    return count;
 }
 
 // Handle cell click event: the player opens a cell. It's recorded with the run first (it can end the game).
@@ -236,150 +183,57 @@ function handleRightClick(row, col) {
     flagCell(row, col);
 }
 
-// Open a cell
+// Open a cell (js/rules.js), at the run's time: the first open puts the mines in, and starts the timer
 function openCell(row, col) {
     if (gameOver) {
         return;
     }
-
-    // If cell is flagged, take the flag off
-    if (board[row][col].isFlagged) {
-        flagCell(row, col);
-        return;
-    }
-
-    // Handle first click
-    if (firstClick) {
-        firstClick = false;
-        firstClickTime = run.time;
-        plantMines(row, col);
-        if (!GameHub.replaying) startTimer(); // A replay's timer follows the replay
-    }
-
-    // If the cell is already revealed and has neighbors
-    if (board[row][col].isRevealed && board[row][col].neighbors > 0) {
-        // Count flagged neighbors
-        const flaggedNeighbors = countFlaggedNeighbors(row, col);
-
-        // If flagged neighbors matches the number, reveal unflagged neighbors
-        if (flaggedNeighbors === board[row][col].neighbors) {
-            revealUnflaggedNeighbors(row, col);
-            checkWinCondition();
-        }
-        return;
-    }
-
-    // If clicked on a mine, game over
-    if (board[row][col].isMine) {
-        setGameOver(row, col);
-        return;
-    }
-
-    // Reveal the cell
-    revealCell(row, col);
-
-    // Check win condition
-    checkWinCondition();
+    const first = game.firstClick;
+    GameRules.openCell(game, row, col, run.time);
+    if (first && !game.firstClick && !GameHub.replaying) startTimer(); // A replay's timer follows the replay
+    afterMove();
 }
 
-// Helper function to count flagged neighbors
-function countFlaggedNeighbors(row, col) {
-    let count = 0;
-    const { rows, cols } = gameSettings[currentLevel];
-
-    for (let r = Math.max(0, row - 1); r <= Math.min(rows - 1, row + 1); r++) {
-        for (let c = Math.max(0, col - 1); c <= Math.min(cols - 1, col + 1); c++) {
-            if ((r !== row || c !== col) && board[r][c].isFlagged) {
-                count++;
-            }
-        }
-    }
-
-    return count;
-}
-
-// Helper function to reveal all unflagged neighbors
-function revealUnflaggedNeighbors(row, col) {
-    const { rows, cols } = gameSettings[currentLevel];
-
-    for (let r = Math.max(0, row - 1); r <= Math.min(rows - 1, row + 1); r++) {
-        for (let c = Math.max(0, col - 1); c <= Math.min(cols - 1, col + 1); c++) {
-            if (r !== row || c !== col) {
-                if (!board[r][c].isRevealed && !board[r][c].isFlagged) {
-                    if (board[r][c].isMine) {
-                        setGameOver(r, c);
-                        return;
-                    }
-                    revealCell(r, c);
-                }
-            }
-        }
-    }
-}
-
-// Reveal a cell and its neighbors (if neighbors are empty)
-function revealCell(row, col) {
-    const { rows, cols } = gameSettings[currentLevel];
-
-    if (row < 0 || row >= rows || col < 0 || col >= cols ||
-        board[row][col].isRevealed || board[row][col].isFlagged) {
-        return;
-    }
-
-    board[row][col].isRevealed = true;
-    revealedCount++;
-
-    const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-    cell.classList.add('revealed');
-
-    if (board[row][col].neighbors > 0) {
-        cell.textContent = board[row][col].neighbors;
-        cell.dataset.value = board[row][col].neighbors;
-    } else {
-        // Auto-reveal empty neighboring cells
-        for (let r = Math.max(0, row - 1); r <= Math.min(rows - 1, row + 1); r++) {
-            for (let c = Math.max(0, col - 1); c <= Math.min(cols - 1, col + 1); c++) {
-                if (r !== row || c !== col) {
-                    revealCell(r, c);
-                }
-            }
-        }
-    }
-}
-
-// Flag or unflag a cell
+// Flag or unflag a cell (js/rules.js); on an open number whose flags are all there, open the cells around it
 function flagCell(row, col) {
     if (gameOver) {
         return;
     }
+    GameRules.flagCell(game, row, col);
+    afterMove();
+}
 
-    if (board[row][col].isRevealed) {
-        if (board[row][col].neighbors > 0) {
-            // Count flagged neighbors
-            const flaggedNeighbors = countFlaggedNeighbors(row, col);
-
-            // If flagged neighbors matches the number, reveal unflagged neighbors
-            if (flaggedNeighbors === board[row][col].neighbors) {
-                revealUnflaggedNeighbors(row, col);
-                checkWinCondition();
-            }
-        }
-        return; // Opened cells can't be flagged
-    }
-
-    const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-
-    if (board[row][col].isFlagged) {
-        board[row][col].isFlagged = false;
-        cell.classList.remove('flagged');
-        flaggedCount--;
-    } else {
-        board[row][col].isFlagged = true;
-        cell.classList.add('flagged');
-        flaggedCount++;
-    }
-
+// After an open or a flag: the cells as the board has them now, the mine counter, and the end of the game if it came
+function afterMove() {
+    showCells();
     updateMineCounter();
+    if (game.over && !gameOver) {
+        if (game.won) {
+            showWin();
+        } else {
+            setGameOver(game.hit.row, game.hit.col);
+        }
+    }
+}
+
+// Show the cells the board has opened (with their numbers) and flagged
+function showCells() {
+    flaggedCount = 0;
+    for (let row = 0; row < game.rows; row++) {
+        for (let col = 0; col < game.cols; col++) {
+            const cell = board[row][col];
+            const element = gameBoard.children[row * game.cols + col];
+            if (cell.isRevealed) {
+                element.classList.add('revealed');
+                if (cell.neighbors > 0 && element.dataset.value !== String(cell.neighbors)) {
+                    element.textContent = cell.neighbors;
+                    element.dataset.value = cell.neighbors;
+                }
+            }
+            element.classList.toggle('flagged', cell.isFlagged);
+            if (cell.isFlagged) flaggedCount++;
+        }
+    }
 }
 
 // Reveal all mines when game is over; or can be a cheat - should init the board first, before using the function (cheat)
@@ -417,7 +271,7 @@ function revealAllMines(triggeredRow = null, triggeredCol = null) {
 function setGameOver(triggeredRow, triggeredCol) {
     gameOver = true;
     resetButton.textContent = '😵';
-    clearInterval(timerInterval);
+    stopTimer();
     run.finish({
         outcome: 'lost',
         result: [{ label: 'Level', value: LEVEL_NAMES[currentLevel] }, { label: 'Time', value: seconds, format: 'time' }],
@@ -428,60 +282,102 @@ function setGameOver(triggeredRow, triggeredCol) {
     revealAllMines(triggeredRow, triggeredCol);
 }
 
-// Check win condition, if all non-mine cells are revealed, the player wins
-function checkWinCondition() {
-    if (gameOver) return; // Lost already (a chord that opened a mine)
+// The board is won (js/rules.js: every cell but the mines is open)
+function showWin() {
+    const { rows, cols } = game;
+    stopTimer(); // The time it shows is the win's
 
-    const { rows, cols, mines } = gameSettings[currentLevel];
-    const totalCells = rows * cols;
-
-    if (revealedCount === totalCells - mines) {
-        // Count the win, and keep the time if it's the fastest on this level (not a replay's: it was counted then)
-        const bestTime = gameData.bestTimes[currentLevel];
-        if (!GameHub.replaying) {
-            gameData.wins[currentLevel]++;
-            if (bestTime === null || seconds < bestTime) {
-                gameData.bestTimes[currentLevel] = seconds;
-            }
-            saveGameData(gameData);
+    // Count the win, and keep the time if it's the fastest on this level (not a replay's: it was counted then)
+    const bestTime = gameData.bestTimes[currentLevel];
+    if (!GameHub.replaying) {
+        gameData.wins[currentLevel]++;
+        if (bestTime === null || seconds < bestTime) {
+            gameData.bestTimes[currentLevel] = seconds;
         }
-        run.finish({
-            outcome: 'won',
-            result: [{ label: 'Level', value: LEVEL_NAMES[currentLevel] }, { label: 'Time', value: seconds, format: 'time' }],
-            best: bestTime === null || seconds < bestTime,
-        });
-        document.dispatchEvent(new Event('minesweeper:win')); // The Game menu shows the new ⭐ count
+        saveGameData(gameData);
+    }
+    run.finish({
+        outcome: 'won',
+        result: [{ label: 'Level', value: LEVEL_NAMES[currentLevel] }, { label: 'Time', value: seconds, format: 'time' }],
+        best: bestTime === null || seconds < bestTime,
+    });
+    document.dispatchEvent(new Event('minesweeper:win')); // The Game menu shows the new ⭐ count
 
-        gameOver = true;
-        resetButton.textContent = '😎';
-        clearInterval(timerInterval);
+    gameOver = true;
+    resetButton.textContent = '😎';
 
-        // Flag all remaining mines
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols; col++) {
-                if (board[row][col].isMine && !board[row][col].isFlagged) {
-                    const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-                    cell.classList.add('flagged');
-                    flaggedCount++;
-                }
+    // Flag all remaining mines
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            if (board[row][col].isMine && !board[row][col].isFlagged) {
+                const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                cell.classList.add('flagged');
+                flaggedCount++;
             }
         }
+    }
 
-        updateMineCounter();
-        showStatus();
+    updateMineCounter();
+    showStatus();
+}
+
+// The timer's clock runs only while the page is on screen, as the run's does (js/gamehub.js), so the time a win shows is
+// the time GameHub's server finds when it plays the run again
+function timerSeconds() {
+    const running = timerStartedAt === null ? 0 : performance.now() - timerStartedAt;
+    return Math.floor((timerTime + running) / 1000);
+}
+
+// Start the timer's clock (not while the page is hidden)
+function startClock() {
+    if (timerStartedAt === null && !document.hidden) {
+        timerStartedAt = performance.now();
     }
 }
 
-// Start timer
+// Stop the timer's clock, keeping its time so far
+function stopClock() {
+    if (timerStartedAt !== null) {
+        timerTime += performance.now() - timerStartedAt;
+        timerStartedAt = null;
+    }
+}
+
+// The page hidden (another tab, a locked phone): the timer waits until it's back
+document.addEventListener('visibilitychange', () => {
+    if (timerInterval === null) return; // No game under way
+    if (document.hidden) {
+        stopClock();
+    } else {
+        startClock();
+    }
+});
+
+// Start timer: from 0, at the first click
 function startTimer() {
     clearInterval(timerInterval);
+    timerTime = 0;
+    timerStartedAt = null;
+    startClock();
     seconds = 0;
     updateTimer();
     timerInterval = setInterval(() => {
-        seconds++;
+        const now = timerSeconds();
+        if (now === seconds) return;
+        seconds = now;
         updateTimer();
         showStatus();
-    }, 1000);
+    }, 200);
+}
+
+// Stop timer: the game is over, and the timer shows its time to the end (a replay's timer follows the replay instead)
+function stopTimer() {
+    if (timerInterval === null) return;
+    clearInterval(timerInterval);
+    timerInterval = null;
+    stopClock();
+    seconds = timerSeconds();
+    updateTimer();
 }
 
 // Update timer display

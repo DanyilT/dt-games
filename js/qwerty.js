@@ -40,10 +40,11 @@ function activateQwertyEasterEgg(activate = 'all') {
         console.log('💣 All mines revealed!');
     }
 
-    // 2. Invincibility
+    // 2. Invincibility (the page's gameOver, and the board's own, js/rules.js)
     if (activate.includes('invincibility') && typeof gameOver !== 'undefined') {
         setInterval(() => {
             gameOver = false;
+            if (game) game.over = false;
         }, 16); // ~60fps
 
         console.log('🛡️ Invincibility activated!');

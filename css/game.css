@@ -1,0 +1,148 @@
+/* The game itself: the grid and its cells, and the number pad */
+
+/* Sudoku Grid */
+.sudoku-grid, .subgrid {
+    display: grid;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    background-color: var(--background);
+}
+
+.sudoku-grid {
+    margin: 0 auto;
+    gap: 6px;
+    padding: 10px;
+    border-radius: 15px;
+    box-shadow: 10px 10px 20px var(--shadow-dark), -10px -10px 20px var(--shadow-light);
+}
+
+.subgrid {
+    gap: 3px;
+    padding: 5px;
+    border-radius: 10px;
+    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+}
+
+/* Cells */
+.cell {
+    width: 40px;
+    height: 40px;
+    padding: 1px;
+    font-size: 20px;
+    font-weight: 500;
+    text-align: center;
+    border: none;
+    border-radius: 10px;
+    cursor: default;
+    caret-color: transparent;
+    color: var(--text-color);
+    background-color: var(--background);
+    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+    transition: all 0.2s ease;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.cell {
+    /* Remove spinner buttons from number input */
+    &::-webkit-inner-spin-button, &::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+    }
+
+    /* Remove default outline, add custom focus styles */
+    &:focus {
+        outline: none;
+        color: var(--primary) !important;
+        box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+        background-color: color-mix(in srgb, var(--shadow-dark) 20%, transparent);
+    }
+
+    /* Keyboard focus selection, add custom focus outline */
+    &:focus.keyboard-selected {
+        outline: 1px solid var(--primary);
+    }
+
+    /* Initial cells */
+    &.initial {
+        font-weight: 600;
+        box-shadow: none;
+    }
+
+    /* Valid cells */
+    &.valid {
+        color: var(--valid);
+    }
+
+    /* Invalid cells */
+    &.invalid {
+        color: var(--invalid);
+    }
+
+    /* Same number cells */
+    &.same-number {
+        box-shadow: inset -2px 2px 5px var(--shadow-dark), inset 2px -2px 5px var(--shadow-light);
+        background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+    }
+}
+
+/* Number Pad */
+.number-pad {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+    padding: 15px;
+    width: 100%;
+    max-width: 440px;
+    border-radius: 20px;
+    background-color: var(--background);
+    box-shadow: 5px 5px 10px var(--shadow-dark), -5px -5px 10px var(--shadow-light);
+}
+
+.num-btn {
+    width: 100%;
+    aspect-ratio: 1/1;
+    font-size: 1.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    border-radius: 50%;
+
+    &.erase {
+        color: var(--invalid);
+    }
+}
+
+/* Responsive styles */
+@media (max-width: 600px) {
+    .cell {
+        width: 35px;
+        height: 35px;
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 400px) {
+    .sudoku-grid {
+        gap: 3px;
+        padding: 5px;
+    }
+
+    .subgrid {
+        gap: 0;
+    }
+
+    .cell {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+
+    .number-pad {
+        gap: 8px;
+        padding: 8px;
+        max-width: 300px;
+    }
+
+    .num-btn {
+        font-size: 1rem;
+    }
+}

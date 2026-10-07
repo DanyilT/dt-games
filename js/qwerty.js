@@ -31,14 +31,16 @@ function activateQwertyEasterEgg(activate = 'all') {
     console.log('🎮 QWERTY Easter Egg Activated! 🎮');
 
     activate = activate !== 'all' ? activate : ['style', 'solution', 'matrix', 'followers'];
-    // 1. Switch CSS file from style.css to basic-style.css
+    // 1. Switch the CSS files to the basic look: page.css to basic-page.css, game.css to basic-game.css
     if (activate.includes('style')) {
-        const styleLink = document.querySelector('link[href*="style.css"]');
-        if (styleLink) {
-            styleLink.dataset.originalHref = styleLink.href;
-            styleLink.href = styleLink.href.replace('style.css', 'basic-style.css');
-            console.log('👺 Style switched to basic mode');
+        for (const name of ['page', 'game']) {
+            const styleLink = document.querySelector(`link[href$="css/${name}.css"]`);
+            if (styleLink) {
+                styleLink.dataset.originalHref = styleLink.href;
+                styleLink.href = styleLink.href.replace(`${name}.css`, `basic-${name}.css`);
+            }
         }
+        console.log('👺 Style switched to basic mode');
     }
 
     // 2. Show solution, and set gameWon to false (so the check solution will count it as win)

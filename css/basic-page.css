@@ -1,0 +1,15 @@
+/* The basic look (the Easter egg, js/qwerty.js): the page around the game (and GameHub's frame view) */
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* GameHub's frame view, as in css/page.css: the grid, the number pad, and New Game, Check Solution and the level */
+[data-gamehub-view="frame"] h1,
+[data-gamehub-view="frame"] #showInfoBtn,
+[data-gamehub-view="frame"] .info-container {
+    display: none;
+}

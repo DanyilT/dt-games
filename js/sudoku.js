@@ -1,3 +1,17 @@
+/**
+ * Sudoku Game
+ *
+ * The classic number puzzle: fill the 9×9 grid so that no row, column or 3×3 box has a digit twice.
+ * The rules (the puzzle, made from the run's random numbers, and when it's solved) are in js/rules.js: this file shows the
+ * grid, takes the player's numbers, keeps the puzzle in progress, and plays the game through GameRules.
+ *
+ * Cheat code:
+ * - `showSolution()` fills in the solution (no win, and the puzzle isn't kept to watch again).
+ *
+ * Easter Egg:
+ * - `qwerty.js`
+ */
+
 // Global variables
 let board = emptyGrid(); // Current state (empty until what's saved has loaded)
 let solution = emptyGrid(); // Complete solution
@@ -12,7 +26,7 @@ let clockStartedAt = null; // performance.now() while the clock runs, null while
 // it's kept with the puzzle when that's saved, so it carries on after a reload (or on another device)
 let run = null;
 
-const LEVELS = ['beginner', 'easy', 'medium', 'hard', 'expert'];
+const LEVELS = Object.keys(GameRules.LEVELS); // 'beginner' (For a Bread), 'easy', 'medium', 'hard', 'expert'
 
 // Initialize game with what's saved: the puzzle in progress, or a new one (once GameHub has handed over its tickets, so
 // it gets one too); or GameHub opened the game to play a replay, which makes the puzzle it was played on
@@ -122,12 +136,11 @@ function initGame(replayRun = null) {
     // Clear saved game state when starting a new game
     gameData.board = null;
 
-    // Generate a complete solution
-    solution = generateSolution();
-
-    // Create initial board based on difficulty
-    initialBoard = JSON.parse(JSON.stringify(solution));
-    removeNumbers(difficulty);
+    // A new puzzle (js/rules.js): a complete solution, and the clues kept from it for the difficulty, made from the run's
+    // numbers so a replay gets the same puzzle
+    const puzzle = GameRules.makePuzzle(run.random, difficulty);
+    solution = puzzle.solution;
+    initialBoard = puzzle.initial;
 
     // Set current board to initial state
     board = JSON.parse(JSON.stringify(initialBoard));
@@ -165,121 +178,6 @@ function stopClock() {
 function puzzleSeconds() {
     const running = clockStartedAt === null ? 0 : performance.now() - clockStartedAt;
     return Math.round((puzzleTime + running) / 1000);
-}
-
-// Function to generate a complete Sudoku solution
-function generateSolution() {
-    // Start with empty board (9x9 grid)
-    const solution = Array(9).fill().map(() => Array(9).fill(0));
-
-    // Solve it to create a valid solution
-    solveSudoku(solution);
-    return solution;
-}
-
-// Function to solve the Sudoku puzzle using backtracking
-function solveSudoku(board) {
-    const emptyCell = findEmptyCell(board);
-
-    // If no empty cells, the board is solved
-    if (!emptyCell) {
-        return true;
-    }
-
-    const [row, col] = emptyCell;
-    // Try digits 1-9 in random order
-    const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-    shuffleArray(digits);
-
-    for (let num of digits) {
-        if (isValidPlacement(board, row, col, num)) {
-            board[row][col] = num;
-
-            if (solveSudoku(board)) {
-                return true;
-            }
-
-            // Backtrack if solution not found
-            board[row][col] = 0;
-        }
-    }
-
-    return false;
-}
-
-// Function to find an empty cell in the board
-function findEmptyCell(board) {
-    for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-            if (board[row][col] === 0) {
-                return [row, col];
-            }
-        }
-    }
-    return null;
-}
-
-// Function to shuffle an array (Fisher-Yates algorithm), with the run's numbers: a replay makes the same puzzle
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(run.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
-
-// Function to check if a number can be placed in a cell
-function isValidPlacement(board, row, col, num) {
-    // Check row
-    for (let x = 0; x < 9; x++) {
-        if (board[row][x] === num) return false;
-    }
-
-    // Check column
-    for (let y = 0; y < 9; y++) {
-        if (board[y][col] === num) return false;
-    }
-
-    // Check 3x3 subgrid
-    const subgridRow = Math.floor(row / 3) * 3;
-    const subgridCol = Math.floor(col / 3) * 3;
-
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            if (board[subgridRow + i][subgridCol + j] === num) return false;
-        }
-    }
-
-    return true;
-}
-
-// Function to remove numbers from the board based on difficulty
-function removeNumbers(difficulty) {
-    // Determine cells to remove based on difficulty
-    let cellsToRemove;
-    switch(difficulty) {
-        case 'beginner': cellsToRemove = 20; break; // Keep 61 out of 81 cells
-        case 'easy': cellsToRemove = 40; break;     // Keep 41 out of 81 cells
-        case 'medium': cellsToRemove = 50; break;   // Keep 31 out of 81 cells
-        case 'hard': cellsToRemove = 60; break;     // Keep 21 out of 81 cells
-        case 'expert': cellsToRemove = 70; break;   // Keep 11 out of 81 cells
-        default: cellsToRemove = 50;
-    }
-
-    // Create list of all positions
-    const positions = [];
-    for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-            positions.push([row, col]);
-        }
-    }
-
-    shuffleArray(positions);
-
-    // Clear cells beyond what we want to keep
-    for (let i = 0; i < cellsToRemove; i++) {
-        const [row, col] = positions[i];
-        initialBoard[row][col] = 0;
-    }
 }
 
 // Function to display the Sudoku board
@@ -321,11 +219,11 @@ function validateAllCells() {
                 continue;
             }
 
-            // Check if the current value is valid
+            // Check if the current value is valid (js/rules.js)
             const tempBoard = JSON.parse(JSON.stringify(board));
             tempBoard[row][col] = 0; // Clear temporarily to check
 
-            if (isValidPlacement(tempBoard, row, col, value)) {
+            if (GameRules.isValidPlacement(tempBoard, row, col, value)) {
                 cell.classList.add('valid');
                 cell.classList.remove('invalid');
             } else {
@@ -431,9 +329,10 @@ function replayInput(code) {
     setCell(Math.floor(cell / 9), cell % 9, code % 10);
 }
 
-// Function to update cell value
+// Function to update cell value (js/rules.js: a clue can't change)
 function setCell(row, col, value) {
-    board[row][col] = value;
+    const entered = GameRules.enter(board, initialBoard, row, col, value);
+    if (entered === 'clue') return;
     const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
 
     // Update display
@@ -445,8 +344,8 @@ function setCell(row, col, value) {
     // Validate all cells since one change can affect others
     validateAllCells();
 
-    // Check for completion only if the cell was filled
-    if (value > 0) {
+    // The puzzle is solved: record the win
+    if (entered === 'solved') {
         checkForCompletion();
     }
 
@@ -516,28 +415,10 @@ function loadGameState() {
     return false;
 }
 
-// Function to check if the puzzle is complete
+// Function to check if the puzzle is complete: every cell filled, with no digit twice in a row, column or box (js/rules.js)
 function checkForCompletion() {
-    // Check if all cells are filled
-    for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-            if (board[row][col] === 0) {
-                return false;
-            }
-        }
-    }
-
-    // Check if all placements are valid
-    for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-            const value = board[row][col];
-            const tempBoard = JSON.parse(JSON.stringify(board));
-            tempBoard[row][col] = 0;
-
-            if (!isValidPlacement(tempBoard, row, col, value)) {
-                return false;
-            }
-        }
+    if (!GameRules.isSolved(board)) {
+        return false;
     }
 
     // Record the win for the current difficulty, and the time if it's the fastest on it (not a replay's: it was then)

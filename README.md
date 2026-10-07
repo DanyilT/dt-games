@@ -5,7 +5,7 @@ The classic block-stacking puzzle game. Rotate and move falling blocks to create
 
 ![Tetris Game on a computer](img/desktop-screenshot.png)
 
-**[Play in GameHub](https://game-hub.danyt.workers.dev/g/tetris)** · [Play directly](https://tetris.dt-games.pages.dev) · [Source code](https://github.com/DanyilT/dt-games/tree/tetris)
+**[Play in GameHub](https://gamehub.foo/g/tetris)** · [Play directly](https://tetris.dt-games.pages.dev) · [Source code](https://github.com/DanyilT/dt-games/tree/tetris)
 
 ## 🕹️ Controls
 
@@ -46,20 +46,21 @@ If the browser blocks storage (some do inside an iframe), the game still plays, 
 
 ## 👾 GameHub
 
-[GameHub](https://game-hub.danyt.workers.dev) plays this game in a frame. `js/gamehub.js` connects the two: it's the same file in every game, loaded before the game's own scripts.
+[GameHub](https://gamehub.foo) plays this game in a frame. `js/gamehub.js` connects the two: it's the same file in every game, loaded before the game's own scripts.
 
 - **Saves:** the game saves only through `window.GameHub`. Every save stays in this browser, as before. When you play in GameHub signed in, your progress also goes to your GameHub account, and the game loads the account's copy, so it follows you from device to device. The first time you play signed in on a device, if your account has no save for this game yet, this device's goes up.
 - **The play area:** GameHub asks the game to put its play area in the middle of the frame (the `gamehub:center` message).
+- **The frame view:** in GameHub's frame, the game shows only what's needed to play: the board, the next piece, the move buttons, and Pause and Reset. In full screen it shows the whole page. `js/gamehub.js` sets `data-gamehub-view` on the page (`frame`, or `full` when GameHub's `gamehub:view` message says so), and `css/page.css` says what the frame shows.
 - **Offline:** you can download the game in GameHub (the Download button on its page there) to play it offline.
 - **The panel and replays:** under the game, GameHub shows what the game tells it with `GameHub.status()` (the score now, your best, and more behind its More button), and each game you finish is kept as a run, so you can watch it again there: the run's random seed and your moves, never a video. The game moves in fixed 50 ms steps (a piece falls every few, sooner at higher levels), the pieces come from the run's seed, and each move is recorded with the step it came after. Runs stay in your browser. A cheat (the console, the Easter egg) means that game isn't kept.
-- **Checked runs:** signed in, GameHub hands the game a few tickets, each a seed its server chose, and each run takes one. GameHub then plays the run again on its server with this game's rules, so only results it got itself count as your records (it does this offline too, once you're back online). The first game waits for them (`GameHub.ready()`) before it starts, so it gets one too.
+- **Checked runs:** signed in, GameHub hands the game a few tickets, each a seed its server chose, and each run takes one. GameHub then plays the run again on its server with this game's own rules (`js/rules.js`, the code the game plays by), so only results it got itself count as your records (it does this offline too, once you're back online). The first game waits for them (`GameHub.ready()`) before it starts, so it gets one too.
 - **Only GameHub:** it loads GameHub's script (`/hub-bridge.js`) only when the game is in a frame on GameHub's own address.
 
 The game works without it: played on its own, or when GameHub can't be reached (the game gives it 3 seconds at most), everything stays in this browser.
 
 ## 👀 Links
 
-- **Play in GameHub:** https://game-hub.danyt.workers.dev/g/tetris
+- **Play in GameHub:** https://gamehub.foo/g/tetris
 - **Play directly:** https://tetris.dt-games.pages.dev
 - **Source code:** https://github.com/DanyilT/dt-games/tree/tetris
 - **The other games:** [Snake](https://github.com/DanyilT/dt-games/tree/snake), [Minesweeper](https://github.com/DanyilT/dt-games/tree/minesweeper) and [Sudoku](https://github.com/DanyilT/dt-games/tree/sudoku), each on its own branch of [DanyilT/dt-games](https://github.com/DanyilT/dt-games)

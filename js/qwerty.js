@@ -56,29 +56,28 @@ function activateQwertyEasterEgg(activate = 'all') {
         tetrisCanvas.style.animation = 'gradientRotate 5s linear infinite';
     }
 
-    // 3. Spawn blocks at random positions and teleport the block in random position
+    // 3. Spawn blocks at random positions and teleport the block in random position (the piece of the game under way,
+    // js/rules.js)
     if (activate.includes('blockTeleport')) {
-        if (typeof lockPiece === 'function') {
-            const originalLockPiece = lockPiece;
+        const teleport = () => {
+            if (typeof game !== 'undefined' && game && typeof COLS !== 'undefined') {
+                const pieceWidth = game.current.shape[0].length;
+                const maxX = COLS - pieceWidth;
+                game.current.x = Math.floor(Math.random() * (maxX + 1));
+            }
+        };
 
-            window.lockPiece = function() {
-                originalLockPiece();
+        // A piece that locks: the next one starts somewhere random
+        if (typeof pieceLocked === 'function') {
+            const originalPieceLocked = pieceLocked;
 
-                if (typeof currentPiece !== 'undefined' && typeof COLS !== 'undefined') {
-                    const pieceWidth = currentPiece.shape[0].length;
-                    const maxX = COLS - pieceWidth;
-                    currentPiece.x = Math.floor(Math.random() * (maxX + 1));
-                }
+            window.pieceLocked = function() {
+                originalPieceLocked();
+                teleport();
             };
         }
 
-        setInterval(() => {
-            if (typeof currentPiece !== 'undefined' && typeof COLS !== 'undefined') {
-                const pieceWidth = currentPiece.shape[0].length;
-                const maxX = COLS - pieceWidth;
-                currentPiece.x = Math.floor(Math.random() * (maxX + 1));
-            }
-        }, 100);
+        setInterval(teleport, 100);
     }
 
     // 4. Create 3D blocks flying towards the user

@@ -1,0 +1,301 @@
+/* The page around the game: the layout, the title, the score, level and lines, the buttons and the instructions (and
+   GameHub's frame view) */
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: gainsboro;
+    display: flex;
+    justify-content: center;
+}
+
+.game-container {
+    max-width: 800px;
+    width: 100%;
+}
+
+h1 {
+    text-align: center;
+    font-size: 3em;
+    color: dimgray;
+    margin: 0 0 20px 0;
+    letter-spacing: 5px;
+    text-shadow: 3px 3px 0 rgba(0,0,0,0.1);
+}
+
+.game-area {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 160px;
+    max-width: 280px;
+}
+
+.score-box, .level-box, .lines-box, .next-piece-box, .instructions {
+    background-color: #fff;
+    border-radius: 5px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Score and best score side by side */
+.score-box {
+    display: flex;
+    justify-content: space-around;
+    gap: 20px;
+}
+
+.instructions {
+    text-align: left;
+    font-size: 0.8em;
+}
+
+h2 {
+    font-size: 1.2em;
+    margin: 0 0 5px 0;
+    color: dimgray;
+    text-align: center;
+}
+
+#score, #best-score, #level, #lines {
+    font-size: 1.5em;
+    font-weight: bold;
+    text-align: center;
+    color: #222;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.controls button {
+    background-color: green;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.controls #reset-button {
+    background-color: red;
+}
+
+.controls button:hover {
+    background-color: darkgreen;
+}
+
+.controls #reset-button:hover {
+    background-color: darkred;
+}
+
+/* Responsive styles */
+@media (max-width: 650px) {
+    h1 {
+        font-size: 2.5em;
+    }
+
+    h2 {
+        font-size: 1em;
+    }
+
+    .game-area {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .game-info {
+        order: 2;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        max-width: 300px;
+    }
+
+    .game-info .game-controls {
+        order: 1;
+        width: 100%;
+    }
+
+    .score-box, .level-box, .lines-box {
+        order: 2;
+    }
+
+    .next-piece-box, .instructions, .controls {
+        order: 3;
+    }
+}
+
+@media (max-width: 400px) {
+    h1 {
+        font-size: 1.5em;
+    }
+}
+
+/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the board, the next piece, Pause and Reset (a
+   phone has no other way to them), and the move buttons, on the page's own background, in the middle of the frame. It
+   fits whatever frame GameHub gives it (in the frame, vw and vh are the frame's), so the frame's height (its sizes in
+   GameHub's games table) only decides how big the board gets:
+   - from 400 px wide, the board as tall as the frame, with the rest beside it;
+   - narrower, the board on top, the next piece with Pause and Reset under it, and the move buttons at the bottom. */
+[data-gamehub-view="frame"] body {
+    box-sizing: border-box;
+    min-height: 100vh;
+    padding: 8px;
+    align-items: center;
+}
+
+[data-gamehub-view="frame"] h1,
+[data-gamehub-view="frame"] .score-box,
+[data-gamehub-view="frame"] .level-box,
+[data-gamehub-view="frame"] .lines-box,
+[data-gamehub-view="frame"] .instructions,
+[data-gamehub-view="frame"] #instructions-button {
+    display: none;
+}
+
+[data-gamehub-view="frame"] .game-container {
+    --gap: 8px;
+    --side: clamp(100px, 28vw, 160px);
+    /* As tall as the frame allows (the board is twice as tall as it's wide), and no wider than the frame leaves it */
+    --board: min(calc((100vh - 16px) / 2), calc(100vw - 16px - var(--side) - var(--gap)));
+    width: auto;
+}
+
+[data-gamehub-view="frame"] .game-area {
+    display: grid;
+    grid-template-columns: var(--board) var(--side);
+    grid-template-areas:
+        "board next"
+        "board keys"
+        "board buttons";
+    grid-template-rows: auto auto 1fr;
+    gap: var(--gap);
+    align-items: start;
+}
+
+[data-gamehub-view="frame"] .game-info {
+    display: contents;
+}
+
+[data-gamehub-view="frame"] canvas#tetris {
+    grid-area: board;
+    display: block;
+    box-sizing: border-box;
+    width: var(--board);
+    max-width: none;
+    height: auto;
+}
+
+[data-gamehub-view="frame"] .next-piece-box {
+    grid-area: next;
+    padding: 6px;
+}
+
+[data-gamehub-view="frame"] canvas#next-piece {
+    display: block;
+    width: min(100px, calc(var(--side) - 24px));
+    height: auto;
+    margin: 4px auto;
+}
+
+[data-gamehub-view="frame"] .game-controls {
+    grid-area: keys;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+}
+
+[data-gamehub-view="frame"] .game-controls button {
+    width: calc((var(--side) - 12px) / 3);
+    height: 40px;
+    padding: 0;
+    font-size: 20px;
+}
+
+[data-gamehub-view="frame"] .controls {
+    grid-area: buttons;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+[data-gamehub-view="frame"] .controls button {
+    padding: 8px 4px;
+    font-size: 13px;
+}
+
+@media (max-width: 399px) {
+    [data-gamehub-view="frame"] .game-container {
+        --next: 104px; /* the next piece's row: its box, with Pause and Reset beside it */
+        --keys: 44px; /* the move buttons' row */
+        --board: min(calc(100vw - 16px), calc((100vh - 16px - var(--next) - var(--keys) - 2 * var(--gap)) / 2));
+    }
+
+    [data-gamehub-view="frame"] .game-area {
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "board board"
+            "next buttons"
+            "keys keys";
+        grid-template-rows: auto var(--next) var(--keys);
+        width: var(--board);
+    }
+
+    [data-gamehub-view="frame"] canvas#tetris {
+        justify-self: center;
+    }
+
+    [data-gamehub-view="frame"] .next-piece-box {
+        box-sizing: border-box;
+        height: var(--next);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    [data-gamehub-view="frame"] h2 {
+        font-size: 12px;
+        margin: 0;
+    }
+
+    [data-gamehub-view="frame"] canvas#next-piece {
+        width: 64px;
+        margin: 4px auto 0;
+    }
+
+    [data-gamehub-view="frame"] .controls {
+        justify-content: center;
+        height: var(--next);
+    }
+
+    [data-gamehub-view="frame"] .game-controls {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+    }
+
+    [data-gamehub-view="frame"] .game-controls button {
+        flex: 1;
+        width: auto;
+        max-width: 64px;
+        height: var(--keys);
+    }
+}

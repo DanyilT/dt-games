@@ -4,6 +4,8 @@
  * This is a simple implementation of the classic Tetris game using HTML5 Canvas and JavaScript.
  * The game features tetrominoes that fall from the top of the screen, and the player must rotate and move them to fit into complete lines.
  * The game ends when the tetrominoes stack up to the top of the screen.
+ * The rules (the board, the pieces, the steps, the moves, the score, the end) are in js/rules.js: this file draws the
+ * game, takes the player's keys, and plays the game through GameRules.
  *
  * Features:
  * - Tetromino shapes and colors
@@ -12,7 +14,8 @@
  * - Game over detection
  * - Pause and resume functionality
  * - GameHub's panel and replays (js/gamehub.js): each game is a run, with the pieces drawn from the run's seed, the game
- *   moving in fixed steps (TICK), and every move recorded with the step it came after, so GameHub can play it again
+ *   moving in fixed steps (GameRules.TICK), and every move recorded with the step it came after, so GameHub can play it
+ *   again
  *
  * Instructions:
  * - Use the arrow keys to move and rotate the tetrominoes.
@@ -41,30 +44,30 @@ const linesElement = document.getElementById('lines');
 const bestScoreElement = document.getElementById('best-score');
 
 // Game constants
-const COLS = 10;
-const ROWS = 20;
+const COLS = GameRules.COLS;
+const ROWS = GameRules.ROWS;
 const BLOCK_SIZE = canvas.width / COLS;
 const NEXT_BLOCK_SIZE = nextPieceCanvas.width / 4;
-const GAME_SPEED = 1000; // Initial speed in ms
-const TICK = 50; // ms: the game moves in steps this long, and a piece falls every few (gameSpeed / TICK)
+const TICK = GameRules.TICK; // ms: the game moves in steps this long, and a piece falls every few (js/rules.js)
 
 // Game variables
-let score = 0;
 let highScore = 0; // The best score (Best)
 let bestBefore = 0; // The best score when this game started (did this one beat it?)
 let gameData = null; // What's saved (js/storage.js), once it has loaded: the game doesn't wait for it
-let level = 1;
-let lines = 0;
 let gameInterval;
 let gameActive = false;
 let gamePause = false;
-let dropStart = Date.now();
-let gameSpeed = GAME_SPEED;
-let stepsSinceFall = 0; // Steps since the piece last fell by itself
+
+// The game under way (js/rules.js): the board, the piece and the next one, the score, the lines and the level
+let game = null;
 
 // The game under way, recorded so GameHub can play it again (js/gamehub.js): its random numbers draw the pieces
 let run = null;
 let movedThisGame = false; // The player has moved a piece in this game (it starts by itself)
+
+// The GAME OVER text's font, loaded as the game starts so the canvas has it when the game ends (css/game.css imports
+// it from Google Fonts)
+document.fonts?.load("40px 'Pixelify Sans'").catch(() => {});
 
 // What's saved: the best score shows as soon as it has loaded
 loadGameData().then((data) => {
@@ -83,9 +86,9 @@ loadGameData().then((data) => {
 function showStatus() {
     GameHub.status({
         main: [
-            { label: 'Score', value: score },
-            { label: 'Lines', value: lines },
-            { label: 'Level', value: level },
+            { label: 'Score', value: game ? game.score : 0 },
+            { label: 'Lines', value: game ? game.lines : 0 },
+            { label: 'Level', value: game ? game.level : 1 },
             { label: 'Best', value: highScore },
         ],
         ongoing: gameActive && movedThisGame,
@@ -95,14 +98,14 @@ function showStatus() {
 // Set the game score (cheat)
 function setScore(newScore) {
     GameHub.cheated();
-    score = newScore;
-    document.getElementById('score').textContent = score;
+    if (game) game.score = newScore;
+    document.getElementById('score').textContent = newScore;
 }
 
 // Show the best score, and save a new one (js/storage.js) once what's saved has loaded
 function updateHighScore() {
-    if (score > highScore) {
-        highScore = score;
+    if (game && game.score > highScore) {
+        highScore = game.score;
         if (gameData) {
             gameData.highScore = highScore;
             saveGameData(gameData);
@@ -111,60 +114,7 @@ function updateHighScore() {
     bestScoreElement.textContent = highScore;
 }
 
-// Initialize the board
-let board = createBoard(ROWS, COLS);
-
-// Create the board
-function createBoard(rows, cols) {
-    return Array.from({ length: rows }, () => Array(cols).fill(0));
-}
-
-// Tetromino shapes and colors
-const SHAPES = [
-    // I piece
-    [
-        [0, 0, 0, 0],
-        [1, 1, 1, 1],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]
-    ],
-    // J piece
-    [
-        [1, 0, 0],
-        [1, 1, 1],
-        [0, 0, 0]
-    ],
-    // L piece
-    [
-        [0, 0, 1],
-        [1, 1, 1],
-        [0, 0, 0]
-    ],
-    // O piece
-    [
-        [1, 1],
-        [1, 1]
-    ],
-    // S piece
-    [
-        [0, 1, 1],
-        [1, 1, 0],
-        [0, 0, 0]
-    ],
-    // T piece
-    [
-        [0, 1, 0],
-        [1, 1, 1],
-        [0, 0, 0]
-    ],
-    // Z piece
-    [
-        [1, 1, 0],
-        [0, 1, 1],
-        [0, 0, 0]
-    ]
-];
-
+// The pieces' colors, by type (js/rules.js: a piece's type, and a locked block's type + 1 on the board)
 const COLORS = [
     'cyan',    // I piece
     'blue',    // J piece
@@ -175,47 +125,24 @@ const COLORS = [
     'red'      // Z piece
 ];
 
-// Create a piece
-function Piece(shape, color) {
-    this.shape = shape;
-    this.color = color;
-    this.x = Math.floor(COLS / 2) - Math.floor(shape[0].length / 2);
-    this.y = 0;
-    this.rotation = 0;
-}
-
-// Generate random piece (from the run's numbers, so a replay gets the same pieces)
-function randomPiece() {
-    const randomIndex = Math.floor(run.random() * SHAPES.length);
-    return new Piece(SHAPES[randomIndex], COLORS[randomIndex]);
-}
-
-// Current piece and next piece
-let currentPiece;
-let nextPiece;
-
 // Reset the game: a new run, or in a replay, the run being played (its steps come from the replay)
 function resetGame(replayRun = null) {
     if (GameHub.replaying && !replayRun) return; // A replay plays by itself
     run = replayRun || GameHub.startRun({ tick: TICK });
     bestBefore = highScore;
     movedThisGame = false;
-    board = createBoard(ROWS, COLS);
-    score = 0;
-    level = 1;
-    lines = 0;
-    gameSpeed = GAME_SPEED;
     gameActive = true;
     gamePause = false;
 
-    scoreElement.textContent = score;
-    updateHighScore();
-    levelElement.textContent = level;
-    linesElement.textContent = lines;
-    startButton.textContent = 'Pause (p)';
+    // A new game (js/rules.js): an empty board, and the first two pieces, drawn from the run's numbers so a replay gets
+    // the same pieces
+    game = GameRules.newGame(run.random);
 
-    currentPiece = randomPiece();
-    nextPiece = randomPiece();
+    scoreElement.textContent = game.score;
+    updateHighScore();
+    levelElement.textContent = game.level;
+    linesElement.textContent = game.lines;
+    startButton.textContent = 'Pause (p)';
 
     if (gameInterval) {
         clearInterval(gameInterval);
@@ -225,8 +152,6 @@ function resetGame(replayRun = null) {
     drawPiece();
     drawNextPiece();
 
-    dropStart = Date.now();
-    updateGameSpeed();
     if (!replayRun) gameInterval = setInterval(gameLoop, TICK);
     showStatus();
 }
@@ -280,11 +205,12 @@ function drawBoard() {
         ctx.stroke();
     }
 
-    // Draw filled squares
+    // Draw filled squares (none before the first game)
+    if (!game) return;
     for (let y = 0; y < ROWS; y++) {
         for (let x = 0; x < COLS; x++) {
-            if (board[y][x]) {
-                drawSquare(x, y, board[y][x], canvas, BLOCK_SIZE);
+            if (game.board[y][x]) {
+                drawSquare(x, y, COLORS[game.board[y][x] - 1], canvas, BLOCK_SIZE);
             }
         }
     }
@@ -292,13 +218,14 @@ function drawBoard() {
 
 // Draw the current piece
 function drawPiece() {
+    const currentPiece = game.current;
     for (let y = 0; y < currentPiece.shape.length; y++) {
         for (let x = 0; x < currentPiece.shape[y].length; x++) {
             if (currentPiece.shape[y][x]) {
                 drawSquare(
                     currentPiece.x + x,
                     currentPiece.y + y,
-                    currentPiece.color,
+                    COLORS[currentPiece.type],
                     canvas,
                     BLOCK_SIZE
                 );
@@ -310,6 +237,7 @@ function drawPiece() {
 // Draw the next piece
 function drawNextPiece() {
     nextPieceCtx.clearRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
+    const nextPiece = game.next;
 
     const pieceWidth = nextPiece.shape[0].length * NEXT_BLOCK_SIZE;
     const pieceHeight = nextPiece.shape.length * NEXT_BLOCK_SIZE;
@@ -323,105 +251,20 @@ function drawNextPiece() {
             if (nextPiece.shape[y][x]) {
                 const drawX = offsetX / NEXT_BLOCK_SIZE + x;
                 const drawY = offsetY / NEXT_BLOCK_SIZE + y;
-                drawSquare(drawX, drawY, nextPiece.color, nextPieceCanvas, NEXT_BLOCK_SIZE);
+                drawSquare(drawX, drawY, COLORS[nextPiece.type], nextPieceCanvas, NEXT_BLOCK_SIZE);
             }
         }
     }
 }
 
-// Check if the piece collides
-function collision(x, y, shape) {
-    for (let r = 0; r < shape.length; r++) {
-        for (let c = 0; c < shape[r].length; c++) {
-            if (!shape[r][c]) {
-                continue;
-            }
-
-            let newX = x + c;
-            let newY = y + r;
-
-            if (newX < 0 || newX >= COLS || newY >= ROWS) {
-                return true;
-            }
-
-            if (newY < 0) {
-                continue;
-            }
-
-            if (board[newY][newX] !== 0) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-// Lock the piece in place
-function lockPiece() {
-    for (let y = 0; y < currentPiece.shape.length; y++) {
-        for (let x = 0; x < currentPiece.shape[y].length; x++) {
-            // Skip empty squares
-            if (!currentPiece.shape[y][x]) {
-                continue;
-            }
-
-            // Only lock the piece if it's inside the board
-            if (currentPiece.y + y >= 0) {
-                board[currentPiece.y + y][currentPiece.x + x] = currentPiece.color;
-            }
-        }
-    }
-
-    // Check for completed lines
-    let linesCleared = 0;
-
-    for (let y = ROWS - 1; y >= 0; y--) {
-        let isRowFull = true;
-
-        for (let x = 0; x < COLS; x++) {
-            if (board[y][x] === 0) {
-                isRowFull = false;
-                break;
-            }
-        }
-
-        if (isRowFull) {
-            // Remove the line
-            board.splice(y, 1);
-            board.unshift(Array(COLS).fill(0));
-            linesCleared++;
-            y++; // Check the same row again after shifting
-        }
-    }
-
-    // Update score and level
-    if (linesCleared > 0) {
-        // Scoring: 100, 300, 500, 800 points for 1, 2, 3, 4 lines respectively
-        const scoreMultiplier = [0, 100, 300, 500, 800];
-        score += scoreMultiplier[linesCleared] * level;
-
-        lines += linesCleared;
-
-        // Level up every 10 lines
-        const newLevel = Math.floor(lines / 10) + 1;
-        if (newLevel > level) {
-            level = newLevel;
-            updateGameSpeed();
-        }
-    }
-
-    // Update UI
-    scoreElement.textContent = score;
+// A piece locked (js/rules.js): show the score, lines, level and best, and the next piece; or the game is over
+function pieceLocked() {
+    scoreElement.textContent = game.score;
     updateHighScore();
-    levelElement.textContent = level;
-    linesElement.textContent = lines;
+    levelElement.textContent = game.level;
+    linesElement.textContent = game.lines;
 
-    // Get next piece
-    currentPiece = nextPiece;
-    nextPiece = randomPiece();
-
-    // Check if the new piece collides immediately - this is the game over condition
-    if (collision(currentPiece.x, currentPiece.y, currentPiece.shape)) {
+    if (game.over) {
         gameOver();
     }
 
@@ -429,106 +272,20 @@ function lockPiece() {
     showStatus();
 }
 
-// Move piece down
-function movePieceDown() {
-    if (!collision(currentPiece.x, currentPiece.y + 1, currentPiece.shape)) {
-        currentPiece.y++;
-        dropStart = Date.now();
-        return true;
-    }
-    // Piece has landed
-    lockPiece();
-    return false;
-}
-
-// Move piece left
-function movePieceLeft() {
-    if (!collision(currentPiece.x - 1, currentPiece.y, currentPiece.shape)) {
-        currentPiece.x--;
-    }
-}
-
-// Move piece right
-function movePieceRight() {
-    if (!collision(currentPiece.x + 1, currentPiece.y, currentPiece.shape)) {
-        currentPiece.x++;
-    }
-}
-
-// Rotate piece
-function rotatePiece() {
-    const nextPattern = rotate(currentPiece.shape);
-    let kick = 0;
-
-    // Check for collision when rotating
-    if (collision(currentPiece.x, currentPiece.y, nextPattern)) {
-        // Try to offset the piece if there's a collision
-        if (currentPiece.x > COLS / 2) {
-            // Try to kick the piece to the left
-            kick = -1;
-        } else {
-            // Try to kick the piece to the right
-            kick = 1;
-        }
-    }
-
-    // Apply rotation if there's no collision or after applying kick
-    if (!collision(currentPiece.x + kick, currentPiece.y, nextPattern)) {
-        currentPiece.x += kick;
-        currentPiece.shape = nextPattern;
-    }
-}
-
-// Rotate matrix
-function rotate(matrix) {
-    const N = matrix.length;
-    const result = Array.from({ length: N }, () => Array(N).fill(0));
-
-    for (let y = 0; y < N; y++) {
-        for (let x = 0; x < N; x++) {
-            result[x][N - 1 - y] = matrix[y][x];
-        }
-    }
-
-    return result;
-}
-
-// Hard drop
-function hardDrop() {
-    let dropped = 0;
-    while (!collision(currentPiece.x, currentPiece.y + 1, currentPiece.shape)) {
-        currentPiece.y++;
-        dropped++;
-    }
-
-    // Add points for hard drop
-    score += dropped;
-    scoreElement.textContent = score;
-
-    lockPiece();
-}
-
-// Game loop: one step (TICK). The piece falls every gameSpeed / TICK steps.
+// Game loop: one step (TICK). The piece falls every few steps, sooner at higher levels (js/rules.js).
 function gameLoop() {
     if (!gameActive || gamePause) {
         return;
     }
     run.step();
 
-    stepsSinceFall++;
-    if (stepsSinceFall < gameSpeed / TICK) {
+    const fell = GameRules.step(game);
+    if (fell === 'waiting') {
         return;
     }
-    stepsSinceFall = 0;
-    movePieceDown();
+    if (fell !== 'moved') pieceLocked();
     drawBoard();
     drawPiece();
-}
-
-// When resetting the game or changing level: the piece falls sooner, counting from now
-function updateGameSpeed() {
-    gameSpeed = Math.max(100, 1000 - (level - 1) * 100);
-    stepsSinceFall = 0;
 }
 
 // Pause game
@@ -560,8 +317,8 @@ function gameOver() {
     clearInterval(gameInterval);
     run.finish({
         outcome: 'over',
-        result: [{ label: 'Score', value: score }, { label: 'Lines', value: lines }],
-        best: score > bestBefore,
+        result: [{ label: 'Score', value: game.score }, { label: 'Lines', value: game.lines }],
+        best: game.score > bestBefore,
     });
     showStatus();
 
@@ -579,7 +336,7 @@ function gameOver() {
         ctx.font = "40px 'Pixelify Sans'";
         ctx.fillText('GAME OVER!', canvas.width / 2, canvas.height / 2 - 30);
         ctx.font = '20px Arial';
-        ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+        ctx.fillText(`Score: ${game.score}`, canvas.width / 2, canvas.height / 2 + 20);
         ctx.font = '14px Arial';
         ctx.fillText(GameHub.replaying ? 'The end of the replay' : "Press 'Reset Game' to play again", canvas.width / 2, canvas.height / 2 + 50);
     });
@@ -607,30 +364,13 @@ document.addEventListener('keydown', event => {
     if (MOVE_KEYS[event.key]) move(MOVE_KEYS[event.key]);
 });
 
-// One move. It's recorded with the run first (a drop can end the game), so a replay makes it at the same step.
+// One move (js/rules.js). It's recorded with the run first (a drop can end the game), so a replay makes it at the same
+// step.
 function move(code) {
+    if (!game || game.over || !GameRules.MOVES.includes(code)) return;
     run.input(code);
     movedThisGame = true;
-    switch(code) {
-        case 'L':
-            movePieceLeft();
-            dropStart = Date.now();
-            break;
-        case 'U':
-            rotatePiece();
-            dropStart = Date.now();
-            break;
-        case 'R':
-            movePieceRight();
-            dropStart = Date.now();
-            break;
-        case 'D':
-            movePieceDown();
-            break;
-        case 'H':
-            hardDrop();
-            break;
-    }
+    if (GameRules.move(game, code) !== 'moved') pieceLocked();
 
     drawBoard();
     drawPiece();

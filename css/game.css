@@ -1,0 +1,72 @@
+/* The game itself: its board, the next piece, and its move buttons */
+
+/* The GAME OVER text's font (js/tetris.js loads it as the game starts, so it's there for the canvas) */
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans&display=swap');
+
+canvas#tetris {
+    background-color: #111;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    border-radius: 5px;
+    border: 3px solid black;
+    animation: borderColorChange 5s infinite, glowBorder 5s infinite; /* Combine animations */
+}
+
+@keyframes borderColorChange {
+    0% { border-color: cyan }
+    15% { border-color: blue }
+    30% { border-color: orange }
+    45% { border-color: yellow }
+    60% { border-color: green }
+    75% { border-color: purple }
+    90% { border-color: red }
+    100% { border-color: cyan }
+}
+
+@keyframes glowBorder {
+    0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.7); } /* Cyan */
+    15% { box-shadow: 0 0 20px rgba(0, 0, 255, 0.7); } /* Blue */
+    30% { box-shadow: 0 0 20px rgba(255, 165, 0, 0.7); } /* Orange */
+    45% { box-shadow: 0 0 20px rgba(255, 255, 0, 0.7); } /* Yellow */
+    60% { box-shadow: 0 0 20px rgba(0, 128, 0, 0.7); } /* Green */
+    75% { box-shadow: 0 0 20px rgba(128, 0, 128, 0.7); } /* Purple */
+    90% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.7); } /* Red */
+    100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.7); } /* Cyan again to complete the cycle */
+}
+
+canvas#next-piece {
+    background-color: #222;
+    border-radius: 5px;
+    margin: 10px;
+}
+
+.game-controls {
+    display: flex;
+    justify-content: space-between;
+}
+
+.game-controls button {
+    background-color: slategray;
+    color: white;
+    height: 2em;
+    width: 2em;
+    font-size: 1.5em;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.game-controls button:hover {
+    background-color: slategray;
+    box-shadow: inset -2px -2px 5px rgba(255, 255, 255, 0.5), inset 2px 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive styles */
+@media (max-width: 650px) {
+    canvas#tetris {
+        order: 1;
+        width: 100%;
+        max-width: 300px;
+        box-sizing: border-box;
+    }
+}

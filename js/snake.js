@@ -3,6 +3,8 @@
  *
  * A simple implementation of the classic Snake game using JavaScript and HTML5 Canvas.
  * The game features a snake that grows longer as it eats food, and the player must avoid colliding with the walls or itself.
+ * The rules (the board, the steps, the food, the score, the end) are in js/rules.js: this file draws the game, takes the
+ * player's keys, and plays the game through GameRules.
  * The game can be controlled using arrow keys or (if use extend-controls.js) WASD keys, and it also supports touch gestures for mobile devices.
  *
  * Features:
@@ -42,28 +44,17 @@
 // Game variables
 let canvas;
 let ctx;
-let gameSpeed = 100; // milliseconds per game tick
-let tileCount = 20;
+let gameSpeed = GameRules.TICK; // milliseconds per game tick
+let tileCount = GameRules.TILES;
 let tileSize;
 let gameActive = false;
 let gamePause = false;
 let gameInterval;
 
-// Snake variables
-let snake = [];
-let velocityX = 0;
-let velocityY = 0;
-let movedX = 0; // Direction of the last move (a turn may not reverse it)
-let movedY = 0;
-const SNAKE_LENGTH = 5; // Initial length of the snake
-let snakeLength = SNAKE_LENGTH;
-
-// Food variables
-let foodX;
-let foodY;
+// The game under way (js/rules.js): the snake, its direction, the food and the score
+let game = null;
 
 // Score
-let score = 0;
 let highScore = 0;
 let bestBefore = 0; // The high score when this game started (did this one beat it?)
 let gameData = null; // What's saved (js/storage.js), once it has loaded: the game doesn't wait for it
@@ -88,7 +79,7 @@ loadGameData().then((data) => {
 function showStatus() {
     GameHub.status({
         main: [
-            { label: 'Score', value: score },
+            { label: 'Score', value: game ? game.score : 0 },
             { label: 'Best', value: highScore },
         ],
         ongoing: gameActive,
@@ -106,8 +97,8 @@ function setGameParameters(speed, tiles) {
 // Set the game score (cheat)
 function setScore(newScore) {
     GameHub.cheated();
-    score = newScore;
-    document.getElementById('score').textContent = score;
+    if (game) game.score = newScore;
+    document.getElementById('score').textContent = newScore;
 }
 
 // Initialize the game
@@ -141,21 +132,10 @@ function resetGame(replayRun = null) {
     run = replayRun || GameHub.startRun({ mode: tileCount === 20 ? null : String(tileCount), tick: gameSpeed });
     bestBefore = highScore;
 
-    // Reset snake
-    snake = [];
-    snakeLength = SNAKE_LENGTH;
-    snake.push({x: canvas.width / 2 / tileSize, y: canvas.height / 2 / tileSize}); // Starting at center
-    velocityX = 0;
-    velocityY = 0;
-    movedX = 0;
-    movedY = 0;
-
-    // Reset score
-    score = 0;
-    document.getElementById('score').textContent = score;
-
-    // Place food
-    placeFood();
+    // A new game (js/rules.js): the snake in the middle, and the food, placed from the run's numbers so a replay puts it
+    // in the same places
+    game = GameRules.newGame(run.random, tileCount);
+    document.getElementById('score').textContent = game.score;
 
     // Start game loop
     if (typeof gameInterval !== 'undefined') {
@@ -170,38 +150,18 @@ function gameLoop() {
     if (!gameActive) return;
     run.step();
 
-    // Move snake
-    let headX = snake[0].x + velocityX;
-    let headY = snake[0].y + velocityY;
-
-    // Check for collisions
-    if (
-        headX < 0 ||
-        headY < 0 ||
-        headX >= canvas.width / tileSize || // Horizontal boundary
-        headY >= canvas.height / tileSize || // Vertical boundary
-        checkSnakeCollision(headX, headY)
-    ) {
+    // The snake moves a tile (js/rules.js), and may run into a wall or itself, or eat the food
+    const moved = GameRules.step(game);
+    if (moved === 'over') {
         gameOver();
         return;
     }
 
-    // The snake moves: remember which way (for the next turn)
-    movedX = velocityX;
-    movedY = velocityY;
+    if (moved === 'ate') {
+        document.getElementById('score').textContent = game.score;
 
-    // Add new head segment
-    snake.unshift({x: headX, y: headY});
-
-    // Check for food collision
-    if (headX === foodX && headY === foodY) {
-        placeFood();
-        snakeLength++;
-        score++;
-        document.getElementById('score').textContent = score;
-
-        if (score > highScore) {
-            highScore = score;
+        if (game.score > highScore) {
+            highScore = game.score;
             if (gameData) {
                 gameData.highScore = highScore;
                 saveGameData(gameData);
@@ -209,11 +169,6 @@ function gameLoop() {
             document.getElementById('highScore').textContent = highScore;
         }
         showStatus();
-    }
-
-    // Remove tail if didn't eat food
-    if (snake.length > snakeLength) {
-        snake.pop();
     }
 
     // Render game
@@ -264,37 +219,11 @@ function keyDown(e) {
     }
 }
 
-// Turn the snake: 'U', 'D', 'L' or 'R' (never straight back: it would run into itself). A turn is recorded with the run,
-// so a replay turns the same way at the same step.
+// Turn the snake: 'U', 'D', 'L' or 'R' (never straight back: it would run into itself, js/rules.js). A turn that changes
+// the direction is recorded with the run, so a replay turns the same way at the same step.
 function turn(direction) {
-    const [x, y] = { U: [0, -1], D: [0, 1], L: [-1, 0], R: [1, 0] }[direction] ?? [0, 0];
-    if ((x === 0 && y === 0) || (x !== 0 && movedX === -x) || (y !== 0 && movedY === -y)) return;
-    if (velocityX === x && velocityY === y) return; // Going that way already
-    velocityX = x;
-    velocityY = y;
-    run?.input(direction);
-}
-
-// Check if snake collides with itself
-function checkSnakeCollision(x, y) {
-    for (let i = 0; i < snake.length; i++) {
-        if (snake[i].x === x && snake[i].y === y) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Place food at random position
-function placeFood() {
-    if (snake.length >= tileCount * tileCount) return; // No free cell left
-
-    // Keep generating positions until we find one that's not on the snake (from the run's numbers, so a replay puts the
-    // food in the same places)
-    do {
-        foodX = Math.floor(run.random() * canvas.width / tileSize);
-        foodY = Math.floor(run.random() * canvas.height / tileSize);
-    } while (checkSnakeCollision(foodX, foodY));
+    if (!game || !['U', 'D', 'L', 'R'].includes(direction)) return;
+    if (GameRules.turn(game, direction)) run?.input(direction);
 }
 
 // Intro screen
@@ -320,7 +249,7 @@ function pauseGame() {
         ctx.font = '30px Arial';
         ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
         ctx.font = '20px Arial';
-        ctx.fillText('Press `SPACE` to resume', canvas.width / 2, canvas.height / 2 + 30);
+        ctx.fillText('Tap or press SPACE to resume', canvas.width / 2, canvas.height / 2 + 30);
     } else if (gamePause) {
         // Resume the game
         gamePause = false;
@@ -332,7 +261,7 @@ function pauseGame() {
 function gameOver() {
     gameActive = false;
     clearInterval(gameInterval);
-    run.finish({ outcome: 'over', result: [{ label: 'Score', value: score }], best: score > bestBefore });
+    run.finish({ outcome: 'over', result: [{ label: 'Score', value: game.score }], best: game.score > bestBefore });
     showStatus();
 
     // Semi-transparent overlay
@@ -355,6 +284,7 @@ function render() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw snake
+    const snake = game.snake;
     for (let i = 0; i < snake.length; i++) {
         if (i === 0) {
             // Draw head
@@ -368,5 +298,5 @@ function render() {
 
     // Draw food
     ctx.fillStyle = 'red';
-    ctx.fillRect(foodX * tileSize, foodY * tileSize, tileSize - 1, tileSize - 1);
+    ctx.fillRect(game.foodX * tileSize, game.foodY * tileSize, tileSize - 1, tileSize - 1);
 }

@@ -31,10 +31,10 @@ function activateQwertyEasterEgg(activate = 'all') {
     console.log('🎮 QWERTY Easter Egg Activated! 🎮');
 
     activate = activate !== 'all' ? activate : ['snakeLength', 'setScore', 'glowSnake', 'rotateCanvas'];
-    // 1. Set snake length to maximum integer
-    if (activate.includes('snakeLength') && typeof snakeLength !== 'undefined') {
+    // 1. Set snake length to maximum integer (the game under way's, js/rules.js)
+    if (activate.includes('snakeLength') && typeof game !== 'undefined') {
         setInterval(() => {
-            snakeLength = Math.pow(2, 32) - 1;
+            if (game) game.snakeLength = Math.pow(2, 32) - 1;
         }, 16); // ~60fps
     }
 
@@ -51,11 +51,12 @@ function activateQwertyEasterEgg(activate = 'all') {
         render = function () {
             originalRender();
 
-            if (!ctx || !snake || !tileSize) return;
+            if (!ctx || !game || !tileSize) return;
 
             ctx.shadowBlur = 20;
             ctx.shadowColor = 'rgba(255, 255, 0, 0.8)';
 
+            const snake = game.snake;
             for (let i = 0; i < snake.length; i++) {
                 const hue = (Date.now() / 20 + i * 10) % 360;
                 ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;

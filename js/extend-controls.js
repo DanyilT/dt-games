@@ -2,14 +2,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const gameCanvas = document.getElementById('game');
 
     // Swipe detection variables
-    let startX, startY, endX, endY;
+    let startX, startY, endX, endY, touchStartTime;
 
-    // Detect swipe gestures
+    // Detect swipe gestures, and taps
     gameCanvas.addEventListener('touchstart', function(e) {
         e.preventDefault(); // Prevent default touch behavior like page refresh, scrolling, zooming
         const touch = e.touches[0];
         startX = endX = touch.clientX;
         startY = endY = touch.clientY;
+        touchStartTime = Date.now();
     });
 
     gameCanvas.addEventListener('touchmove', function(e) {
@@ -23,6 +24,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const diffX = endX - startX;
         const diffY = endY - startY;
 
+        // A tap (a short touch that barely moves) pauses or resumes the game under way, as Space does. Only touches count:
+        // a mouse click (in GameHub, the one that gives the game the keyboard) never pauses.
+        if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
+            if (Date.now() - touchStartTime < 500) {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+            }
+            return;
+        }
+
+        // A swipe turns the snake (or starts a game)
         if (Math.abs(diffX) > Math.abs(diffY)) {
             // Horizontal swipe
             if (diffX > 0) {

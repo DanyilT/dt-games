@@ -1,3 +1,6 @@
+/* The page around the game: the layout, the title, the score, the buttons and the instructions (and GameHub's frame
+   view) */
+
 body {
     font-family: Arial, sans-serif;
     display: flex;
@@ -10,14 +13,6 @@ body {
 .game-container {
     text-align: center;
     padding: 10px;
-}
-
-canvas {
-    background-color: #000;
-    border: 2px solid dimgray;
-    width: 100%;
-    max-width: 400px;
-    height: auto;
 }
 
 h1 {
@@ -71,4 +66,28 @@ button:hover {
     button {
         font-size: 0.9em;
     }
+}
+
+/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the canvas only, on its own black, in the
+   middle of the frame and as big as it allows (in the frame, vw and vh are the frame's), so it fits whatever frame
+   GameHub gives it; the frame's sizes in GameHub's games table decide how big. A tap on the canvas pauses, and a swipe
+   starts a new game (js/extend-controls.js). */
+[data-gamehub-view="frame"] body {
+    min-height: 100vh;
+    background-color: #000;
+}
+
+[data-gamehub-view="frame"] .game-container {
+    padding: 0;
+}
+
+[data-gamehub-view="frame"] .game-container > :not(canvas) {
+    display: none;
+}
+
+[data-gamehub-view="frame"] canvas {
+    display: block;
+    box-sizing: border-box;
+    width: min(100vw, 100vh);
+    max-width: none;
 }

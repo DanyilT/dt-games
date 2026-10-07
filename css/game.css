@@ -1,0 +1,9 @@
+/* The game itself: its canvas */
+
+canvas {
+    background-color: #000;
+    border: 2px solid dimgray;
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+}

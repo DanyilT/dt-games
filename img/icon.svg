@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" shape-rendering="crispEdges">
+    <!-- The snake comes in from the left edge along the middle row, heading right, to the food in the middle: a 5 × 5 board
+         of the game's 20-unit tiles with a 1-unit gap, in its colours (js/snake.js, render()) -->
+    <rect width="100" height="100" fill="#000"/>
+    <rect x="0" y="40" width="19" height="19" fill="darkgray"/>
+    <rect x="20" y="40" width="19" height="19" fill="lightgray"/>
+    <rect x="40" y="40" width="19" height="19" fill="red"/>
+</svg>

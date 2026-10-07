@@ -37,6 +37,14 @@
  * game to put its play area in the middle of the frame. The hub can't scroll another site's page, so the game does it.
  * The play area is the element marked data-play-area.
  *
+ * The view: in GameHub's frame, the game shows only what's needed to play, and the whole page in full screen.
+ * - This file sets data-gamehub-view="frame" on <html> as soon as it finds GameHub around the game (here in <head>,
+ *   before anything is drawn, so nothing jumps). A replay is in the frame too.
+ * - Then it follows GameHub's { type: 'gamehub:view', view: 'frame' | 'full' }: 'full' when the game's frame goes full
+ *   screen, 'frame' when it comes back (and after each load).
+ * - Each game's css/page.css says what the frame shows, with [data-gamehub-view="frame"] rules. Played on its own, the
+ *   page has no attribute, and shows as it is.
+ *
  * GameHub's panel, under the game: the game's numbers, and its runs to watch again.
  * - GameHub.status({ main, more, ongoing }): what the panel shows, sent again whenever it changes (GameHub hears it at
  *   most every 250 ms). main: up to 4 { label, value }, shown large (the score now, the best); more: up to 8 sections
@@ -80,11 +88,19 @@
 // The only pages the game connects to, and loads a script from: GameHub, and its local dev server
 const GAMEHUB_ORIGINS = Object.freeze([
     'https://game-hub.danyt.workers.dev',
+    'https://gamehub.foo',
     'http://localhost:3000',
 ]);
 
+// GameHub's messages to the page: where its play area goes, and how much of the page shows (see the top of this file)
 window.addEventListener('message', (event) => {
-    if (event.source !== window.parent || event.data?.type !== 'gamehub:center') return;
+    if (event.source !== window.parent) return;
+
+    if (event.data?.type === 'gamehub:view' && ['frame', 'full'].includes(event.data.view)) {
+        document.documentElement.dataset.gamehubView = event.data.view;
+        return;
+    }
+    if (event.data?.type !== 'gamehub:center') return;
 
     const playArea = document.querySelector('[data-play-area]');
     if (!playArea) return;
@@ -198,6 +214,8 @@ window.addEventListener('message', (event) => {
     // Inside GameHub: load its script, and give it ATTACH_TIMEOUT to attach (a script that doesn't load, or doesn't
     // attach, leaves the game offline)
     const hubOrigin = findHub();
+    // In GameHub's frame, the page shows only what's needed to play, until GameHub says it's full screen
+    if (hubOrigin) document.documentElement.dataset.gamehubView = 'frame';
     // GameHub opened the game to play a replay (see the top of this file)
     const replaying = Boolean(hubOrigin) && location.hash === '#gamehub-replay';
     let signedIn = false; // what the hub said when it attached

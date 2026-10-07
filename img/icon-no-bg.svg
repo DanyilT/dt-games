@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" shape-rendering="crispEdges">
+    <!-- icon.svg on no background: a black edge round the snake and the food (the game's canvas, shown in the gaps too)
+         keeps the light grey head clear on a light page -->
+    <rect x="0" y="37" width="62" height="25" fill="#000"/>
+    <rect x="0" y="40" width="19" height="19" fill="darkgray"/>
+    <rect x="20" y="40" width="19" height="19" fill="lightgray"/>
+    <rect x="40" y="40" width="19" height="19" fill="red"/>
+</svg>

@@ -168,6 +168,61 @@ const GameRules = (() => {
         return game;
     }
 
+    // A game under way as plain data, to save with it (all but its random numbers, which its run keeps)
+    function saveState(game) {
+        const piece = ({ type, shape, x, y }) => ({ type, shape: shape.map((row) => row.slice()), x, y });
+        return {
+            board: game.board.map((row) => row.slice()),
+            current: piece(game.current),
+            next: piece(game.next),
+            score: game.score,
+            level: game.level,
+            lines: game.lines,
+            stepsSinceFall: game.stepsSinceFall,
+        };
+    }
+
+    // The game saveState() gave, carrying on with random (the run's numbers, from where they were); null if it isn't one
+    function loadState(data, random) {
+        const sameShape = (a, b) => a.length === b.length
+            && a.every((row, y) => Array.isArray(row) && row.length === b[y].length && row.every((cell, x) => cell === b[y][x]));
+        // A piece: one of the seven, turned one of its four ways, near the board
+        const isPiece = (piece) => {
+            if (piece === null || typeof piece !== 'object') return false;
+            if (!Number.isInteger(piece.type) || piece.type < 0 || piece.type >= SHAPES.length || !Array.isArray(piece.shape)) return false;
+            if (!Number.isInteger(piece.x) || !Number.isInteger(piece.y) || Math.abs(piece.x) > COLS || Math.abs(piece.y) > ROWS) return false;
+            let shape = SHAPES[piece.type];
+            for (let turn = 0; turn < 4; turn++, shape = rotate(shape)) {
+                if (sameShape(shape, piece.shape)) return true;
+            }
+            return false;
+        };
+        const isCell = (cell) => Number.isInteger(cell) && cell >= 0 && cell <= SHAPES.length; // 0, or a type + 1
+        if (data === null || typeof data !== 'object' || !Array.isArray(data.board) || data.board.length !== ROWS) return null;
+        if (!data.board.every((row) => Array.isArray(row) && row.length === COLS && row.every(isCell))) return null;
+        if (!isPiece(data.current) || !isPiece(data.next)) return null;
+        if (!Number.isInteger(data.score) || !Number.isInteger(data.lines) || data.lines < 0) return null;
+        if (data.level !== Math.floor(data.lines / 10) + 1) return null; // A level every 10 rows
+        if (!Number.isInteger(data.stepsSinceFall) || data.stepsSinceFall < 0) return null;
+
+        const piece = ({ type, shape, x, y }) => ({ type, shape: shape.map((row) => row.slice()), x, y });
+        const game = {
+            random,
+            board: data.board.map((row) => row.slice()),
+            score: data.score,
+            level: data.level,
+            lines: data.lines,
+            gameSpeed: GAME_SPEED,
+            stepsSinceFall: 0,
+            current: piece(data.current),
+            next: piece(data.next),
+            over: false,
+        };
+        updateGameSpeed(game); // The level's fall speed
+        game.stepsSinceFall = Math.min(data.stepsSinceFall, game.gameSpeed / TICK - 1);
+        return game;
+    }
+
     // Lock the piece where it is: full rows clear and score, and the next piece comes. 'over' if it doesn't fit.
     function lockPiece(game) {
         const piece = game.current;
@@ -302,5 +357,7 @@ const GameRules = (() => {
         };
     }
 
-    return Object.freeze({ TICK, COLS, ROWS, MOVES, seededRandom, newGame, collision, move, step, simulate });
+    return Object.freeze({
+        TICK, COLS, ROWS, MOVES, seededRandom, newGame, saveState, loadState, collision, move, step, simulate,
+    });
 })();

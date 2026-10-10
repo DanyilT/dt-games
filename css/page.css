@@ -149,8 +149,8 @@ h2 {
     }
 }
 
-/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the board, the next piece, Pause and Reset (a
-   phone has no other way to them), and the move buttons, on the page's own background, in the middle of the frame. It
+/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the board, the next piece, Start (then Pause)
+   and Reset (a phone has no other way to them), and the move buttons, on the page's own background, in the middle of the frame. It
    fits whatever frame GameHub gives it (in the frame, vw and vh are the frame's), so the frame's height (its sizes in
    GameHub's games table) only decides how big the board gets:
    - from 400 px wide, the board as tall as the frame, with the rest beside it;

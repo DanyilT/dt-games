@@ -36,12 +36,13 @@ Promise.all([loadGameData(), GameHub.ready()]).then(([data]) => {
     winLevels = gameData.wins;
     if (GameHub.replaying) {
         GameHub.onReplay({ begin: (replayRun) => initGame(replayRun), input: replayInput });
-        return;
+    } else {
+        if (gameData.board === null) {
+            initGame();
+        }
+        loadGameState();
     }
-    if (gameData.board === null) {
-        initGame();
-    }
-    loadGameState();
+    GameHub.playable(); // The puzzle is up: GameHub stops showing the game as loading
 });
 
 // A level's name, as the difficulty list shows it

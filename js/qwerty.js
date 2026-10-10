@@ -31,13 +31,15 @@ function activateQwertyEasterEgg(activate = 'all') {
     console.log('🎮 QWERTY Easter Egg Activated! 🎮');
 
     activate = activate !== 'all' ? activate : ['style', 'solution', 'matrix', 'followers'];
-    // 1. Switch the CSS files to the basic look: page.css to basic-page.css, game.css to basic-game.css
+    // 1. Switch to the basic look: page.css and game.css off, basic-page.css and basic-game.css on (the page loaded them
+    // already, off, so this works offline too)
     if (activate.includes('style')) {
         for (const name of ['page', 'game']) {
             const styleLink = document.querySelector(`link[href$="css/${name}.css"]`);
-            if (styleLink) {
-                styleLink.dataset.originalHref = styleLink.href;
-                styleLink.href = styleLink.href.replace(`${name}.css`, `basic-${name}.css`);
+            const basicLink = document.querySelector(`link[href$="css/basic-${name}.css"]`);
+            if (styleLink && basicLink) {
+                styleLink.media = 'not all';
+                basicLink.media = 'all';
             }
         }
         console.log('👺 Style switched to basic mode');

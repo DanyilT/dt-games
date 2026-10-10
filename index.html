@@ -10,6 +10,9 @@
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
     <link rel="stylesheet" href="css/page.css">
     <link rel="stylesheet" href="css/game.css">
+    <!-- The Easter egg's basic look (js/qwerty.js): loaded with the page, so it's there offline too, but off until then -->
+    <link rel="stylesheet" href="css/basic-page.css" media="not all">
+    <link rel="stylesheet" href="css/basic-game.css" media="not all">
     <!-- GameHub support, before the game's own scripts: saves, the frame view, and centring the play area -->
     <script src="js/gamehub.js" data-game="sudoku"></script>
 </head>
@@ -24,7 +27,7 @@
                     document.write('<div class="subgrid subgrid' + (i / 3) + '-' + (j / 3) + '">');
                     for (let x = i; x < i + 3; x++) {
                         for (let y = j; y < j + 3; y++) {
-                            document.write('<input type="number" maxlength="1" class="cell cell-' + ((x % 3) * 3 + (y % 3) + 1) + '" id="cell-' + (x * 9 + y) + '" data-row="' + x + '" data-col="' + y + '" data-subgrid="' + (i / 3) + '-' + (j / 3) + '" oninput="this.value = this.value.slice(-1).match(/^[1-9]$/) ? this.value.slice(-1) : \'\';" />');
+                            document.write('<input type="number" maxlength="1" class="cell cell-' + ((x % 3) * 3 + (y % 3) + 1) + '" id="cell-' + (x * 9 + y) + '" data-row="' + x + '" data-col="' + y + '" aria-label="Row ' + (x + 1) + ', column ' + (y + 1) + '" data-subgrid="' + (i / 3) + '-' + (j / 3) + '" oninput="this.value = this.value.slice(-1).match(/^[1-9]$/) ? this.value.slice(-1) : \'\';" />');
                         }
                     }
                     document.write('</div>');
@@ -37,7 +40,7 @@
             for (let i = 1; i <= 9; i++) {
                 document.write('<button class="num-btn" data-number="' + i + '">' + i + '</button>');
             }
-            document.write('<button class="num-btn erase" data-number="0">✕</button>');
+            document.write('<button class="num-btn erase" data-number="0" aria-label="Clear the cell">✕</button>');
         </script>
     </div>
     <div class="controls">
@@ -45,7 +48,7 @@
             <button id="newGameBtn">New Game</button>
             <button id="checkSolutionBtn">Check Solution</button>
             <button id="solveBtn" style="display: none;" onclick="if (confirm('Are you sure you want to see the solution?')) { showSolution(); }">Solve</button>
-            <select name="difficulty" id="difficulty">
+            <select name="difficulty" id="difficulty" aria-label="Difficulty">
                 <option value="beginner">For a Bread</option>
                 <option value="easy">Easy</option>
                 <option value="medium">Medium</option>

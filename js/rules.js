@@ -76,15 +76,14 @@ const GameRules = (() => {
         } while (onSnake(game, game.foodX, game.foodY));
     }
 
-    // A new game: the snake in the middle, not moving yet, and the food. random gives the run's numbers; tiles is the
-    // board's size (20 a side, unless setGameParameters() changed it).
-    function newGame(random, tiles = TILES) {
+    // A game's state, before its snake is on the board: random gives the run's numbers, tiles is the board's size
+    function emptyGame(random, tiles) {
         const tile = CANVAS / tiles; // px a side
-        const game = {
+        return {
             random,
             tiles,
             tile,
-            snake: [{ x: CANVAS / 2 / tile, y: CANVAS / 2 / tile }], // Head first
+            snake: [], // Head first
             covered: new Map(), // How many parts of the snake are on each tile
             snakeLength: START_LENGTH,
             velocityX: 0,
@@ -96,8 +95,53 @@ const GameRules = (() => {
             score: 0,
             over: false,
         };
+    }
+
+    // A new game: the snake in the middle, not moving yet, and the food. random gives the run's numbers; tiles is the
+    // board's size (20 a side, unless setGameParameters() changed it).
+    function newGame(random, tiles = TILES) {
+        const game = emptyGame(random, tiles);
+        game.snake.push({ x: CANVAS / 2 / game.tile, y: CANVAS / 2 / game.tile });
         cover(game, game.snake[0].x, game.snake[0].y, 1);
         placeFood(game);
+        return game;
+    }
+
+    // A game under way as plain data, to save with it (all but its random numbers, which its run keeps)
+    function saveState(game) {
+        return {
+            tiles: game.tiles,
+            snake: game.snake.map(({ x, y }) => ({ x, y })),
+            snakeLength: game.snakeLength,
+            velocityX: game.velocityX,
+            velocityY: game.velocityY,
+            movedX: game.movedX,
+            movedY: game.movedY,
+            foodX: game.foodX,
+            foodY: game.foodY,
+            score: game.score,
+        };
+    }
+
+    // The game saveState() gave, carrying on with random (the run's numbers, from where they were); null if it isn't one
+    function loadState(data, random) {
+        const isNumber = (value) => typeof value === 'number' && Number.isFinite(value);
+        const isDirection = (value) => value === -1 || value === 0 || value === 1;
+        if (data === null || typeof data !== 'object' || !Number.isInteger(data.tiles) || data.tiles < 2 || data.tiles > 100
+            || !Array.isArray(data.snake) || data.snake.length === 0 || !data.snake.every((part) => isNumber(part?.x) && isNumber(part?.y))
+            || !Number.isInteger(data.snakeLength) || data.snakeLength < 1 || !Number.isInteger(data.score)
+            || ![data.velocityX, data.velocityY, data.movedX, data.movedY].every(isDirection)
+            || !isNumber(data.foodX) || !isNumber(data.foodY)) {
+            return null;
+        }
+        const game = emptyGame(random, data.tiles);
+        for (const { x, y } of data.snake) {
+            game.snake.push({ x, y });
+            cover(game, x, y, 1);
+        }
+        for (const key of ['snakeLength', 'velocityX', 'velocityY', 'movedX', 'movedY', 'foodX', 'foodY', 'score']) {
+            game[key] = data[key];
+        }
         return game;
     }
 
@@ -174,5 +218,5 @@ const GameRules = (() => {
         return { ok: true, outcome: 'over', score: game.score, timeMs: null, result: [{ label: 'Score', value: game.score, format: null }] };
     }
 
-    return Object.freeze({ TICK, TILES, seededRandom, newGame, turn, step, simulate });
+    return Object.freeze({ TICK, TILES, seededRandom, newGame, saveState, loadState, turn, step, simulate });
 })();

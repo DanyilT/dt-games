@@ -3,9 +3,11 @@
  *
  * The game saves one object:
  *     { "level": "beginner", "wins": { "beginner": 3, "intermediate": 1, "expert": 0 },
- *       "bestTimes": { "beginner": 42, "intermediate": 187, "expert": null } }
+ *       "bestTimes": { "beginner": 42, "intermediate": 187, "expert": null }, "game": { … } | null }
  * level is the difficulty picked, wins counts the wins on each level (the ⭐ in the Game menu), and bestTimes keeps the
- * fastest win on each level, in seconds (the timer's time), or null before the first win.
+ * fastest win on each level, in seconds (the timer's time), or null before the first win. game is the board under way,
+ * kept after each click (and when the page is hidden or closed) so it carries on next time: its state (js/rules.js
+ * saveState()), its run so far (js/gamehub.js run.save()) and the timer's time, in ms.
  * js/gamehub.js keeps it: in this browser (localStorage, key minesweeperGameData), and in the player's GameHub account
  * when they play in GameHub signed in. This file knows what's in it: the defaults, and what to keep.
  */
@@ -15,7 +17,8 @@ function defaultGameData() {
     return {
         level: 'beginner',
         wins: { beginner: 0, intermediate: 0, expert: 0 },
-        bestTimes: { beginner: null, intermediate: null, expert: null }
+        bestTimes: { beginner: null, intermediate: null, expert: null },
+        game: null
     };
 }
 
@@ -34,6 +37,12 @@ function checkGameData(saved) {
         if (Number.isInteger(time) && time >= 0) {
             data.bestTimes[level] = time;
         }
+    }
+    // The board under way: checked in full when it's loaded (GameRules.loadState(), GameHub.resumeRun())
+    const game = saved?.game;
+    if (game !== null && typeof game === 'object' && game.state !== null && typeof game.state === 'object'
+        && Number.isInteger(game.time) && game.time >= 0) {
+        data.game = { state: game.state, run: game.run ?? null, time: game.time };
     }
     return data;
 }

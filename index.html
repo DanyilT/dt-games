@@ -19,42 +19,44 @@
             <h1 style="all: unset;">Minesweeper Game</h1>
         </div>
         <div class="window-controls">
-            <div class="window-button minimize">_</div>
-            <div class="window-button maximize">□</div>
-            <div class="window-button close">×</div>
+            <!-- Full screen on or off (js/buttons-handler.js) -->
+            <div class="window-button minimize" role="button" tabindex="0" aria-label="Leave full screen">_</div>
+            <div class="window-button maximize" role="button" tabindex="0" aria-label="Full screen on or off">□</div>
+            <div class="window-button close" role="button" tabindex="0" aria-label="Leave full screen">×</div>
         </div>
     </div>
     <div class="game-area">
         <div class="menu-bar">
+            <!-- The menus open on hover, and by a click, a tap or the keyboard (js/buttons-handler.js) -->
             <div class="menu-item">
-                <span class="menu-title">Game</span>
-                <div class="menu-dropdown">
-                    <div class="menu-option" onclick="document.getElementById('reset-button').click()">New Game</div>
-                    <div class="menu-separator"></div>
-                    <div class="menu-option difficulty-option" data-level="beginner">Beginner</div>
-                    <div class="menu-option difficulty-option" data-level="intermediate">Intermediate</div>
-                    <div class="menu-option difficulty-option" data-level="expert">Expert</div>
-                    <div class="menu-separator"></div>
-                    <div class="menu-option" id="exit-game">Exit</div>
+                <span class="menu-title" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-controls="game-menu">Game</span>
+                <div class="menu-dropdown" id="game-menu" role="menu" aria-label="Game">
+                    <div class="menu-option" role="menuitem" tabindex="-1" onclick="document.getElementById('reset-button').click()">New Game</div>
+                    <div class="menu-separator" role="separator"></div>
+                    <div class="menu-option difficulty-option" role="menuitemradio" tabindex="-1" aria-checked="false" data-level="beginner">Beginner</div>
+                    <div class="menu-option difficulty-option" role="menuitemradio" tabindex="-1" aria-checked="false" data-level="intermediate">Intermediate</div>
+                    <div class="menu-option difficulty-option" role="menuitemradio" tabindex="-1" aria-checked="false" data-level="expert">Expert</div>
+                    <div class="menu-separator" role="separator"></div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="exit-game">Exit</div>
                 </div>
             </div>
             <div class="menu-item">
-                <span class="menu-title">Help</span>
-                <div class="menu-dropdown">
-                    <div class="menu-option" id="instructions-button">Instructions (i)</div>
-                    <div class="menu-option" id="about-button">About Minesweeper</div>
+                <span class="menu-title" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-controls="help-menu">Help</span>
+                <div class="menu-dropdown" id="help-menu" role="menu" aria-label="Help">
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="instructions-button">Instructions (i)</div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="about-button">About Minesweeper</div>
                 </div>
             </div>
             <div class="controls">
-                <button id="mode-toggle" title="Click to toggle between reveal and flag mode">🔍</button>
+                <button id="mode-toggle" title="Click to toggle between reveal and flag mode" aria-label="Flag mode" aria-pressed="false">🔍</button>
             </div>
         </div>
         <div class="header">
-            <div class="mine-counter">000</div>
-            <button id="reset-button">😊</button>
-            <div class="timer">000</div>
+            <div class="mine-counter" role="status" aria-label="Mines left">000</div>
+            <button id="reset-button" aria-label="New game">😊</button>
+            <div class="timer" role="timer" aria-label="Time">000</div>
         </div>
-        <div id="game-board" data-play-area></div>
+        <div id="game-board" data-play-area aria-label="The board"></div>
     </div>
     <!-- JavaScript for this page -->
     <script src="js/buttons-handler.js"></script>
@@ -81,6 +83,7 @@
     <p>• <b>1</b>, <b>2</b>, <b>3</b> keys to change difficulty (Beginner, Intermediate, Expert)</p>
     <p>• <b>I</b> key to show/hide these instructions</p>
     <p>• <b>Escape</b> key to close dialogs</p>
+    <p>• <b>Tab</b> to the Game and Help menus, <b>Enter</b> to open one, <b>arrow keys</b> to choose, <b>Enter</b> to pick</p>
     <hr>
     <h3>Tips:</h3>
     <p>• The numbers indicate how many mines are in the adjacent cells</p>

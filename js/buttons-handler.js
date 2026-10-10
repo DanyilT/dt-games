@@ -52,19 +52,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Show a dialog
+    // Show a dialog as a modal one: the rest of the page can't be reached (Tab stays in the dialog, and screen readers
+    // read only it) until it closes, and its OK button has the keyboard (Enter closes it)
     function showModal(modal) {
-        modal.style.display = 'flex';
+        if (!modal.open) modal.showModal();
+        modal.querySelector('.modal-button')?.focus();
     }
 
-    // Hide a dialog
+    // Hide a dialog: the browser gives the keyboard back to where it was
     function hideModal(modal) {
-        modal.style.display = 'none';
+        if (modal.open) modal.close();
+        modal.style.display = ''; // Dragging it set display: block
     }
 
-    // Whether a dialog is showing (dragging one sets display to block)
+    // Whether a dialog is showing
     function isModalOpen(modal) {
-        return modal.style.display === 'flex' || modal.style.display === 'block';
+        return modal.open;
     }
 
     // Build the Help dialogs from the page's instructions and footer
@@ -89,29 +92,36 @@ document.addEventListener('DOMContentLoaded', function() {
     function createModal(id, title, content) {
         const iconPath = 'img/icons/minesweeper-icon-1995.ico';
 
+        // A <dialog>, shown with showModal() (its title names it; × is for the mouse, as OK and Escape close it too)
         const modal = document.createElement('dialog');
         modal.className = 'modal-overlay';
         modal.id = id;
+        modal.setAttribute('aria-labelledby', `${id}-title`);
 
         modal.innerHTML = `
             <div class="modal-window">
                 <div class="window-title-bar">
-                    <div class="modal-title">
-                        <img src="${iconPath}" class="modal-title-icon" alt="Minesweeper (1995) icon">
+                    <div class="modal-title" id="${id}-title">
+                        <img src="${iconPath}" class="modal-title-icon" alt="">
                         ${title}
                     </div>
                     <div class="window-controls">
-                        <div class="modal-close">×</div>
+                        <div class="modal-close" aria-hidden="true">×</div>
                     </div>
                 </div>
                 <div class="modal-content">
                     ${content}
                 </div>
                 <div class="modal-buttons">
-                    <button class="modal-button">OK</button>
+                    <button class="modal-button" autofocus>OK</button>
                 </div>
             </div>
         `;
+
+        // Closed by the browser too (Escape): a dragged dialog's display goes back to the stylesheet's
+        modal.addEventListener('close', () => {
+            modal.style.display = '';
+        });
 
         setTimeout(() => makeDraggable(modal), 0);
 
@@ -197,6 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 option.classList.remove('selected');
             }
+            option.setAttribute('aria-checked', String(level === currentLevel));
         });
     }
 
@@ -206,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.repeat) return; // Held down: act once
 
         // A dialog is open: the keys are for it, not for the board behind it
-        const dialogOpen = [...document.querySelectorAll('.modal-overlay')].some(m => m.style.display === 'flex' || m.style.display === 'block');
+        const dialogOpen = [...document.querySelectorAll('.modal-overlay')].some(m => m.open);
         if (dialogOpen && e.key !== 'Escape') return;
 
         // Restart game with 'r' key
@@ -240,11 +251,150 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Exit game
+    // Exit game: in full screen (the game's own, or its frame's in GameHub), out of it; otherwise close the page. In
+    // GameHub's frame, Exit isn't shown (css/page.css).
     exitButton.addEventListener('click', () => {
+        if (GameHub.isFullScreen()) {
+            GameHub.fullScreen(false);
+            return;
+        }
         if(confirm('Are you sure you want to exit Minesweeper Game?')) {
             window.close();
         }
+    });
+
+    // The window's buttons: □ puts the game in full screen, or takes it out; _ and × take it out (where the browser can't,
+    // they're only for show)
+    const windowButtons = [...document.querySelectorAll('.window-controls .window-button')];
+    const updateWindowButtons = () => {
+        const canFullScreen = GameHub.canFullScreen();
+        const isFullScreen = GameHub.isFullScreen();
+
+        windowButtons.forEach((button) => {
+            const disabled = button.classList.contains('maximize') ? !canFullScreen : !isFullScreen;
+            button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+        });
+    };
+    updateWindowButtons();
+    document.addEventListener('gamehub:fullscreenchange', updateWindowButtons);
+    windowButtons.forEach((button) => {
+        const press = () => {
+            if (button.getAttribute('aria-disabled') === 'true') return;
+            if (button.classList.contains('maximize')) {
+                GameHub.fullScreen(!GameHub.isFullScreen());
+            } else if (GameHub.isFullScreen()) {
+                GameHub.fullScreen(false);
+            }
+        };
+        button.addEventListener('click', press);
+        button.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            e.stopPropagation(); // Not the board's keys too
+            press();
+        });
+    });
+
+    // The Game and Help menus: open on hover with a mouse (css/page.css), and by a click, a tap or the keyboard: Enter,
+    // Space or ↓ on a menu's name opens it, ↑ ↓ choose, Enter or Space picks, Escape closes it, ← → go to the other menu.
+    // The keys a menu takes don't reach the board.
+    const menus = [...document.querySelectorAll('.menu-bar .menu-item')];
+
+    // A menu's options, as shown (in GameHub's frame, Exit isn't)
+    function menuOptions(menu) {
+        return [...menu.querySelectorAll('[role^="menuitem"]')].filter((option) => option.getClientRects().length > 0);
+    }
+
+    // Open a menu (and close the other), with the keyboard on its first or last option, if focus says which
+    function openMenu(menu, focus = null) {
+        menus.forEach((other) => {
+            if (other !== menu) closeMenu(other);
+        });
+        menu.classList.add('open');
+        menu.querySelector('.menu-title').setAttribute('aria-expanded', 'true');
+        const options = menuOptions(menu);
+        if (focus === 'first') options[0]?.focus();
+        if (focus === 'last') options[options.length - 1]?.focus();
+    }
+
+    // Close a menu, giving the keyboard back to its name if focusTitle
+    function closeMenu(menu, focusTitle = false) {
+        menu.classList.remove('open');
+        const title = menu.querySelector('.menu-title');
+        title.setAttribute('aria-expanded', 'false');
+        if (focusTitle) title.focus();
+    }
+
+    menus.forEach((menu, index) => {
+        const title = menu.querySelector('.menu-title');
+        const dropdown = menu.querySelector('.menu-dropdown');
+        const otherMenu = (key) => menus[(index + (key === 'ArrowRight' ? 1 : menus.length - 1)) % menus.length];
+
+        title.addEventListener('click', () => {
+            if (menu.classList.contains('open')) closeMenu(menu);
+            else openMenu(menu);
+        });
+
+        title.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+                if (!e.repeat) openMenu(menu, 'first');
+            } else if (e.key === 'ArrowUp') {
+                openMenu(menu, 'last');
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                closeMenu(menu);
+                otherMenu(e.key).querySelector('.menu-title').focus();
+            } else if (e.key === 'Escape' && menu.classList.contains('open')) {
+                closeMenu(menu);
+            } else {
+                return; // Not the menu's: the game's own keys still work
+            }
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        dropdown.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            const options = menuOptions(menu);
+            const at = options.indexOf(document.activeElement);
+            if (e.key === 'ArrowDown') {
+                options[(at + 1) % options.length]?.focus();
+            } else if (e.key === 'ArrowUp') {
+                options[(at - 1 + options.length) % options.length]?.focus();
+            } else if (e.key === 'Home') {
+                options[0]?.focus();
+            } else if (e.key === 'End') {
+                options[options.length - 1]?.focus();
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                if (!e.repeat && at >= 0) {
+                    closeMenu(menu, true);
+                    options[at].click();
+                }
+            } else if (e.key === 'Escape') {
+                closeMenu(menu, true);
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                openMenu(otherMenu(e.key), 'first');
+            } else {
+                return; // Tab moves on (and the menu closes, below); the game's own keys still work
+            }
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        // Picking an option closes the menu; so does the keyboard going elsewhere
+        dropdown.addEventListener('click', (e) => {
+            if (e.target.closest('[role^="menuitem"]')) closeMenu(menu);
+        });
+        menu.addEventListener('focusout', (e) => {
+            if (!menu.contains(e.relatedTarget)) closeMenu(menu);
+        });
+    });
+
+    // A click or a tap anywhere else closes the menus
+    document.addEventListener('click', (e) => {
+        menus.forEach((menu) => {
+            if (!menu.contains(e.target)) closeMenu(menu);
+        });
     });
 
     // Initialize win indicators on page load

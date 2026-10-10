@@ -62,7 +62,7 @@
 }
 
 .cell.revealed {
-    border: 3px solid;
+    border-style: solid; /* Only the style and colours change: the width stays the cell's, so the board doesn't move */
     background-color: #c0c0c0;
     border-color: #7b7b7b #ffffff #ffffff #7b7b7b;
 }

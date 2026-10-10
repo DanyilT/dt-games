@@ -44,6 +44,21 @@
  *   screen, 'frame' when it comes back (and after each load).
  * - Each game's css/page.css says what the frame shows, with [data-gamehub-view="frame"] rules. Played on its own, the
  *   page has no attribute, and shows as it is.
+ * - GameHub.fullScreen(full): the game's own controls can put it in full screen (true) or take it out (false). The game
+ *   asks the browser for its own page, which GameHub's frame allows, and GameHub, seeing its frame fill the screen,
+ *   says 'full'. Full screen GameHub started (its own button) only GameHub can end, so then the game asks it:
+ *   { type: 'gamehub:fullscreen', full: false } to GameHub's page (and { full: true } if the browser won't let the
+ *   game itself). GameHub.isFullScreen(): whether the game fills the screen, either way; the game hears a
+ *   'gamehub:fullscreenchange' event on document whenever that may have changed. GameHub.canFullScreen(): whether
+ *   fullScreen(true) can work (not on an iPhone, played on its own), so a game's full-screen control can say when it
+ *   can't (Minesweeper's window buttons). GameHub has its own full-screen buttons, so most games need none.
+ *
+ * Pausing and loading:
+ * - GameHub sends { type: 'gamehub:pause' } when the game should stop and wait for the player (its frame scrolled out of
+ *   view, a dialog opened over it). The game hears it as a 'gamehub:pause' event on document: a game that moves by
+ *   itself (Snake, Tetris) pauses, the others needn't.
+ * - GameHub.playable(): the game is on screen and ready to play, so GameHub can stop showing it as loading. It sends
+ *   { type: 'gamehub:playable' } to GameHub's page, once.
  *
  * GameHub's panel, under the game: the game's numbers, and its runs to watch again.
  * - GameHub.status({ main, more, ongoing }): what the panel shows, sent again whenever it changes (GameHub hears it at
@@ -98,6 +113,11 @@ window.addEventListener('message', (event) => {
 
     if (event.data?.type === 'gamehub:view' && ['frame', 'full'].includes(event.data.view)) {
         document.documentElement.dataset.gamehubView = event.data.view;
+        document.dispatchEvent(new Event('gamehub:fullscreenchange'));
+        return;
+    }
+    if (event.data?.type === 'gamehub:pause') {
+        document.dispatchEvent(new Event('gamehub:pause')); // The game pauses, if it moves by itself
         return;
     }
     if (event.data?.type !== 'gamehub:center') return;
@@ -108,6 +128,11 @@ window.addEventListener('message', (event) => {
     const box = playArea.getBoundingClientRect();
     window.scrollBy({ top: box.top - (innerHeight - box.height) / 2, left: box.left - (innerWidth - box.width) / 2 });
 });
+
+// The game's own full screen, on or off: GameHub.isFullScreen() may have changed (see the top of this file)
+for (const type of ['fullscreenchange', 'webkitfullscreenchange']) {
+    document.addEventListener(type, () => document.dispatchEvent(new Event('gamehub:fullscreenchange')));
+}
 
 // window.GameHub: saves in this browser, and in the player's GameHub account when the hub is there
 (function () {
@@ -235,6 +260,53 @@ window.addEventListener('message', (event) => {
         (document.head || document.documentElement).appendChild(script);
         setTimeout(() => stopWaiting?.(), ATTACH_TIMEOUT);
     });
+
+    // Whether the game fills the screen: its own full screen, or its frame's in GameHub
+    function isFullScreen() {
+        return Boolean(document.fullscreenElement ?? document.webkitFullscreenElement)
+            || document.documentElement.dataset.gamehubView === 'full';
+    }
+
+    // Whether fullScreen(true) can work: the browser lets the page fill the screen, or GameHub can do it for the game
+    function canFullScreen() {
+        return Boolean(hubOrigin || document.fullscreenEnabled || document.webkitFullscreenEnabled);
+    }
+
+    // Ask GameHub to put its frame in full screen, or take it out (see the top of this file)
+    function askHubFullScreen(full) {
+        if (hubOrigin) window.parent.postMessage({ type: 'gamehub:fullscreen', full }, hubOrigin);
+    }
+
+    // Full screen on (true) or off (false), from the game's own controls (see the top of this file)
+    function fullScreen(full) {
+        const own = document.fullscreenElement ?? document.webkitFullscreenElement ?? null;
+        if (full) {
+            if (isFullScreen()) return;
+            const root = document.documentElement;
+            const request = root.requestFullscreen ?? root.webkitRequestFullscreen;
+            if (!request) {
+                askHubFullScreen(true);
+                return;
+            }
+            try {
+                Promise.resolve(request.call(root)).catch(() => askHubFullScreen(true));
+            } catch (error) {
+                askHubFullScreen(true);
+            }
+        } else if (own) {
+            (document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document);
+        } else if (isFullScreen()) {
+            askHubFullScreen(false); // GameHub put the frame in full screen: only GameHub can take it out
+        }
+    }
+
+    // The game is ready to play: GameHub can stop showing it as loading (once, and only in GameHub)
+    let saidPlayable = false;
+    function playable() {
+        if (saidPlayable || !hubOrigin) return;
+        saidPlayable = true;
+        window.parent.postMessage({ type: 'gamehub:playable' }, hubOrigin);
+    }
 
     // A save as JSON text, or undefined if it isn't something the game could have saved
     function toJson(data) {
@@ -795,6 +867,10 @@ window.addEventListener('message', (event) => {
         ready() {
             return ready;
         },
+        fullScreen,
+        isFullScreen,
+        canFullScreen,
+        playable,
         get connected() {
             return hub !== null;
         },

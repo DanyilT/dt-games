@@ -87,8 +87,13 @@ body {
             color: black;
         }
 
-        .window-button:hover {
-            cursor: wait;
+        .window-button:hover:not([aria-disabled="true"]) {
+            cursor: pointer;
+        }
+
+        .window-button[aria-disabled="true"],
+        .window-button[aria-disabled="true"]:hover {
+            cursor: not-allowed;
         }
     }
 }
@@ -103,16 +108,34 @@ body {
 
     .menu-item {
         position: relative;
-        padding: 1px 8px;
         cursor: default;
     }
 
-    .menu-item:hover {
+    /* The whole name opens the menu: a click, a tap, or Enter (js/buttons-handler.js) */
+    .menu-title {
+        display: block;
+        padding: 1px 8px;
+    }
+
+    .menu-title:focus-visible {
+        outline: 1px dotted currentColor;
+        outline-offset: -2px;
+    }
+
+    .menu-item:hover,
+    .menu-item.open {
         background-color: #000080;
         color: white;
     }
 
-    .menu-item:hover .menu-dropdown {
+    /* Open: on hover with a mouse (a touch screen's taps would keep it open), or opened (.open) */
+    @media (hover: hover) {
+        .menu-item:hover .menu-dropdown {
+            display: block;
+        }
+    }
+
+    .menu-item.open .menu-dropdown {
         display: block;
     }
 
@@ -122,6 +145,7 @@ body {
         left: 0;
         top: 100%;
         background-color: #c0c0c0;
+        color: black; /* Not the open menu's white name */
         border: 2px outset white;
         box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         z-index: 100;
@@ -139,9 +163,11 @@ body {
             }
         }
 
-        .menu-option:hover {
+        .menu-option:hover,
+        .menu-option:focus {
             background-color: #000080;
             color: white;
+            outline: none;
         }
 
         .menu-separator {
@@ -175,19 +201,38 @@ body {
     }
 }
 
-/* Modal overlay */
+/* Modal overlay: a <dialog> shown with showModal() (js/buttons-handler.js), over the whole page, without the browser's
+   own dialog box and backdrop */
 .modal-overlay {
     display: none;
     position: fixed;
     top: 0;
     left: 0;
+    box-sizing: border-box;
     width: 100%;
     height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border: none;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
     align-items: flex-start;
     justify-content: center;
-    padding-top: 10vh;
+    padding: 10vh 0 0;
+
+    &[open] {
+        display: flex;
+    }
+
+    /* Closed, even when dragging it gave it display: block (the close event that clears that comes a moment later) */
+    &:not([open]) {
+        display: none !important;
+    }
+
+    &::backdrop {
+        background-color: transparent;
+    }
 
     /* Modal window */
     .modal-window {
@@ -278,5 +323,11 @@ body {
 }
 
 [data-gamehub-view="frame"] .instructions {
+    display: none;
+}
+
+/* In GameHub's frame, Exit (and the line above it) isn't shown: the window's buttons take the game full screen and out */
+[data-gamehub-view="frame"] #exit-game,
+[data-gamehub-view="frame"] .menu-separator:has(+ #exit-game) {
     display: none;
 }

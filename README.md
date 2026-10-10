@@ -20,7 +20,11 @@ Test your logic and luck in this classic minesweeper game. Clear the board witho
 | <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | Difficulty: Beginner / Intermediate / Expert |
 | <kbd>R</kbd> | Restart |
 | <kbd>I</kbd> | Show or hide the instructions |
-| <kbd>Esc</kbd> | Close dialogs |
+| <kbd>Esc</kbd> | Close dialogs (and menus) |
+| The window's □ | Full screen on or off (_ and × take it out, and so does Game → Exit in full screen) |
+| <kbd>Tab</kbd> to Game or Help, then <kbd>Enter</kbd> | Open the menu: <kbd>↑</kbd> <kbd>↓</kbd> choose, <kbd>Enter</kbd> picks, <kbd>←</kbd> <kbd>→</kbd> go to the other menu |
+
+The Game and Help menus open on hover, and with a click, a tap or the keyboard; screen readers hear them as menus.
 
 On a phone or tablet:
 
@@ -35,14 +39,17 @@ On a phone or tablet:
 - Flag system, with a flag mode for touch screens
 - Wins counted for each level (the ⭐ in the Game menu)
 - Classic Windows 9x style
+- Menus, window buttons and dialogs that work with the keyboard and screen readers (the Help dialogs keep the keyboard until they close)
 - Fits the screen: when there isn't room for the whole board, only the board scrolls
+- Carries on where you left off: the board you're playing is saved after each click
 - Mobile-friendly
 - Easter Egg
 
 ## 💾 Saved data
 
-The game saves everything as one object: `{ "level": "beginner", "wins": { "beginner": 3, "intermediate": 1, "expert": 0 }, "bestTimes": { "beginner": 42, "intermediate": 187, "expert": null } }`.
+The game saves everything as one object: `{ "level": "beginner", "wins": { "beginner": 3, "intermediate": 1, "expert": 0 }, "bestTimes": { "beginner": 42, "intermediate": 187, "expert": null }, "game": { … } | null }`.
 `level` is the difficulty you picked, `wins` counts your wins on each level (the ⭐ in the Game menu), and `bestTimes` keeps your fastest win on each level, in seconds (`null` until you've won it).
+`game` is the board you're playing, kept after each click (and when you switch away or close the page) so it comes back next time: its cells (`state`), the run so far for GameHub (`run`, see below) and the timer's time. It's taken out when the board is won or lost, or you start another.
 It's kept in the browser, in `localStorage` under `minesweeperGameData`, and in your GameHub account when you play in GameHub signed in (see below).
 If the browser blocks storage (some do inside an iframe), the game still plays, but it doesn't remember anything.
 
@@ -52,9 +59,11 @@ If the browser blocks storage (some do inside an iframe), the game still plays, 
 
 - **Saves:** the game saves only through `window.GameHub`. Every save stays in this browser, as before. When you play in GameHub signed in, your progress also goes to your GameHub account, and the game loads the account's copy, so it follows you from device to device. The first time you play signed in on a device, if your account has no save for this game yet, this device's goes up.
 - **The play area:** GameHub asks the game to put its play area in the middle of the frame (the `gamehub:center` message).
-- **The frame view:** in GameHub's frame, the game shows only what's needed to play: the window, in the middle of its teal desktop. In full screen it shows the whole page. `js/gamehub.js` sets `data-gamehub-view` on the page (`frame`, or `full` when GameHub's `gamehub:view` message says so), and `css/page.css` says what the frame shows.
+- **The frame view:** in GameHub's frame, the game shows only what's needed to play: the window, in the middle of its teal desktop (Game → Exit isn't there: the window's □ takes the game full screen). In full screen it shows the whole page. `js/gamehub.js` sets `data-gamehub-view` on the page (`frame`, or `full` when GameHub's `gamehub:view` message says so), and `css/page.css` says what the frame shows.
+- **Full screen:** the window's □ puts the game in full screen, or takes it out (`GameHub.fullScreen()`, which asks GameHub with the `gamehub:fullscreen` message when only GameHub can).
+- **Loading:** the game tells GameHub when its board is up (`GameHub.playable()`, the `gamehub:playable` message). It doesn't move by itself, so it has nothing to pause when GameHub asks (`gamehub:pause`): the timer already stops while the page is hidden.
 - **Offline:** you can download the game in GameHub (the Download button on its page there) to play it offline.
-- **The panel and replays:** under the game, GameHub shows what the game tells it with `GameHub.status()` (the score now, your best, and more behind its More button), and each game you finish is kept as a run, so you can watch it again there: the run's random seed and your moves, never a video. The mines are placed from the run's seed (still after your first click, never under it), and each open and flag is recorded with its time. Runs stay in your browser. A cheat (the console, the Easter egg) means that game isn't kept.
+- **The panel and replays:** under the game, GameHub shows what the game tells it with `GameHub.status()` (the score now, your best, and more behind its More button), and each game you finish is kept as a run, so you can watch it again there: the run's random seed and your moves, never a video. The mines are placed from the run's seed (still after your first click, never under it), and each open and flag is recorded with its time. A board's run starts with its first click, so a board you never play takes none of GameHub's tickets. Runs stay in your browser. A cheat (the console, the Easter egg) means that game isn't kept.
 - **Checked runs:** signed in, GameHub hands the game a few tickets, each a seed its server chose, and each run takes one. GameHub then plays the run again on its server with this game's own rules (`js/rules.js`, the code the game plays by), so only results it got itself count as your records (it does this offline too, once you're back online). The first board waits for them (`GameHub.ready()`), so it gets one too.
 - **Only GameHub:** it loads GameHub's script (`/hub-bridge.js`) only when the game is in a frame on GameHub's own address.
 

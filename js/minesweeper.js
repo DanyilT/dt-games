@@ -40,7 +40,7 @@ const LEVEL_NAMES = Object.fromEntries(Object.entries(gameSettings).map(([level,
 
 // Game state
 let gameData = null; // What's saved (js/storage.js), once it has loaded: the board is built then
-let run = null; // The board under way, recorded so GameHub can play it again (js/gamehub.js)
+let run = null; // The board under way, recorded so GameHub can play it again (js/gamehub.js), from its first click
 let game = null; // The board under way (js/rules.js): its cells, its mines, and whether it's won or lost
 let currentLevel = defaultGameData().level;
 let board = []; // The board's cells (game.board): { isMine, isRevealed, isFlagged, neighbors }
@@ -71,10 +71,11 @@ Promise.all([loadGameData(), GameHub.ready()]).then(([data]) => {
             },
             input: replayInput,
         });
-    } else {
+    } else if (!resumeSavedGame()) {
         initGame();
     }
     document.dispatchEvent(new Event('minesweeper:loaded')); // The Game menu shows the level and the ⭐
+    GameHub.playable(); // The board is up: GameHub stops showing the game as loading
 });
 
 // Event listeners
@@ -97,7 +98,7 @@ function showStatus() {
                 { label: 'Best time', value: gameData.bestTimes[level], format: 'time' },
             ],
         })),
-        ongoing: Boolean(game) && !game.firstClick && !gameOver,
+        ongoing: false, // A board under way is saved after each click (saveProgress): a reload keeps it
     });
 }
 
@@ -120,13 +121,20 @@ function replayInput(code) {
     }
 }
 
-// Initialize game board: a new run, or in a replay, the run being played (its level, and its mines)
+// Initialize game board: in a replay, the run being played (its level, and its mines); otherwise a new board, whose run
+// starts with its first click (beginRun()), so a board nobody plays takes no ticket from GameHub
 function initGame(replayRun = null) {
     if (replayRun) currentLevel = LEVEL_NAMES[replayRun.mode] ? replayRun.mode : currentLevel;
-    run = replayRun || GameHub.startRun({ mode: currentLevel });
+    run?.discard(); // The board before, if it was under way, isn't kept
+    run = replayRun;
     // A new board (js/rules.js): its mines go in at the first open, from the run's numbers, so a replay gets the same ones
-    game = GameRules.newGame(run.random, currentLevel);
+    game = GameRules.newGame(() => run.random(), currentLevel);
     board = game.board;
+    if (gameData?.game) {
+        // A new board: the one saved half-way is gone
+        gameData.game = null;
+        saveGameData(gameData);
+    }
     // Reset game state
     gameOver = false;
     flaggedCount = 0;
@@ -139,19 +147,68 @@ function initGame(replayRun = null) {
     mineCount = game.mines;
     updateMineCounter();
     resetButton.textContent = '😊';
+    buildBoard();
+    showStatus();
+}
 
-    // Create game board
+// A board saved half-way (saveProgress()) carries on, with its run and its time: true if there was one
+function resumeSavedGame() {
+    const saved = gameData.game;
+    if (!saved) return false;
+    const resumedRun = GameHub.resumeRun(saved.run);
+    const resumed = GameRules.loadState(saved.state, resumedRun.random);
+    if (!resumed || resumed.firstClick) {
+        // Not a board this version can carry on: drop it
+        resumedRun.discard();
+        gameData.game = null;
+        saveGameData(gameData);
+        return false;
+    }
+    run = resumedRun;
+    game = resumed;
+    board = game.board;
+    currentLevel = game.level;
+    gameOver = false;
+    mineCount = game.mines;
+    resetButton.textContent = '😊';
+    buildBoard();
+    showCells();
+    updateMineCounter();
+    startTimer(saved.time);
+    showStatus();
+    return true;
+}
+
+// The board under way goes with what's saved (after each click, and when the page is hidden or closed), so it carries
+// on next time; a board that ended is taken out
+function saveProgress() {
+    if (!gameData || !game || GameHub.replaying) return;
+    const underWay = !game.firstClick && !gameOver;
+    if (!underWay && !gameData.game) return; // Nothing to keep, nothing to take out
+    gameData.game = underWay ? { state: GameRules.saveState(game), run: run.save(), time: timerMs() } : null;
+    saveGameData(gameData);
+}
+
+// The page hidden (another tab, a locked phone) or closed: the board under way is saved with its time so far
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) saveProgress();
+});
+window.addEventListener('pagehide', saveProgress);
+
+// The board's cells on the page, one element for each, row by row
+function buildBoard() {
     gameBoard.innerHTML = '';
     gameBoard.style.gridTemplateColumns = `repeat(${game.cols}, auto)`;
     gameBoard.style.gridTemplateRows = `repeat(${game.rows}, auto)`;
 
-    // A cell element for each cell, row by row
     for (let row = 0; row < game.rows; row++) {
         for (let col = 0; col < game.cols; col++) {
             const cell = document.createElement('div');
             cell.classList.add('cell');
             cell.dataset.row = row;
             cell.dataset.col = col;
+            cell.setAttribute('role', 'button');
+            cell.setAttribute('aria-label', cellLabel(row, col, 'hidden'));
 
             cell.addEventListener('click', () => handleCellClick(row, col));
             cell.addEventListener('contextmenu', (e) => {
@@ -162,7 +219,16 @@ function initGame(replayRun = null) {
             gameBoard.appendChild(cell);
         }
     }
-    showStatus();
+}
+
+// What a screen reader says for a cell: where it is, and what's on it
+function cellLabel(row, col, what) {
+    return `Row ${row + 1}, column ${col + 1}: ${what}`;
+}
+
+// The run starts with the board's first click (or flag): a board nobody plays takes no ticket from GameHub
+function beginRun() {
+    if (!run) run = GameHub.startRun({ mode: currentLevel });
 }
 
 // Handle cell click event: the player opens a cell. It's recorded with the run first (it can end the game).
@@ -170,6 +236,7 @@ function handleCellClick(row, col) {
     if (gameOver || GameHub.replaying || !board.length) {
         return;
     }
+    beginRun();
     run.input(cellInput(row, col, false));
     openCell(row, col);
 }
@@ -179,6 +246,7 @@ function handleRightClick(row, col) {
     if (gameOver || GameHub.replaying || !board.length) {
         return;
     }
+    beginRun();
     run.input(cellInput(row, col, true));
     flagCell(row, col);
 }
@@ -214,6 +282,7 @@ function afterMove() {
             setGameOver(game.hit.row, game.hit.col);
         }
     }
+    saveProgress();
 }
 
 // Show the cells the board has opened (with their numbers) and flagged
@@ -232,6 +301,11 @@ function showCells() {
             }
             element.classList.toggle('flagged', cell.isFlagged);
             if (cell.isFlagged) flaggedCount++;
+            let what = 'hidden';
+            if (cell.isRevealed) what = cell.neighbors > 0 ? `${cell.neighbors} mine${cell.neighbors === 1 ? '' : 's'} around` : 'empty';
+            else if (cell.isFlagged) what = 'flagged';
+            const label = cellLabel(row, col, what);
+            if (element.getAttribute('aria-label') !== label) element.setAttribute('aria-label', label);
         }
     }
 }
@@ -248,6 +322,7 @@ function revealAllMines(triggeredRow = null, triggeredCol = null) {
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
 
             if (board[row][col].isMine) {
+                cell.setAttribute('aria-label', cellLabel(row, col, board[row][col].isFlagged ? 'mine, flagged' : 'mine'));
                 if (board[row][col].isFlagged) {
                     // Correctly flagged mine
                     cell.classList.add('revealed', 'mine', 'mine-flagged-correct');
@@ -312,6 +387,7 @@ function showWin() {
             if (board[row][col].isMine && !board[row][col].isFlagged) {
                 const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
                 cell.classList.add('flagged');
+                cell.setAttribute('aria-label', cellLabel(row, col, 'mine, flagged'));
                 flaggedCount++;
             }
         }
@@ -353,13 +429,18 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-// Start timer: from 0, at the first click
-function startTimer() {
+// The timer's time so far, in ms
+function timerMs() {
+    return Math.round(timerTime + (timerStartedAt === null ? 0 : performance.now() - timerStartedAt));
+}
+
+// Start timer: from 0 at the first click, or from the time a board saved half-way had
+function startTimer(fromMs = 0) {
     clearInterval(timerInterval);
-    timerTime = 0;
+    timerTime = fromMs;
     timerStartedAt = null;
     startClock();
-    seconds = 0;
+    seconds = timerSeconds();
     updateTimer();
     timerInterval = setInterval(() => {
         const now = timerSeconds();

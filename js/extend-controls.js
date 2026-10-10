@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleButton.addEventListener('click', function() {
         flagMode = !flagMode;
         toggleButton.textContent = flagMode ? '🚩' : '🔍👀';
+        toggleButton.setAttribute('aria-pressed', String(flagMode));
     });
 
     // Modify cell click behavior based on current mode
@@ -88,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey || e.metaKey || e.altKey) return; // The browser's shortcuts
 
         // A dialog is open: the keys are for it, not for the board behind it
-        const dialogOpen = [...document.querySelectorAll('.modal-overlay')].some(m => m.style.display === 'flex' || m.style.display === 'block');
+        const dialogOpen = [...document.querySelectorAll('.modal-overlay')].some(m => m.open);
         if (dialogOpen && e.key !== 'Escape') return;
 
         if (gameOver) return;

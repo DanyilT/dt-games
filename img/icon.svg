@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <!-- The four games as four tiles, each in its own colours: Snake's snake and food, Tetris's T piece, a Minesweeper
+         mine on a raised cell, and a Sudoku grid -->
+    <!-- Snake (its icon's black board, the snake and the food) -->
+    <rect x="0" y="0" width="46" height="46" rx="4" fill="#000"/>
+    <rect x="4" y="17" width="12" height="12" fill="darkgray"/>
+    <rect x="17" y="17" width="12" height="12" fill="lightgray"/>
+    <rect x="30" y="17" width="12" height="12" fill="red"/>
+    <!-- Tetris (a T piece in its purple, with the blocks' grey outline) -->
+    <rect x="54" y="0" width="46" height="46" rx="4" fill="#111"/>
+    <g fill="purple" stroke="gray" stroke-width="1">
+        <rect x="72" y="12" width="10" height="10"/>
+        <rect x="62" y="22" width="10" height="10"/>
+        <rect x="72" y="22" width="10" height="10"/>
+        <rect x="82" y="22" width="10" height="10"/>
+    </g>
+    <!-- Minesweeper (a mine on a raised grey cell) -->
+    <rect x="0" y="54" width="46" height="46" rx="4" fill="#c0c0c0"/>
+    <path d="M4 96V58h38" fill="none" stroke="#fff" stroke-width="3"/>
+    <path d="M42 58v38H4" fill="none" stroke="#808080" stroke-width="3"/>
+    <g stroke="#000" stroke-width="3" stroke-linecap="round">
+        <path d="M23 64v26M10 77h26M14 68l18 18M32 68L14 86"/>
+    </g>
+    <circle cx="23" cy="77" r="8" fill="#000"/>
+    <rect x="19" y="73" width="3" height="3" fill="#fff"/>
+    <!-- Sudoku (a grid of 3 × 3 boxes, with clues) -->
+    <rect x="54" y="54" width="46" height="46" rx="4" fill="#e0e5ec"/>
+    <g fill="none" stroke="#4d5974" stroke-width="2">
+        <rect x="61" y="61" width="32" height="32"/>
+        <path d="M71.7 61v32M82.3 61v32M61 71.7h32M61 82.3h32"/>
+    </g>
+    <g fill="#4d5974">
+        <circle cx="66.3" cy="66.3" r="2.5"/>
+        <circle cx="87.7" cy="77" r="2.5"/>
+        <circle cx="77" cy="87.7" r="2.5"/>
+    </g>
+</svg>

@@ -5,32 +5,156 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DanyilT Games</title>
     <meta name="description" content="Classic browser games made with JavaScript, HTML and CSS: Snake, Tetris, Minesweeper and Sudoku.">
+    <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#121316" media="(prefers-color-scheme: dark)">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DanyilT Games">
+    <meta property="og:title" content="DanyilT Games">
+    <meta property="og:description" content="Classic browser games made with JavaScript, HTML and CSS: Snake, Tetris, Minesweeper and Sudoku.">
+    <meta property="og:url" content="https://dt-games.pages.dev/">
+    <meta property="og:image" content="https://dt-games.pages.dev/img/preview.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="DanyilT Games: the icons of Snake, Tetris, Minesweeper and Sudoku">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="img/icon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="img/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; max-width: 800px; margin: auto; }
-        h1 { margin-bottom: 0.25rem; }
-        ul { padding-left: 1.25rem; }
-        a { color: blue; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        small { color: #6b7280; }
+        :root {
+            color-scheme: light dark;
+            --page: #f5f6f8;
+            --card: #fff;
+            --border: #e3e5e8;
+            --text: #1f2328;
+            --muted: #6b7280;
+            --link: #0b57d0;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --page: #121316;
+                --card: #1d1f23;
+                --border: #33363c;
+                --text: #e8eaed;
+                --muted: #9aa0a6;
+                --link: #8ab4f8;
+            }
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 2rem 1rem;
+            background-color: var(--page);
+            color: var(--text);
+        }
+
+        main {
+            max-width: 820px;
+            margin: auto;
+        }
+
+        h1 {
+            margin: 0 0 0.25rem;
+        }
+
+        a {
+            color: var(--link);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        small,
+        .about {
+            color: var(--muted);
+        }
+
+        /* The games: a card each, with its icon (from the game's own address), side by side as room allows */
+        .games {
+            list-style: none;
+            padding: 0;
+            margin: 1.5rem 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .game {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 1rem;
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .game .play {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text);
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
+        .game img {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            image-rendering: pixelated; /* Minesweeper's mine is a small picture: crisp, not blurred */
+        }
+
+        .game .about {
+            flex: 1;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .game .links {
+            margin: 0;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
+<main>
     <h1>DanyilT Games</h1>
     <p><small>Classic JavaScript, HTML, and CSS games — each one on its own branch of <a href="https://github.com/DanyilT/dt-games">DanyilT/dt-games</a>, and all of them in <a href="https://gamehub.foo">GameHub</a></small></p>
 
-    <h2>Available games</h2>
-    <ul>
-        <li><a href="https://snake.dt-games.pages.dev/">Snake</a> <small>(<a href="https://gamehub.foo/g/snake">in GameHub</a> · <a href="https://github.com/DanyilT/dt-games/tree/snake">source code</a>)</small></li>
-        <li><a href="https://tetris.dt-games.pages.dev/">Tetris</a> <small>(<a href="https://gamehub.foo/g/tetris">in GameHub</a> · <a href="https://github.com/DanyilT/dt-games/tree/tetris">source code</a>)</small></li>
-        <li><a href="https://minesweeper.dt-games.pages.dev/">Minesweeper</a> <small>(<a href="https://gamehub.foo/g/minesweeper">in GameHub</a> · <a href="https://github.com/DanyilT/dt-games/tree/minesweeper">source code</a>)</small></li>
-        <li><a href="https://sudoku.dt-games.pages.dev/">Sudoku</a> <small>(<a href="https://gamehub.foo/g/sudoku">in GameHub</a> · <a href="https://github.com/DanyilT/dt-games/tree/sudoku">source code</a>)</small></li>
+    <ul class="games">
+        <li class="game">
+            <a class="play" href="https://snake.dt-games.pages.dev/"><img src="https://snake.dt-games.pages.dev/img/icon.svg" alt="" width="48" height="48">Snake</a>
+            <p class="about">Eat the food to grow longer, and don't hit the walls or yourself.</p>
+            <p class="links"><a href="https://gamehub.foo/g/snake">in GameHub</a> · <a href="https://github.com/DanyilT/dt-games/tree/snake">source code</a></p>
+        </li>
+        <li class="game">
+            <a class="play" href="https://tetris.dt-games.pages.dev/"><img src="https://tetris.dt-games.pages.dev/img/icon.svg" alt="" width="48" height="48">Tetris</a>
+            <p class="about">Rotate and move the falling blocks to clear complete lines.</p>
+            <p class="links"><a href="https://gamehub.foo/g/tetris">in GameHub</a> · <a href="https://github.com/DanyilT/dt-games/tree/tetris">source code</a></p>
+        </li>
+        <li class="game">
+            <a class="play" href="https://minesweeper.dt-games.pages.dev/"><img src="https://minesweeper.dt-games.pages.dev/img/mine.png" alt="" width="48" height="48">Minesweeper</a>
+            <p class="about">Clear the board without hitting a mine, in a classic Windows window.</p>
+            <p class="links"><a href="https://gamehub.foo/g/minesweeper">in GameHub</a> · <a href="https://github.com/DanyilT/dt-games/tree/minesweeper">source code</a></p>
+        </li>
+        <li class="game">
+            <a class="play" href="https://sudoku.dt-games.pages.dev/"><img src="https://sudoku.dt-games.pages.dev/img/icon.svg" alt="" width="48" height="48">Sudoku</a>
+            <p class="about">Fill the grid so that no row, column or box has a digit twice.</p>
+            <p class="links"><a href="https://gamehub.foo/g/sudoku">in GameHub</a> · <a href="https://github.com/DanyilT/dt-games/tree/sudoku">source code</a></p>
+        </li>
     </ul>
 
     <footer>
         <p>
-            <small>&copy; Dany 2025</small>
+            <small>&copy; Dany 2025-2026</small>
             <small><a href="https://github.com/DanyilT/dt-games">source code</a></small>
         </p>
     </footer>
+</main>
 </body>
 </html>

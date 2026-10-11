@@ -78,6 +78,10 @@ python3 -m http.server
 
 Then open http://localhost:8000.
 
+## 🔬 Test it
+
+`test/index.html` is a replay test: a bot plays Sudoku through the page's own controls, and each run it finishes is played again with `js/rules.js` (what GameHub's server checks runs with), which must come out as the game said. Serve the folder as above and open http://localhost:8000/test/ (or http://localhost:8000/test/?start to start at once). The game there saves under a name of its own, so your best score and game in progress stay as they were. *Copy the runs as JSON* gives the runs in the shape of GameHub's test fixtures.
+
 ## 💿 Get just this game
 
 Every game lives on its own branch of [DanyilT/dt-games](https://github.com/DanyilT/dt-games). To clone only this one:

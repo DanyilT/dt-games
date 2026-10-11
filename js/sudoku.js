@@ -212,7 +212,7 @@ function validateAllCells() {
     for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
             const value = board[row][col];
-            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            const cell = document.getElementById(`cell-${row * 9 + col}`);
 
             // Skip empty cells and initial clues
             if (value === 0 || initialBoard[row][col] > 0) {
@@ -220,11 +220,12 @@ function validateAllCells() {
                 continue;
             }
 
-            // Check if the current value is valid (js/rules.js)
-            const tempBoard = JSON.parse(JSON.stringify(board));
-            tempBoard[row][col] = 0; // Clear temporarily to check
+            // Check if the current value is valid (js/rules.js): against the board without it, taken out for a moment
+            board[row][col] = 0;
+            const valid = GameRules.isValidPlacement(board, row, col, value);
+            board[row][col] = value;
 
-            if (GameRules.isValidPlacement(tempBoard, row, col, value)) {
+            if (valid) {
                 cell.classList.add('valid');
                 cell.classList.remove('invalid');
             } else {

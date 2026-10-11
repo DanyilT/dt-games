@@ -6,6 +6,11 @@
  * state (js/rules.js saveState()), its run so far (js/gamehub.js run.save()), and the best score before it.
  * js/gamehub.js keeps it: in this browser (localStorage, key tetrisGameData), and in the player's GameHub account when
  * they play in GameHub signed in. This file knows what's in it: the defaults, and what to keep.
+ *
+ * To do (a known limit): the saved game carries its whole run, every input (about 7 bytes each), so a very long game
+ * (some 9,000 inputs, roughly 2,000 pieces) makes the save bigger than GameHub's 64 KB. GameHub.save() then keeps the
+ * whole save (the best score too) in this browser only, until that game ends. The fix: keep the inputs more compactly
+ * (e.g. one string, a character a move), or leave the run out of a saved game that's too big.
  */
 
 // What a new player starts with

@@ -142,6 +142,14 @@ const GameRules = (() => {
         return false;
     }
 
+    // The row the piece would land on, dropped straight down now: where a hard drop puts it (js/tetris.js draws a ghost piece there)
+    function dropRow(game) {
+        const piece = game.current;
+        let y = piece.y;
+        while (!collision(game, piece.x, y + 1, piece.shape)) y++;
+        return y;
+    }
+
     // The fall speed for the level; the next fall counts from now
     function updateGameSpeed(game) {
         game.gameSpeed = Math.max(100, GAME_SPEED - (game.level - 1) * 100);
@@ -292,12 +300,9 @@ const GameRules = (() => {
         } else if (code === 'D') {
             return moveDown(game);
         } else if (code === 'H') {
-            let dropped = 0;
-            while (!collision(game, piece.x, piece.y + 1, piece.shape)) {
-                piece.y++;
-                dropped++;
-            }
-            game.score += dropped; // A point a row
+            const landing = dropRow(game);
+            game.score += landing - piece.y; // A point a row
+            piece.y = landing;
             return lockPiece(game);
         }
         return 'moved';
@@ -358,6 +363,6 @@ const GameRules = (() => {
     }
 
     return Object.freeze({
-        TICK, COLS, ROWS, MOVES, seededRandom, newGame, saveState, loadState, collision, move, step, simulate,
+        TICK, COLS, ROWS, MOVES, seededRandom, newGame, saveState, loadState, collision, dropRow, move, step, simulate,
     });
 })();

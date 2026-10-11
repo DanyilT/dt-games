@@ -11,6 +11,7 @@
  * - Tetromino shapes and colors
  * - Piece rotation and movement
  * - Line clearing and scoring
+ * - A ghost piece: where the piece would land, dropped now
  * - Game over detection
  * - Pause and resume functionality
  * - GameHub's panel and replays (js/gamehub.js): each game is a run, with the pieces drawn from the run's seed, the game
@@ -225,8 +226,33 @@ function drawBoard() {
     }
 }
 
-// Draw the current piece
+// The ghost piece: where the current piece would land, dropped now (js/rules.js dropRow()), as an outline in its colour.
+// It's only drawn: the game and its runs don't know it's there.
+function drawGhost() {
+    const piece = game.current;
+    const landing = GameRules.dropRow(game);
+    if (landing === piece.y) return; // Already there: the piece covers it
+    ctx.save();
+    ctx.strokeStyle = COLORS[piece.type];
+    ctx.fillStyle = COLORS[piece.type];
+    ctx.lineWidth = 2;
+    for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+            if (!piece.shape[y][x] || landing + y < 0) continue;
+            const left = (piece.x + x) * BLOCK_SIZE;
+            const top = (landing + y) * BLOCK_SIZE;
+            ctx.globalAlpha = 0.15;
+            ctx.fillRect(left, top, BLOCK_SIZE, BLOCK_SIZE);
+            ctx.globalAlpha = 0.7;
+            ctx.strokeRect(left + 1, top + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
+        }
+    }
+    ctx.restore();
+}
+
+// Draw the current piece (and its ghost first, under it)
 function drawPiece() {
+    drawGhost();
     const currentPiece = game.current;
     for (let y = 0; y < currentPiece.shape.length; y++) {
         for (let x = 0; x < currentPiece.shape[y].length; x++) {

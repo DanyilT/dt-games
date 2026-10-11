@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 13 23">
+    <!-- A minus in red LED segments, on black -->
+    <rect width="13" height="23" fill="#000"/>
+    <polygon points="2,11 4,10 9,10 11,11 9,12 4,12" fill="#ff0000"/>
+</svg>

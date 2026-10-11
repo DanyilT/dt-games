@@ -1,7 +1,8 @@
 /**
- * Minesweeper Game
+ * Minesweeper
  *
- * A simple implementation of the classic Minesweeper game using JavaScript, HTML, and CSS.
+ * A simple implementation of the classic Minesweeper game using JavaScript, HTML, and CSS, in the look of classic
+ * Windows Minesweeper: its pictures are pixel drawings in that style, and the mine from img/icons/mine.ico (img/classic).
  * This game allows players to select difficulty levels, plant mines, reveal cells, and flag potential mines.
  * It also includes a timer and mine counter.
  * The rules (the levels, the mines, opening and flagging, the win and the loss) are in js/rules.js: this file shows the
@@ -74,7 +75,7 @@ Promise.all([loadGameData(), GameHub.ready()]).then(([data]) => {
     } else if (!resumeSavedGame()) {
         initGame();
     }
-    document.dispatchEvent(new Event('minesweeper:loaded')); // The Game menu shows the level and the ⭐
+    document.dispatchEvent(new Event('minesweeper:loaded')); // The Game menu shows the level and the stars
     GameHub.playable(); // The board is up: GameHub stops showing the game as loading
 });
 
@@ -146,7 +147,7 @@ function initGame(replayRun = null) {
     updateTimer();
     mineCount = game.mines;
     updateMineCounter();
-    resetButton.textContent = '😊';
+    setFace('smile');
     buildBoard();
     showStatus();
 }
@@ -170,7 +171,7 @@ function resumeSavedGame() {
     currentLevel = game.level;
     gameOver = false;
     mineCount = game.mines;
-    resetButton.textContent = '😊';
+    setFace('smile');
     buildBoard();
     showCells();
     updateMineCounter();
@@ -345,7 +346,7 @@ function revealAllMines(triggeredRow = null, triggeredCol = null) {
 // Game over: stop the timer and show all the mines
 function setGameOver(triggeredRow, triggeredCol) {
     gameOver = true;
-    resetButton.textContent = '😵';
+    setFace('dead');
     stopTimer();
     run.finish({
         outcome: 'lost',
@@ -376,10 +377,10 @@ function showWin() {
         result: [{ label: 'Level', value: LEVEL_NAMES[currentLevel] }, { label: 'Time', value: seconds, format: 'time' }],
         best: bestTime === null || seconds < bestTime,
     });
-    document.dispatchEvent(new Event('minesweeper:win')); // The Game menu shows the new ⭐ count
+    document.dispatchEvent(new Event('minesweeper:win')); // The Game menu shows the new count by the star
 
     gameOver = true;
-    resetButton.textContent = '😎';
+    setFace('cool');
 
     // Flag all remaining mines
     for (let row = 0; row < rows; row++) {
@@ -463,16 +464,52 @@ function stopTimer() {
 
 // Update timer display
 function updateTimer() {
-    timer.textContent = seconds.toString().padStart(3, '0');
+    showLed(timer, Math.min(seconds, 999)); // Three digits, as the classic timer: it stops at 999
 }
 
 // Update mine counter display
 function updateMineCounter() {
-    const remainingMines = mineCount - flaggedCount;
-    mineCounter.textContent = remainingMines < 0
-        ? '-' + String(-remainingMines).padStart(2, '0')
-        : remainingMines.toString().padStart(3, '0');
+    showLed(mineCounter, Math.max(mineCount - flaggedCount, -99));
 }
+
+// A number in three red LED digits (img/icons/led-*.svg, css/game.css): '007', or '-05' below zero. Each digit is a
+// picture; the number itself is there for screen readers.
+function showLed(element, value) {
+    const text = value < 0 ? `-${String(-value).padStart(2, '0')}` : String(value).padStart(3, '0');
+    if (element.dataset.value === text) return;
+    element.dataset.value = text;
+    if (!element.querySelector('.led')) {
+        element.innerHTML = '<span class="led" aria-hidden="true"></span>'.repeat(3) + '<span class="sr-only"></span>';
+    }
+    element.querySelectorAll('.led').forEach((digit, i) => {
+        digit.dataset.ch = text[i] === '-' ? 'minus' : text[i];
+    });
+    element.querySelector('.sr-only').textContent = String(value);
+}
+
+// The face on the button: 'smile' (a game to play), 'oh' (a cell being pressed), 'dead' (lost) or 'cool' (won)
+function setFace(face) {
+    resetButton.dataset.face = face;
+}
+
+// While a cell is pressed (a click or a tap going down), the face says "oh!", as the classic one did
+gameBoard.addEventListener('pointerdown', (e) => {
+    if (e.button === 0 && !gameOver && !GameHub.replaying && e.target.classList.contains('cell')) setFace('oh');
+});
+document.addEventListener('pointerup', () => {
+    if (resetButton.dataset.face === 'oh') setFace('smile');
+});
+document.addEventListener('pointercancel', () => {
+    if (resetButton.dataset.face === 'oh') setFace('smile');
+});
+
+// Every picture the game may show, loaded now: a face or a number that first shows later is there at once, and
+// GameHub's Download, which keeps the files the page has loaded, keeps them all for playing offline
+['mine', 'face-smile', 'face-oh', 'face-dead', 'face-cool', 'flag', 'wrong', 'star', 'window-minimize', 'window-maximize', 'window-close',
+    '1', '2', '3', '4', '5', '6', '7', '8', 'led-minus', ...Array.from({ length: 10 }, (_, i) => `led-${i}`)]
+    .forEach((name) => {
+        new Image().src = `img/icons/${name}.svg`;
+    });
 
 // Reset game to initial state
 function resetGame() {

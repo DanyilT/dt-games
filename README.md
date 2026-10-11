@@ -1,9 +1,9 @@
-# Minesweeper Game
+# Minesweeper
 [![minesweeper@v1.0.0](https://img.shields.io/badge/minesweeper-v1.0.0-blue)](https://github.com/DanyilT/dt-games/releases/tag/minesweeper@v1.0.0)
 
 Test your logic and luck in this classic minesweeper game. Clear the board without hitting any mines.
 
-![Minesweeper Game on a computer](img/desktop-screenshot.png)
+![Minesweeper on a computer](img/desktop-screenshot.png)
 
 **[Play in GameHub](https://gamehub.foo/g/minesweeper)** · [Play directly](https://minesweeper.dt-games.pages.dev) · [Source code](https://github.com/DanyilT/dt-games/tree/minesweeper)
 
@@ -28,7 +28,7 @@ The Game and Help menus open on hover, and with a click, a tap or the keyboard; 
 
 On a phone or tablet:
 
-- **Tap** a cell to reveal it, or to flag it in flag mode (switch modes with the 🔍/🚩 button).
+- **Tap** a cell to reveal it, or to flag it in flag mode (switch modes with the flag button next to Help).
 - **Long-press** a cell to place or remove a flag.
 
 ## 💿 Features
@@ -37,8 +37,8 @@ On a phone or tablet:
 - Timer and mine counter: the timer runs only while the page is on screen (another tab, or a locked phone, pauses it)
 - First-click safety: the first cell you open is never a mine
 - Flag system, with a flag mode for touch screens
-- Wins counted for each level (the ⭐ in the Game menu)
-- Classic Windows 9x style
+- Wins counted for each level (the stars in the Game menu)
+- The look of classic Windows Minesweeper: red LED counters, the face that says "oh!" while you press a cell (and loses or wins with you), the numbers in their classic colours, the flags and the mine, all as pixel pictures (`img/classic`: drawn for this game in the classic style, and the mine from `img/icons/mine.ico`: its black-and-white 32 px picture, pixel for pixel, as a vector)
 - Menus, window buttons and dialogs that work with the keyboard and screen readers (the Help dialogs keep the keyboard until they close)
 - Fits the screen: when there isn't room for the whole board, only the board scrolls
 - Carries on where you left off: the board you're playing is saved after each click
@@ -48,7 +48,7 @@ On a phone or tablet:
 ## 💾 Saved data
 
 The game saves everything as one object: `{ "level": "beginner", "wins": { "beginner": 3, "intermediate": 1, "expert": 0 }, "bestTimes": { "beginner": 42, "intermediate": 187, "expert": null }, "game": { … } | null }`.
-`level` is the difficulty you picked, `wins` counts your wins on each level (the ⭐ in the Game menu), and `bestTimes` keeps your fastest win on each level, in seconds (`null` until you've won it).
+`level` is the difficulty you picked, `wins` counts your wins on each level (the stars in the Game menu), and `bestTimes` keeps your fastest win on each level, in seconds (`null` until you've won it).
 `game` is the board you're playing, kept after each click (and when you switch away or close the page) so it comes back next time: its cells (`state`), the run so far for GameHub (`run`, see below) and the timer's time. It's taken out when the board is won or lost, or you start another.
 It's kept in the browser, in `localStorage` under `minesweeperGameData`, and in your GameHub account when you play in GameHub signed in (see below).
 If the browser blocks storage (some do inside an iframe), the game still plays, but it doesn't remember anything.

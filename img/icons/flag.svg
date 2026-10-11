@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <!-- A flag: red, on a black pole with a stepped base -->
+    <rect x="6" y="2" width="2" height="1" fill="#ff0000"/>
+    <rect x="8" y="2" width="1" height="1" fill="#000000"/>
+    <rect x="4" y="3" width="4" height="1" fill="#ff0000"/>
+    <rect x="8" y="3" width="1" height="1" fill="#000000"/>
+    <rect x="2" y="4" width="6" height="1" fill="#ff0000"/>
+    <rect x="8" y="4" width="1" height="1" fill="#000000"/>
+    <rect x="4" y="5" width="4" height="1" fill="#ff0000"/>
+    <rect x="8" y="5" width="1" height="1" fill="#000000"/>
+    <rect x="6" y="6" width="2" height="1" fill="#ff0000"/>
+    <rect x="8" y="6" width="1" height="1" fill="#000000"/>
+    <rect x="8" y="7" width="1" height="1" fill="#000000"/>
+    <rect x="8" y="8" width="1" height="1" fill="#000000"/>
+    <rect x="8" y="9" width="1" height="1" fill="#000000"/>
+    <rect x="6" y="10" width="5" height="1" fill="#000000"/>
+    <rect x="4" y="11" width="9" height="1" fill="#000000"/>
+    <rect x="4" y="12" width="9" height="1" fill="#000000"/>
+</svg>

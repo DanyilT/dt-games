@@ -10,8 +10,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle mode when button is clicked
     toggleButton.addEventListener('click', function() {
         flagMode = !flagMode;
-        toggleButton.textContent = flagMode ? '🚩' : '🔍👀';
-        toggleButton.setAttribute('aria-pressed', String(flagMode));
+        toggleButton.setAttribute('aria-pressed', String(flagMode)); // Pressed in (css/page.css): a click flags
+        toggleButton.title = flagMode ? 'Flag mode is on (M): a click or a tap flags' : 'Flag mode (M): a click or a tap flags';
     });
 
     // Modify cell click behavior based on current mode
@@ -125,54 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 if (!e.repeat) activateCell(e.shiftKey); // Held down: act once (the arrows keep repeating)
                 break;
-        }
-    });
-
-    // Touch controls
-    // Add notification for contextmenu events on cells
-    document.addEventListener('contextmenu', function(e) {
-        if (!('ontouchstart' in window)) return; // Only handle contextmenu on touch devices
-        e.preventDefault(); // Prevent default context menu
-
-        // Check if the clicked element is a cell
-        if (e.target.classList.contains('cell')) {
-            const row = parseInt(e.target.dataset.row);
-            const col = parseInt(e.target.dataset.col);
-
-            // Only show notification if the cell is not already revealed and game is not over
-            if (!gameOver && !board[row][col].isRevealed) {
-                // Determine if this action will flag or unflag
-                const action = board[row][col].isFlagged ? 'flagged' : 'unflagged';
-
-                // Create notification
-                const notification = document.createElement('div');
-                notification.textContent = `${action}`;
-                notification.style.position = 'absolute';
-                const rect = e.target.getBoundingClientRect();
-                notification.style.top = `${rect.top}px`;
-                notification.style.left = `${rect.left + rect.width / 2}px`;
-                notification.style.transform = 'translateX(-50%)';
-                notification.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
-                notification.style.color = 'white';
-                notification.style.padding = '10px 15px';
-                notification.style.border = '1px solid white';
-                notification.style.zIndex = '1000';
-                notification.style.transition = 'opacity 0.3s';
-                document.body.appendChild(notification);
-
-                // Remove notification after delay
-                setTimeout(() => {
-                    notification.style.opacity = '0';
-                    setTimeout(() => {
-                        document.body.removeChild(notification);
-                    }, 300);
-                }, 500);
-
-                // Vibrate on mobile (doesn't work)
-                if (navigator.vibrate) {
-                    navigator.vibrate(100);
-                }
-            }
         }
     });
 });

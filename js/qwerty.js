@@ -227,14 +227,23 @@ function activateQwertyEasterEgg(activate = 'all') {
             .cell[data-value="7"] { color: #ff00dd !important; text-shadow: 0 0 5px rgba(255, 0, 221, 0.7) !important; }
             .cell[data-value="8"] { color: #ffe600 !important; text-shadow: 0 0 5px rgba(255, 230, 0, 0.7) !important; }
 
-            .cell.mine::before {
-                content: "💣";
+            /* The mines and the flags keep their pictures (css/game.css), glowing */
+            .cell.mine {
                 filter: drop-shadow(0 0 2px #00e7ff) !important;
             }
 
-            .cell.flagged::before {
-                content: "🚩";
+            .cell.flagged {
                 filter: drop-shadow(0 0 2px #ff2377) !important;
+            }
+
+            /* The numbers in neon writing, not the classic pictures */
+            .cell[data-value] {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                background-image: none !important;
+                font-size: min(18px, 5vw) !important;
+                font-weight: bold !important;
             }
 
             @keyframes textFlicker {

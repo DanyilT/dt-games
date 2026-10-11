@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minesweeper Game</title>
+    <title>Minesweeper</title>
     <meta name="description" content="Test your logic and luck in this classic minesweeper game. Clear the board without hitting any mines.">
     <meta name="theme-color" content="#008080">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="DanyilT Games">
-    <meta property="og:title" content="Minesweeper Game">
+    <meta property="og:title" content="Minesweeper">
     <meta property="og:description" content="Test your logic and luck in this classic minesweeper game. Clear the board without hitting any mines.">
     <meta property="og:url" content="https://minesweeper.dt-games.pages.dev/">
     <meta property="og:image" content="https://minesweeper.dt-games.pages.dev/img/desktop-screenshot.png">
     <meta property="og:image:width" content="1440">
     <meta property="og:image:height" content="900">
-    <meta property="og:image:alt" content="Minesweeper Game: a Windows-style Minesweeper window on a teal desktop">
+    <meta property="og:image:alt" content="Minesweeper: a classic Windows Minesweeper window on a teal desktop">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" href="img/mine.png">
+    <link rel="icon" href="img/icons/mine.svg">
     <link rel="stylesheet" href="css/page.css">
     <link rel="stylesheet" href="css/game.css">
     <!-- GameHub support, before the game's own scripts: saves, the frame view, and centring the play area -->
@@ -26,8 +26,8 @@
 <main class="game-container">
     <div class="window-title-bar">
         <div class="title">
-            <img src="img/icons/minesweeper-icon-2001.ico" alt="Minesweeper Icon">
-            <h1 style="all: unset;">Minesweeper Game</h1>
+            <img src="img/icons/mine.svg" alt="Minesweeper Icon">
+            <h1 style="all: unset;">Minesweeper</h1>
         </div>
         <div class="window-controls">
             <!-- Full screen on or off (js/buttons-handler.js) -->
@@ -59,13 +59,15 @@
                 </div>
             </div>
             <div class="controls">
-                <button id="mode-toggle" title="Click to toggle between reveal and flag mode" aria-label="Flag mode" aria-pressed="false">🔍</button>
+                <!-- Flag mode: pressed in, a click or a tap flags instead of opening (js/extend-controls.js) -->
+                <button id="mode-toggle" title="Flag mode (M): a click or a tap flags" aria-label="Flag mode" aria-pressed="false"></button>
             </div>
         </div>
         <div class="header">
-            <div class="mine-counter" role="status" aria-label="Mines left">000</div>
-            <button id="reset-button" aria-label="New game">😊</button>
-            <div class="timer" role="timer" aria-label="Time">000</div>
+            <!-- The counter and the timer show red LED digits, and the face how the game is going (js/minesweeper.js) -->
+            <div class="mine-counter" role="status" aria-label="Mines left"></div>
+            <button id="reset-button" aria-label="New game" data-face="smile"></button>
+            <div class="timer" role="timer" aria-label="Time"></div>
         </div>
         <div id="game-board" data-play-area aria-label="The board"></div>
     </div>
@@ -83,7 +85,7 @@
     <p>• Click on a revealed cell to quickly reveal surrounding cells (if correctly flagged)</p>
     <hr>
     <h3>Touch & Toggle Mode:</h3>
-    <p>• Use the 🔍/🚩 toggle button to switch between <b>reveal</b> and <b>flag modes</b></p>
+    <p>• Use the flag button (next to Help) to switch between <b>reveal</b> and <b>flag modes</b></p>
     <hr>
     <h3>Keyboard Controls:</h3>
     <p>• <b>Arrow keys</b> to move selection</p>
@@ -101,8 +103,8 @@
     <p>• Use flags to mark where you think mines are located</p>
     <p>• The counter at the top shows the number of mines minus the number of flags</p>
 </div>
-<footer style="display: none">&copy; Dany | MinesweeperGame | 2025-2026 <hr> <a href="https://github.com/DanyilT/dt-games/tree/minesweeper" target="_blank" rel="noopener">source code</a></footer>
-<!-- Minesweeper Game Code -->
+<footer style="display: none">&copy; Dany | Minesweeper | 2025-2026 <hr> <a href="https://github.com/DanyilT/dt-games/tree/minesweeper" target="_blank" rel="noopener">source code</a></footer>
+<!-- Minesweeper Code -->
 <script src="js/storage.js"></script>
 <script src="js/rules.js"></script>
 <script src="js/minesweeper.js"></script>

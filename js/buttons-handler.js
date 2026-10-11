@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // A Windows 9x style dialog, with a title bar and an OK button
     function createModal(id, title, content) {
-        const iconPath = 'img/icons/minesweeper-icon-1995.ico';
+        const iconPath = 'img/icons/mine.svg';
 
         // A <dialog>, shown with showModal() (its title names it; × is for the mouse, as OK and Escape close it too)
         const modal = document.createElement('dialog');
@@ -193,10 +193,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Clear previous content
             option.innerHTML = level.charAt(0).toUpperCase() + level.slice(1);
 
-            // Add win indicator if level has been won
+            // Add win indicator if level has been won: a star and the count (css/page.css)
             if (winLevels[level] > 0) {
                 const winBadge = document.createElement('span');
-                winBadge.innerHTML = ` (${winLevels[level]} ⭐)`;
+                winBadge.textContent = winLevels[level];
+                winBadge.setAttribute('aria-label', `${winLevels[level]} ${winLevels[level] === 1 ? 'win' : 'wins'}`);
                 winBadge.classList.add('win-badge');
                 option.appendChild(winBadge);
             }
@@ -258,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
             GameHub.fullScreen(false);
             return;
         }
-        if(confirm('Are you sure you want to exit Minesweeper Game?')) {
+        if(confirm('Are you sure you want to exit Minesweeper?')) {
             window.close();
         }
     });

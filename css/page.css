@@ -42,9 +42,20 @@ body {
     overflow: hidden;
 }
 
-/* Windows 9x title bar */
+/* What's there for screen readers only: the counters' numbers (js/minesweeper.js showLed()) */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* Windows 98 title bar: navy fading to blue */
 .window-title-bar {
     background-color: #000080; /* Windows blue */
+    background-image: linear-gradient(90deg, #000080, #1084d0);
     color: white;
     padding: 5px 6px;
     font-weight: bold;
@@ -71,20 +82,36 @@ body {
     .window-controls {
         display: flex;
 
+        /* Raised, with a pixel glyph (img/icons/window-*.svg): the _ □ × in the markup is for reading only */
         .window-button {
+            box-sizing: border-box;
             width: 18px;
             height: 16px;
-            background-color: #c0c0c0;
-            border: 1px outset white;
+            background: #c0c0c0 center / 8px 7px no-repeat;
+            border: 1px solid;
+            border-color: #fff #000 #000 #fff;
+            box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf;
             margin-left: 2px;
-            font-size: 9px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-size: 0;
         }
 
-        .window-button:first-child, .window-button:last-child {
-            color: black;
+        .window-button:active:not([aria-disabled="true"]) {
+            border-color: #000 #fff #fff #000;
+            box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf;
+            background-position: calc(50% + 1px) calc(50% + 1px);
+        }
+
+        .window-button.minimize {
+            background-image: url("../img/icons/window-minimize.svg");
+        }
+
+        .window-button.maximize {
+            background-image: url("../img/icons/window-maximize.svg");
+        }
+
+        .window-button.close {
+            margin-left: 4px; /* Close stands a little apart, as on Windows */
+            background-image: url("../img/icons/window-close.svg");
         }
 
         .window-button:hover:not([aria-disabled="true"]) {
@@ -155,11 +182,20 @@ body {
             padding: 4px 14px;
             font-size: 12px;
 
+            /* The wins on a level: a star and the count */
             .win-badge {
-                color: gold;
-                font-size: inherit;
+                display: inline-flex;
+                align-items: center;
+                gap: 3px;
+                margin-left: 6px;
                 font-weight: bold;
-                display: flex;
+            }
+
+            .win-badge::before {
+                content: '';
+                width: 11px;
+                height: 11px;
+                background: url("../img/icons/star.svg") center / contain no-repeat;
             }
         }
 
@@ -187,17 +223,25 @@ body {
     margin-left: 8px;
     padding: 1px 8px;
 
+    /* The flag mode switch: a flag on a raised button, pressed in while flag mode is on */
     #mode-toggle {
-        width: 32px;
-        height: 18px;
-        font-size: 10px;
-        background-color: #c0c0c0;
-        border: 2px outset white;
+        box-sizing: border-box;
+        width: 28px;
+        height: 20px;
+        background: #c0c0c0 url("../img/icons/flag.svg") center / 16px 16px no-repeat;
+        border: 2px solid;
+        border-color: #fff #808080 #808080 #fff;
         cursor: pointer;
     }
 
+    #mode-toggle[aria-pressed="true"] {
+        background-color: #dcdcdc;
+        border-color: #808080 #fff #fff #808080;
+        background-position: calc(50% + 1px) calc(50% + 1px);
+    }
+
     #mode-toggle:active {
-        border: 2px inset #d4d0c8;
+        border-color: #808080 #fff #fff #808080;
     }
 }
 

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <!-- The bird alone, in the game's colours (js/flappy-bird.js, COLORS) -->
+    <g stroke="#543847" stroke-width="3">
+        <ellipse cx="45" cy="52" rx="34" ry="26" fill="#f7d51d"/>
+        <circle cx="61" cy="43" r="12" fill="#fff"/>
+        <rect x="58" y="56" width="30" height="10" rx="4" fill="#f75a1d"/>
+        <rect x="56" y="65" width="26" height="10" rx="4" fill="#e8402a"/>
+        <ellipse cx="25" cy="52" rx="17" ry="10" fill="#fff7d6"/>
+    </g>
+    <rect x="63" y="38" width="6" height="10" fill="#000"/>
+</svg>

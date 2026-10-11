@@ -1,0 +1,21 @@
+/* The game itself: its canvas */
+
+/* The canvas's text font (js/flappy-bird.js loads it, so it's there for the canvas) */
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans&display=swap');
+
+canvas {
+    display: block;
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+    aspect-ratio: 288 / 512;
+    margin: 0 auto;
+    border: 3px solid #543847;
+    border-radius: 6px;
+    background-color: #4ec0ca;
+    touch-action: none; /* A tap is a flap: no scroll or zoom */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+}

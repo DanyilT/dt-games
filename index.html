@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird</title>
+    <meta name="description" content="Flap through the gaps between the pipes, as far as you can: the classic one-button game, in the original's style.">
+    <meta name="theme-color" content="#4ec0ca">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DanyilT Games">
+    <meta property="og:title" content="Flappy Bird">
+    <meta property="og:description" content="Flap through the gaps between the pipes, as far as you can: the classic one-button game, in the original's style.">
+    <meta property="og:url" content="https://flappy-bird.dt-games.pages.dev/">
+    <meta property="og:image" content="https://flappy-bird.dt-games.pages.dev/img/desktop-screenshot.png">
+    <meta property="og:image:width" content="1440">
+    <meta property="og:image:height" content="900">
+    <meta property="og:image:alt" content="Flappy Bird: the bird between green pipes, over the city, on a computer">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="img/icon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="img/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+    <link rel="stylesheet" href="css/page.css">
+    <link rel="stylesheet" href="css/game.css">
+    <!-- GameHub support, before the game's own scripts: saves, the frame view, and centring the play area -->
+    <script src="js/gamehub.js" data-game="flappy-bird"></script>
+</head>
+<body>
+<main class="game-container">
+    <h1>Flappy Bird</h1>
+    <canvas id="game" width="576" height="1024" data-play-area role="img" aria-label="The Flappy Bird game: press Space or tap to flap"></canvas>
+    <div class="score-container">
+        <p>Score: <span id="score">0</span></p>
+        <p>Best: <span id="highScore">0</span></p>
+    </div>
+    <div class="controls">
+        <button id="restartBtn">Restart (r)</button>
+        <button id="pauseBtn">Pause (p)</button>
+        <button id="soundBtn" aria-pressed="true">Sound: On (m)</button>
+        <button id="showInstructionsBtn">Show Instructions (i)</button>
+    </div>
+    <aside class="instructions">
+        <h2>How to Play:</h2>
+        <p>Press Space (or ↑, or W), click or tap to flap: each flap lifts the bird, and it falls in between.</p>
+        <p>Fly through the gaps between the pipes. Each pipe you pass is a point.</p>
+        <p>Don't touch a pipe or the ground!</p>
+        <p>Medals: bronze from 10 points, silver from 20, gold from 30, platinum from 40.</p>
+        <hr>
+        <p>Press "P" or "Esc" (or the button at the top left of the game) to pause.</p>
+        <p>Press "R" to go back to Get Ready, and "M" to turn the sound on or off.</p>
+    </aside>
+    <!-- JavaScript for this page -->
+    <script src="js/buttons-handler.js"></script>
+    <script src="js/extend-controls.js"></script>
+</main>
+<footer style="display: none">&copy; Dany | FlappyBird | 2026 <hr> <a href="https://github.com/DanyilT/dt-games/tree/flappy-bird">source code</a></footer>
+<!-- Flappy Bird Code -->
+<script src="js/storage.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/flappy-bird.js"></script>
+<!-- Very important script -->
+<script src="js/qwerty.js"></script>
+</body>
+</html>

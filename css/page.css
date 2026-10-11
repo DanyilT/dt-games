@@ -1,0 +1,114 @@
+/* The page around the game: the layout, the title, the score, the buttons and the instructions (and GameHub's frame
+   view) */
+
+body {
+    font-family: 'Pixelify Sans', Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #70c5ce;
+    color: #543847;
+}
+
+.game-container {
+    text-align: center;
+    padding: 10px;
+}
+
+h1 {
+    margin: 0.4em 0;
+    color: #fff;
+    font-size: 2.2em;
+    letter-spacing: 1px;
+    text-shadow: 3px 3px 0 #543847, -1px -1px 0 #543847, 1px -1px 0 #543847, -1px 1px 0 #543847;
+}
+
+.score-container {
+    display: flex;
+    justify-content: space-between;
+    max-width: 360px;
+    margin: 1em auto;
+    font-size: 1.1em;
+}
+
+.score-container p {
+    margin: 0;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.8em;
+    max-width: 380px;
+    margin: 0 auto;
+}
+
+button {
+    padding: 0.6em 0.9em;
+    font-family: inherit;
+    font-size: 1em;
+    color: #543847;
+    background-color: #ded895;
+    border: 2px solid #543847;
+    border-radius: 6px;
+    box-shadow: 0 3px 0 #543847;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #f5f0c4;
+}
+
+button:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #543847;
+}
+
+.instructions {
+    max-width: 360px;
+    margin: 20px auto;
+    padding: 1em;
+    text-align: left;
+    font-size: 0.9em;
+    background-color: #ded895;
+    border: 2px solid #543847;
+    border-radius: 6px;
+}
+
+.instructions h2 {
+    margin-top: 0;
+    font-size: 1.2em;
+}
+
+/* The Easter egg (js/qwerty.js): the page at night too, its writing light */
+.qwerty body {
+    background-color: #00525a;
+    color: #eafaf3;
+}
+
+/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the canvas only, as big as the frame allows (in
+   the frame, vw and vh are the frame's), in the middle, on the sky's colour; the frame's sizes in GameHub's games table
+   decide how big. A click or a tap on it flaps, and the pause button is on it. */
+[data-gamehub-view="frame"] body {
+    min-height: 100vh;
+    background-color: #4ec0ca;
+}
+
+[data-gamehub-view="frame"] .game-container {
+    padding: 0;
+}
+
+[data-gamehub-view="frame"] .game-container > :not(canvas) {
+    display: none;
+}
+
+[data-gamehub-view="frame"] canvas {
+    box-sizing: border-box;
+    width: min(100vw, calc(100vh * 288 / 512));
+    max-width: none;
+    border: none;
+    border-radius: 0;
+}

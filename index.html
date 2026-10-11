@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <meta name="description" content="Noughts and crosses against a minimax bot, drawn in pencil on notebook paper. Three levels; on Hard, a draw is the best you can do.">
+    <meta name="theme-color" content="#e9e4d8">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DanyilT Games">
+    <meta property="og:title" content="Tic-Tac-Toe">
+    <meta property="og:description" content="Noughts and crosses against a minimax bot, drawn in pencil on notebook paper. Three levels; on Hard, a draw is the best you can do.">
+    <meta property="og:url" content="https://tic-tac-toe.dt-games.pages.dev/">
+    <meta property="og:image" content="https://tic-tac-toe.dt-games.pages.dev/img/desktop-screenshot.png">
+    <meta property="og:image:width" content="1440">
+    <meta property="og:image:height" content="900">
+    <meta property="og:image:alt" content="Tic-Tac-Toe: a game in pencil on a sheet of notebook paper, on a computer">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="img/icon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="img/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+    <link rel="stylesheet" href="css/page.css">
+    <link rel="stylesheet" href="css/game.css">
+    <!-- GameHub support, before the game's own scripts: saves, the frame view, and centring the play area -->
+    <script src="js/gamehub.js" data-game="tic-tac-toe"></script>
+</head>
+<body>
+<main class="sheet">
+    <h1>Tic-Tac-Toe</h1>
+    <fieldset class="levels">
+        <legend>Level:</legend>
+        <label><input type="radio" name="level" value="easy"><span>Easy</span></label>
+        <label><input type="radio" name="level" value="medium"><span>Medium</span></label>
+        <label><input type="radio" name="level" value="hard"><span>Hard</span></label>
+    </fieldset>
+    <div class="score">
+        <p>You (<span id="your-mark">X</span>): <b id="your-points">0</b></p>
+        <p id="round">Round 1 of 5</p>
+        <p>Bot (<span id="bot-mark">O</span>): <b id="bot-points">0</b></p>
+    </div>
+    <ol class="rounds" aria-label="The rounds">
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+    </ol>
+    <div class="board" data-play-area>
+        <!-- The pencil drawings (js/tic-tac-toe.js): the grid, the marks, and the line through three in a row -->
+        <svg id="drawing" viewBox="0 0 300 300" aria-hidden="true">
+            <defs>
+                <!-- A pencil's grain: the strokes' edges roughened a little -->
+                <filter id="pencil" x="-5%" y="-5%" width="110%" height="110%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="grain"/>
+                    <feDisplacementMap in="SourceGraphic" in2="grain" scale="2.4"/>
+                </filter>
+            </defs>
+            <g filter="url(#pencil)">
+                <g class="grid"></g>
+                <g class="marks"></g>
+            </g>
+        </svg>
+        <div class="cells" role="group" aria-label="The board">
+            <button class="cell" type="button" aria-label="Row 1, column 1: empty"></button>
+            <button class="cell" type="button" aria-label="Row 1, column 2: empty"></button>
+            <button class="cell" type="button" aria-label="Row 1, column 3: empty"></button>
+            <button class="cell" type="button" aria-label="Row 2, column 1: empty"></button>
+            <button class="cell" type="button" aria-label="Row 2, column 2: empty"></button>
+            <button class="cell" type="button" aria-label="Row 2, column 3: empty"></button>
+            <button class="cell" type="button" aria-label="Row 3, column 1: empty"></button>
+            <button class="cell" type="button" aria-label="Row 3, column 2: empty"></button>
+            <button class="cell" type="button" aria-label="Row 3, column 3: empty"></button>
+        </div>
+    </div>
+    <p id="status" role="status">Loading…</p>
+    <div class="controls">
+        <button id="new-match" type="button">New match (n)</button>
+        <button id="instructions-button" type="button">Instructions (i)</button>
+    </div>
+    <aside class="instructions">
+        <h2>How to Play:</h2>
+        <p>Get three of your marks in a row (across, down or corner to corner) before the bot does.</p>
+        <p>A match is 5 rounds. X always goes first: you're X in rounds 1, 3 and 5, and O in rounds 2 and 4.</p>
+        <p>A round won is 2 points, a draw 1. Most points after 5 rounds wins the match.</p>
+        <p>Easy and Medium slip up now and then. Hard never does: a draw is the best you can get there.</p>
+        <hr>
+        <p>Click or tap a square, or press 1 to 9 (1 is the top left, 9 the bottom right). The arrow keys move between the squares, and Enter plays one.</p>
+        <p>Press "N" for a new match, and "E", "M" or "H" for the level.</p>
+    </aside>
+    <!-- JavaScript for this page -->
+    <script src="js/buttons-handler.js"></script>
+    <script src="js/extend-controls.js"></script>
+</main>
+<footer style="display: none">&copy; Dany | TicTacToe | 2026 <hr> <a href="https://github.com/DanyilT/dt-games/tree/tic-tac-toe">source code</a></footer>
+<!-- Tic-Tac-Toe Game Code -->
+<script src="js/storage.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/tic-tac-toe.js"></script>
+<!-- Very important script -->
+<script src="js/qwerty.js"></script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+/* The page around the game: the desk, the sheet of notebook paper and its handwriting, the level, the score, the
+   buttons and the instructions (and GameHub's frame view) */
+
+/* The handwriting */
+@import url('https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap');
+
+:root {
+    --desk: #e9e4d8;
+    --paper: #fffdf6;
+    --rule: #c3d7ea; /* The ruled lines */
+    --margin: #eaa5a5; /* The red margin line */
+    --pencil: #3f3f42;
+    --line: 32px; /* From one ruled line to the next: the text sits on them */
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    margin: 0;
+    padding: 24px 12px;
+    background-color: var(--desk);
+    color: var(--pencil);
+    font-family: 'Gochi Hand', 'Comic Sans MS', cursive;
+    font-size: 20px;
+    line-height: var(--line);
+}
+
+/* The sheet: ruled in blue, a red margin, three punched holes, a little shadow on the desk */
+.sheet {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    padding: var(--line) 24px var(--line) 64px;
+    background-color: var(--paper);
+    background-image:
+        linear-gradient(90deg, transparent 46px, var(--margin) 46px, var(--margin) 48px, transparent 48px),
+        repeating-linear-gradient(transparent 0, transparent calc(var(--line) - 1px), var(--rule) calc(var(--line) - 1px), var(--rule) var(--line));
+    border-radius: 3px 3px 6px 6px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.sheet::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 14px;
+    width: 18px;
+    background:
+        radial-gradient(circle, var(--desk) 7px, rgba(0, 0, 0, 0.1) 8px, transparent 9px) 0 18% / 18px 18px no-repeat,
+        radial-gradient(circle, var(--desk) 7px, rgba(0, 0, 0, 0.1) 8px, transparent 9px) 0 50% / 18px 18px no-repeat,
+        radial-gradient(circle, var(--desk) 7px, rgba(0, 0, 0, 0.1) 8px, transparent 9px) 0 82% / 18px 18px no-repeat;
+}
+
+h1 {
+    margin: 0 0 calc(var(--line) / 2);
+    font-size: 2.3em;
+    font-weight: normal;
+    line-height: calc(var(--line) * 2);
+    text-decoration: underline wavy rgba(63, 63, 66, 0.55) 1.5px;
+    text-underline-offset: 8px;
+}
+
+/* The level: the one picked is circled */
+.levels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.4em;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.levels legend {
+    float: left;
+    margin-right: 0.3em;
+    padding: 0;
+}
+
+.levels label {
+    position: relative;
+    cursor: pointer;
+}
+
+.levels input {
+    position: absolute;
+    opacity: 0;
+}
+
+.levels span {
+    padding: 0 0.45em;
+    border: 2px solid transparent;
+}
+
+.levels input:checked + span {
+    border-color: var(--pencil);
+    border-radius: 52% 48% 55% 45% / 60% 52% 48% 40%; /* A ring drawn round the word: uneven, like a hand's */
+}
+
+.levels input:focus-visible + span {
+    outline: 2px dashed #7c9cc4;
+    outline-offset: 2px;
+}
+
+/* The score: each side's points and mark, and the round */
+.score {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0 1em;
+}
+
+.score p {
+    margin: 0;
+}
+
+/* Each round's result, in a little box: W, D or L */
+.rounds {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rounds li {
+    width: 34px;
+    height: 26px;
+    margin-top: 3px;
+    line-height: 24px;
+    text-align: center;
+    border: 2px solid rgba(63, 63, 66, 0.6);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+}
+
+.rounds li.won {
+    border-color: var(--pencil);
+    font-weight: bold;
+}
+
+/* What's going on, under the board */
+#status {
+    min-height: calc(var(--line) * 2);
+    margin: 0;
+    text-align: center;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6em;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+}
+
+.controls button {
+    padding: 0 0.8em;
+    line-height: calc(var(--line) - 4px);
+    background-color: transparent;
+    border: 2px solid var(--pencil);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    cursor: pointer;
+}
+
+.controls button:hover {
+    background-color: rgba(63, 63, 66, 0.06);
+}
+
+.instructions {
+    margin-top: var(--line);
+    font-size: 0.85em;
+}
+
+.instructions h2 {
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: normal;
+    text-decoration: underline;
+}
+
+.instructions p {
+    margin: 0;
+}
+
+.instructions hr {
+    border: none;
+    border-top: 1.5px dashed rgba(63, 63, 66, 0.5);
+}
+
+/* A phone: a narrower margin, and a little smaller writing, so the board has the room */
+@media (max-width: 420px) {
+    body {
+        padding: 12px 8px;
+        font-size: 18px;
+    }
+
+    .sheet {
+        padding: var(--line) 14px var(--line) 52px;
+        background-image:
+            linear-gradient(90deg, transparent 36px, var(--margin) 36px, var(--margin) 38px, transparent 38px),
+            repeating-linear-gradient(transparent 0, transparent calc(var(--line) - 1px), var(--rule) calc(var(--line) - 1px), var(--rule) var(--line));
+    }
+
+    .sheet::before {
+        left: 8px;
+    }
+}
+
+/* The Easter egg (js/qwerty.js): crayons, on squared paper */
+.crayons {
+    --x: #d94a3d;
+    --o: #2f6fd1;
+    --grid: #3d9a4f;
+    --strike: #e3a21a;
+}
+
+.crayons .sheet {
+    background-image:
+        repeating-linear-gradient(90deg, transparent 0, transparent 15px, #d6e4f0 15px, #d6e4f0 16px),
+        repeating-linear-gradient(transparent 0, transparent 15px, #d6e4f0 15px, #d6e4f0 16px);
+}
+
+/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the level, the score, the board, what's going
+   on and New match, with no title or instructions, on a sheet exactly as tall as the frame (in the frame, vw and vh are
+   the frame's). The board takes whatever room the rest leaves, as the biggest square that fits, so everything fits a
+   frame of any size; in a frame much wider than tall, the sheet keeps a page's shape, in the middle of the desk. */
+[data-gamehub-view="frame"] body {
+    padding: 0;
+    font-size: 18px;
+}
+
+[data-gamehub-view="frame"] .sheet {
+    display: flex;
+    flex-direction: column;
+    width: min(100%, calc(100vh * 0.9));
+    max-width: none;
+    height: 100vh;
+    padding: 4px 12px 8px 52px;
+    border-radius: 0;
+    box-shadow: none;
+    background-image:
+        linear-gradient(90deg, transparent 36px, var(--margin) 36px, var(--margin) 38px, transparent 38px),
+        repeating-linear-gradient(transparent 0, transparent calc(var(--line) - 1px), var(--rule) calc(var(--line) - 1px), var(--rule) var(--line));
+}
+
+[data-gamehub-view="frame"] .sheet::before {
+    left: 8px;
+}
+
+[data-gamehub-view="frame"] h1,
+[data-gamehub-view="frame"] .instructions,
+[data-gamehub-view="frame"] #instructions-button {
+    display: none;
+}
+
+/* Everything at its own height, but the board: it gets the rest */
+[data-gamehub-view="frame"] .sheet > * {
+    flex: none;
+}
+
+[data-gamehub-view="frame"] .board {
+    flex: 1 1 0;
+    width: 100%;
+    min-height: 0;
+    margin: 4px 0;
+    aspect-ratio: auto;
+    container-type: size; /* The drawing and its squares (below) are sized by the board's room */
+}
+
+/* The drawing and its squares: the biggest square the board's room holds, in its middle */
+[data-gamehub-view="frame"] #drawing,
+[data-gamehub-view="frame"] .cells {
+    width: min(100cqw, 100cqh);
+    height: min(100cqw, 100cqh);
+    margin: auto;
+}

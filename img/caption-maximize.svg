@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 10">
+    <!-- Windows 7's Maximize glyph: a white window with a thick top, and a dark edge -->
+    <path d="M1.5 1h9v8h-9z M3.5 3.6v3.6h5V3.6z" fill="#fff" fill-rule="evenodd" stroke="#283c5a" stroke-width="0.9" stroke-linejoin="round"/>
+</svg>

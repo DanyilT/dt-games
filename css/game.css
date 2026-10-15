@@ -1,0 +1,163 @@
+/* The game itself: the felt table, its piles and cards, the cards being dragged, picked or hinted at, and the win's
+   bouncing cards, in the style of Windows 7. Where everything goes is worked out in js/solitaire.js (layout()): it sets
+   the cards' size (--card-w, --card-h) and each pile's and card's place. */
+
+/* The table: felt, lighter in the middle, with a fine grain (Change Appearance: the background's colour) */
+#table {
+    --felt-light: #4aa75a;
+    --felt: #2a7f3e;
+    --felt-dark: #0f4f22;
+    --card-w: 71px;
+    --card-h: 96px;
+    position: relative;
+    overflow: hidden;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse at 50% 38%, var(--felt-light) 0%, var(--felt) 45%, var(--felt-dark) 100%);
+    border: 1px solid #44546d;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+    touch-action: none; /* A finger drags the cards, it doesn't scroll the page */
+}
+
+#table[data-background="blue"] { --felt-light: #4c8fdc; --felt: #23609f; --felt-dark: #0b2f5c; }
+#table[data-background="red"] { --felt-light: #c9483e; --felt: #922a24; --felt-dark: #4e100c; }
+#table[data-background="purple"] { --felt-light: #9a68cc; --felt: #683d98; --felt-dark: #2f1550; }
+
+/* A pile: where its cards go, and what the keyboard moves between. Empty, it's a faint rounded slot. */
+.pile {
+    position: absolute;
+    left: 0;
+    top: 0;
+    box-sizing: border-box;
+    width: var(--card-w);
+    height: var(--card-h);
+    border-radius: calc(var(--card-w) * 0.07);
+}
+
+.pile:focus {
+    outline: none;
+}
+
+.pile.empty {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.25);
+}
+
+/* The empty stock: an arrow to turn the waste over again, or a cross when no passes are left (Vegas) */
+.pile.stock.empty {
+    background: rgba(255, 255, 255, 0.1) center / 100% 100% no-repeat url("../img/stock-again.svg");
+}
+
+.pile.stock.empty.done {
+    background-image: url("../img/stock-done.svg");
+}
+
+.pile.stock.empty.none {
+    background-image: none;
+}
+
+/* The keyboard's place: a glowing frame round the pile (a column: round all its cards) */
+.pile.cursor::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 2px solid #ffe36b;
+    border-radius: calc(var(--card-w) * 0.1);
+    box-shadow: 0 0 8px #ffe36b;
+    pointer-events: none;
+    z-index: 900;
+}
+
+/* A hint (Game › Hint): where a card can go glows for a moment */
+.pile.hint::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: calc(var(--card-w) * 0.1);
+    box-shadow: 0 0 0 2px #fff6a8, 0 0 14px 4px #ffd84a;
+    pointer-events: none;
+    z-index: 899;
+    animation: hint 1.4s ease-out forwards;
+}
+
+@keyframes hint {
+    0%, 60% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* The cards: each its picture from the card sheet (js/cards.js), with a soft shadow, placed by js/solitaire.js */
+#cards {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--card-w);
+    height: var(--card-h);
+    border-radius: calc(var(--card-w) * 0.07);
+    /* Its part of Windows 7's card sheet (js/cards.js), the sheet scaled so a card's 71 × 96 fill the card */
+    background: url("../img/HIGHLIGHTSHEET1.jpg") no-repeat;
+    background-size: calc(var(--card-w) * 1022 / 71) calc(var(--card-h) * 980 / 96);
+    box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.35);
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: none;
+}
+
+/* Display animations: a card glides to its place (a deal flies out from the stock, one card after another) */
+#table.animated .card {
+    transition: transform 0.18s ease-out;
+}
+
+#table.animated .card.dealing {
+    transition-duration: 0.3s;
+}
+
+.card.hidden {
+    visibility: hidden;
+}
+
+/* Picked (a click, or the keyboard): a blue glow round it */
+.card.picked {
+    box-shadow: 0 0 0 2px #3399ff, 0 0 10px 2px rgba(51, 153, 255, 0.9);
+}
+
+/* A hint's cards glow gold for a moment */
+.card.hint {
+    animation: card-hint 1.4s ease-out forwards;
+}
+
+@keyframes card-hint {
+    0%, 60% { box-shadow: 0 0 0 2px #fff6a8, 0 0 12px 3px #ffd84a; }
+    100% { box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.35); }
+}
+
+/* Being dragged: over everything, a deeper shadow, and it doesn't hide what's under the pointer from the drop */
+.card.dragging,
+#table.animated .card.dragging {
+    z-index: 1000;
+    pointer-events: none;
+    cursor: grabbing;
+    transition: none;
+    box-shadow: 3px 4px 8px rgba(0, 0, 0, 0.45);
+}
+
+/* The win: the cards bounce off the foundations, leaving trails (js/solitaire.js cascade()) */
+#cascade {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    z-index: 1050;
+    cursor: pointer;
+}
+
+#cascade.on {
+    display: block;
+}

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <!-- The two fanned cards of img/icon.svg, without the felt (the window's title bar) -->
+    <g transform="rotate(-14 50 50)">
+        <rect x="10" y="10" width="46" height="66" rx="5" fill="#fff" stroke="#555" stroke-width="2"/>
+        <path d="M33 62C25 55 17 49.5 17 41c0-6 4-9.5 8.7-9.5 3.6 0 6 2 7.3 5 1.3-3 3.7-5 7.3-5 4.7 0 8.7 3.5 8.7 9.5 0 8.5-8 14-16 21z" fill="#e00000"/>
+    </g>
+    <g transform="rotate(10 50 50)">
+        <rect x="44" y="20" width="46" height="66" rx="5" fill="#fff" stroke="#555" stroke-width="2"/>
+        <path d="M67 34c-8 8-16 13-16 21 0 5 3.6 8.6 8 8.6 3.4 0 5.8-1.7 7.2-4-.3 3.7-2 5.8-4.8 7.5h11.2c-2.8-1.7-4.5-3.8-4.8-7.5 1.4 2.3 3.8 4 7.2 4 4.4 0 8-3.6 8-8.6 0-8-8-13-16-21z" fill="#000"/>
+    </g>
+</svg>

@@ -1,0 +1,655 @@
+/* The page around the game, in the style of Windows 7: the window with its glass-like frame and caption buttons, the
+   menus, the status bar, the dialogs, and the instructions (and GameHub's frame view) */
+
+* {
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+}
+
+body {
+    background-color: #3a6ea5; /* Windows' solid blue desktop */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100dvh;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+/* The window: a light, bluish frame, rounded at every corner, as Windows 7 drew one. Its width follows the page (up to
+   640 px); the table fits it, and the page's height (js/solitaire.js layout()). */
+.game-container {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box; /* The width includes the frame */
+    width: min(100%, 640px);
+    padding: 0 7px 7px;
+    background: linear-gradient(180deg, #dce9f7 0, #c9dcf1 28px, #bcd2ec 100%);
+    border: 1px solid #5b6f8c;
+    border-radius: 7px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 6px 22px rgba(0, 0, 0, 0.55);
+}
+
+/* The window's content (the menus, the table, the status bar): set into the frame by a thin dark edge, with a light
+   line outside it, as Windows 7 separated the two */
+.game-area {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #6c84a6;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6);
+    background: #f0f0f0;
+}
+
+/* What's there for screen readers only: what just happened on the table */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/* The title bar: the icon and the name at the left, the caption buttons hanging from the top edge at the right */
+.window-title-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    min-height: 28px;
+    color: #000;
+    font-size: 12px;
+
+    .title,
+    .modal-title {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding-top: 7px;
+        text-shadow: 0 0 8px #fff, 0 0 3px #fff;
+    }
+
+    .title img {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* The caption buttons: glossy, minimize and maximize in light blue, close in red and wider */
+    .window-controls {
+        display: flex;
+        margin-right: -1px;
+        border: 1px solid #44546d;
+        border-top: none;
+        border-radius: 0 0 5px 5px;
+        overflow: hidden;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .window-button,
+    .modal-close {
+        display: block;
+        box-sizing: border-box;
+        width: 26px;
+        height: 19px;
+        border: none;
+        border-left: 1px solid #44546d;
+        background: center / 12px 10px no-repeat, linear-gradient(180deg, #e4edf8 0, #cddbee 45%, #b3c8e3 50%, #c4d8f0 100%);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+        cursor: pointer;
+    }
+
+    .window-button:first-child,
+    .modal-close {
+        border-left: none;
+    }
+
+    .window-button.minimize {
+        background-image: url("../img/caption-minimize.svg"), linear-gradient(180deg, #e4edf8 0, #cddbee 45%, #b3c8e3 50%, #c4d8f0 100%);
+    }
+
+    .window-button.maximize {
+        background-image: url("../img/caption-maximize.svg"), linear-gradient(180deg, #e4edf8 0, #cddbee 45%, #b3c8e3 50%, #c4d8f0 100%);
+    }
+
+    .window-button.close,
+    .modal-close {
+        width: 43px;
+        background-size: 11px 10px, auto;
+        background-image: url("../img/caption-close.svg"), linear-gradient(180deg, #eab1a4 0, #d88470 45%, #c4472f 50%, #d2765c 100%);
+    }
+
+    /* Lit under the mouse (only with a mouse: on a touch screen it would stay lit after a tap) */
+    @media (hover: hover) {
+        .window-button:hover:not([aria-disabled="true"]) {
+            background-image: var(--glyph), linear-gradient(180deg, #eef6fd 0, #bfdcf5 45%, #8cc1ec 50%, #b5daf7 100%);
+        }
+    }
+
+    .window-button.minimize { --glyph: url("../img/caption-minimize.svg"); }
+    .window-button.maximize { --glyph: url("../img/caption-maximize.svg"); }
+
+    @media (hover: hover) {
+        .window-button.close:hover:not([aria-disabled="true"]),
+        .modal-close:hover {
+            background-image: url("../img/caption-close.svg"), linear-gradient(180deg, #f6b9a8 0, #ee7d63 45%, #d6381c 50%, #ec6f4c 100%);
+        }
+    }
+
+    .window-button:active:not([aria-disabled="true"]),
+    .modal-close:active {
+        filter: brightness(0.85);
+    }
+
+    /* A button that can't do anything now (Minimize and Close outside full screen): its glyph greyed out, and the
+       pointer says no */
+    .window-button[aria-disabled="true"] {
+        cursor: not-allowed;
+    }
+
+    .window-button[aria-disabled="true"]::after {
+        content: '';
+        display: block;
+        height: 100%;
+        background: rgba(220, 230, 243, 0.6);
+    }
+
+    .window-button.close[aria-disabled="true"]::after {
+        background: rgba(214, 150, 135, 0.55);
+    }
+}
+
+/* The menu bar: at the top of the window's content, a name lights up in a rounded box when pointed at or open */
+.menu-bar {
+    display: flex;
+    gap: 2px;
+    padding: 2px 2px 3px;
+    font-size: 12px;
+    background: linear-gradient(180deg, #fbfcfe 0, #edf1f7 100%);
+    border-bottom: 1px solid #b9c6d8;
+
+    .menu-item {
+        position: relative;
+        cursor: default;
+    }
+
+    /* The whole name opens the menu: a click, a tap, or Enter (js/buttons-handler.js) */
+    .menu-title {
+        display: block;
+        padding: 2px 8px;
+        border: 1px solid transparent;
+        border-radius: 3px;
+    }
+
+    .menu-title:focus-visible {
+        outline: 1px dotted #000;
+        outline-offset: -3px;
+    }
+
+    .menu-item:hover .menu-title,
+    .menu-item.open .menu-title {
+        border-color: #7da2ce;
+        background: linear-gradient(180deg, #f6fafe 0, #dceafb 100%);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    }
+
+    .menu-item.open .menu-dropdown {
+        display: block;
+    }
+
+    /* A menu: light grey, a strip down the left for the icons Windows put there, and a soft shadow */
+    .menu-dropdown {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: calc(100% + 1px);
+        min-width: 210px;
+        padding: 2px;
+        background: linear-gradient(90deg, #f1f1f1 26px, #e2e3e3 26px, #e2e3e3 27px, #fff 27px, #fff 28px, #f0f0f0 28px);
+        border: 1px solid #979797;
+        box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        z-index: 1100; /* Over the cards being dragged, and the win's bouncing cards */
+        color: #000;
+
+        .menu-option {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 3px 12px 3px 32px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        /* A key that does the same, at the right, as Windows' menus showed it */
+        kbd {
+            font: inherit;
+        }
+
+        .menu-option:hover,
+        .menu-option:focus {
+            border-color: #aecff7;
+            background: linear-gradient(180deg, #f2f8fe 0, #dbebfd 100%);
+            outline: none;
+        }
+
+        /* Greyed out: nothing to undo (and the pointer says no) */
+        .menu-option[aria-disabled="true"] {
+            color: #8d8d8d;
+            cursor: not-allowed;
+        }
+
+        .menu-option[aria-disabled="true"]:hover,
+        .menu-option[aria-disabled="true"]:focus {
+            border-color: #d4d4d4;
+            background: #f5f5f5;
+        }
+
+        .menu-separator {
+            height: 1px;
+            margin: 3px 2px 3px 30px;
+            background: #e0e0e0;
+            box-shadow: 0 1px 0 #fff;
+        }
+    }
+}
+
+/* The status bar: at the bottom of the window's content, the time and the score at the right, each in its own panel */
+.status-bar {
+    display: flex;
+    justify-content: flex-end;
+    font-size: 12px;
+    background: linear-gradient(180deg, #f7f9fc 0, #e7edf5 100%);
+    border-top: 1px solid #a5b6cc;
+
+    span {
+        min-width: 90px;
+        padding: 2px 10px;
+        border-left: 1px solid #c6d1df;
+        box-shadow: inset 1px 0 0 #fff;
+        white-space: nowrap;
+    }
+
+    span:empty {
+        display: none;
+    }
+
+    /* A message at the left (There are no more moves) */
+    .tip {
+        margin-right: auto;
+        border-left: none;
+        box-shadow: none;
+    }
+}
+
+/* Dialogs: a <dialog> shown with showModal() (js/buttons-handler.js): a window like the game's, its title bar level with
+   the game's, over the page (which doesn't dim, as on Windows), and dragged by its title bar with a mouse */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    overflow: hidden;
+    z-index: 1000;
+
+    &[open] {
+        display: block;
+    }
+
+    &::backdrop {
+        background-color: transparent;
+    }
+
+    /* Where it opens until js/buttons-handler.js places it (level with the game's window, in its middle, and no taller:
+       its content scrolls) */
+    .modal-window {
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 16px);
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        translate: -50% 0;
+        box-sizing: border-box;
+        width: max-content;
+        min-width: min(280px, calc(100vw - 16px));
+        max-width: min(calc(100vw - 16px), 460px);
+        padding: 0 7px 7px;
+        font-size: 12px;
+        background: linear-gradient(180deg, #dce9f7 0, #c9dcf1 28px, #bcd2ec 100%);
+        border: 1px solid #5b6f8c;
+        border-radius: 7px;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 8px 26px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-window.placed {
+        translate: none;
+    }
+
+    .modal-window .window-title-bar {
+        cursor: default;
+    }
+
+    .modal-title-icon {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* The dialog's content: Windows' light grey, set into the frame by the same thin dark edge as the game's */
+    .modal-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 12px 14px;
+        font-size: 12px;
+        line-height: 1.45;
+        overflow-y: auto;
+        background: #f0f0f0;
+        border: 1px solid #6c84a6;
+        border-bottom: none;
+        border-radius: 3px 3px 0 0;
+        box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.6), -1px 0 0 rgba(255, 255, 255, 0.6), 1px 0 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .modal-content h2,
+    .modal-content h3 {
+        margin: 8px 0 3px;
+        font-size: 12px;
+        color: #1e3287; /* Windows 7's blue headings */
+    }
+
+    .modal-content h2 {
+        font-size: 14px;
+        font-weight: normal;
+    }
+
+    .modal-window > .window-title-bar,
+    .modal-buttons {
+        flex: none; /* only the content scrolls */
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 10px 12px;
+        background: #f0f0f0;
+        border: 1px solid #6c84a6;
+        border-top: 1px solid #dfdfdf;
+        border-radius: 0 0 3px 3px;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6), -1px 0 0 rgba(255, 255, 255, 0.6), 1px 0 0 rgba(255, 255, 255, 0.6);
+    }
+
+    /* Windows 7's buttons: glossy grey, light blue when pointed at; the one with the keyboard glows blue */
+    .modal-button {
+        min-width: 75px;
+        height: 23px;
+        padding: 0 10px;
+        font-size: 12px;
+        color: #000;
+        border: 1px solid #707070;
+        border-radius: 3px;
+        background: linear-gradient(180deg, #f2f2f2 0, #ebebeb 49%, #dddddd 50%, #cfcfcf 100%);
+        box-shadow: inset 0 0 0 1px #fcfcfc;
+        cursor: pointer;
+    }
+
+    @media (hover: hover) {
+        .modal-button:hover {
+            border-color: #3c7fb1;
+            background: linear-gradient(180deg, #eaf6fd 0, #d9f0fc 49%, #bee6fd 50%, #a7d9f5 100%);
+        }
+    }
+
+    .modal-button:active {
+        border-color: #2c628b;
+        background: linear-gradient(180deg, #e5f4fc 0, #c4e5f6 49%, #98d1ef 50%, #68b3db 100%);
+    }
+
+    .modal-button:focus-visible,
+    .modal-button:focus {
+        border-color: #3399ff;
+        box-shadow: inset 0 0 0 1px #8fdaff;
+        outline: none;
+    }
+
+    input[type="radio"],
+    input[type="checkbox"] {
+        accent-color: #2b78d0;
+    }
+}
+
+/* Options: the Draw and Scoring groups side by side, as in Windows 7, the boxes below */
+.options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+
+    fieldset {
+        border: 1px solid #d5dfe5;
+        border-radius: 3px;
+        box-shadow: inset 0 0 0 1px #fff;
+        padding: 4px 10px 8px;
+    }
+
+    legend {
+        padding: 0 3px;
+    }
+
+    label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 0;
+    }
+
+    .indent {
+        margin-left: 20px;
+    }
+
+    label:has(input:disabled) {
+        color: #8d8d8d;
+    }
+
+    .checks {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 12px;
+        padding: 0 4px;
+    }
+
+    .note {
+        grid-column: 1 / -1;
+        color: #555;
+    }
+}
+
+/* Change Appearance: the backs and the backgrounds to pick from, the one picked inside a blue frame */
+.appearance {
+    h3:first-child {
+        margin-top: 0;
+    }
+
+    .choices {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, 66px);
+        justify-content: center;
+        gap: 10px;
+        margin: 6px 0 10px;
+    }
+
+    button {
+        width: 60px;
+        height: 81px;
+        padding: 0;
+        border: 3px solid transparent;
+        border-radius: 7px;
+        background: center / 100% 100% no-repeat;
+        box-sizing: content-box;
+        cursor: pointer;
+    }
+
+    /* A card from Windows 7's card sheet (js/cards.js), the sheet scaled to the button */
+    .card-choice {
+        --choice-w: 60px;
+        --choice-h: 81px;
+        background: url("../img/HIGHLIGHTSHEET1.jpg") no-repeat;
+        background-size: calc(var(--choice-w) * 1022 / 71) calc(var(--choice-h) * 980 / 96);
+        background-origin: content-box;
+        background-clip: content-box; /* not under the frame round the one picked */
+    }
+
+    .backgrounds {
+        grid-template-columns: repeat(4, 50px);
+    }
+
+    .backgrounds button {
+        width: 44px;
+        height: 34px;
+        border-radius: 4px;
+    }
+
+    .backgrounds .felt-green { background-image: radial-gradient(ellipse at 50% 38%, #4aa75a, #2a7f3e 45%, #0f4f22); }
+    .backgrounds .felt-blue { background-image: radial-gradient(ellipse at 50% 38%, #4c8fdc, #23609f 45%, #0b2f5c); }
+    .backgrounds .felt-red { background-image: radial-gradient(ellipse at 50% 38%, #c9483e, #922a24 45%, #4e100c); }
+    .backgrounds .felt-purple { background-image: radial-gradient(ellipse at 50% 38%, #9a68cc, #683d98 45%, #2f1550); }
+
+    button[aria-checked="true"] {
+        border-color: #3399ff;
+        box-shadow: 0 0 0 1px #fff, 0 0 6px #3399ff;
+    }
+
+    button:focus-visible {
+        outline: 1px dotted #000;
+        outline-offset: 3px;
+    }
+}
+
+/* Statistics and the win: names and numbers in two columns */
+.statistics,
+.won {
+    min-width: min(260px, 70vw);
+
+    select {
+        margin-left: 6px;
+        font: inherit;
+    }
+
+    dl {
+        display: grid;
+        grid-template-columns: auto auto;
+        justify-content: space-between;
+        gap: 3px 24px;
+        margin-top: 10px;
+    }
+
+    dd {
+        text-align: right;
+    }
+
+    .headline {
+        font-size: 15px;
+        color: #1e3287;
+    }
+}
+
+/* The instructions are shown only in the Help dialog (js/buttons-handler.js copies them there): on the page they'd
+   stand beside the window */
+.instructions {
+    display: none;
+}
+
+.modal-content h3 {
+    margin-top: 10px;
+}
+
+.modal-content ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+/* The help's controls, lined up in a table with no lines: the mouse, the touch and the keys on the left, what they do
+   on the right */
+.keys {
+    border-collapse: collapse;
+}
+
+.keys th {
+    padding: 10px 0 3px;
+    color: #1e3287;
+    text-align: left;
+}
+
+.keys td {
+    padding: 2px 0;
+    vertical-align: baseline;
+}
+
+.keys td:first-child {
+    padding-right: 14px;
+    white-space: nowrap;
+}
+
+/* A key: a pale rounded key, as Windows 7's help drew them */
+.modal-content kbd {
+    display: inline-block;
+    min-width: 14px;
+    padding: 0 5px;
+    border: 1px solid #a7adb6;
+    border-radius: 3px;
+    background: linear-gradient(180deg, #ffffff 0, #e8ebef 100%);
+    box-shadow: 0 1px 0 #c9ced6;
+    font: 11px/16px 'Segoe UI', Tahoma, Arial, sans-serif;
+    text-align: center;
+}
+
+@media screen and (max-width: 400px) {
+    body {
+        padding: 4px;
+    }
+
+    .game-container {
+        padding: 0 4px 4px;
+    }
+
+    .options {
+        grid-template-columns: 1fr;
+    }
+
+    .options .checks {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the whole window, on the blue desktop, in the
+   middle of the frame */
+[data-gamehub-view="frame"] body {
+    padding: 6px;
+}
+
+/* The window can be moved by its title bar (a mouse only) */
+.modal-window.dragging .window-title-bar {
+    cursor: move;
+}
+
+[data-gamehub-view="frame"] .instructions {
+    display: none;
+}
+
+/* In GameHub's frame, Exit (and the line above it) isn't shown: the window's buttons take the game full screen and out */
+[data-gamehub-view="frame"] #exit-game,
+[data-gamehub-view="frame"] .menu-separator:has(+ #exit-game) {
+    display: none;
+}

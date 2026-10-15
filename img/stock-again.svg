@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 71 96">
+    <!-- The empty stock, to be turned over again: a circling arrow, faint on the table -->
+    <path d="M47 40a14 14 0 1 0 1.5 12" fill="none" stroke="#fff" stroke-opacity="0.75" stroke-width="5" stroke-linecap="round"/>
+    <path d="M41 33l9.5 6-8.5 7z" fill="#fff" fill-opacity="0.75"/>
+</svg>

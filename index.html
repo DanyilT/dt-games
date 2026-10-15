@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solitaire</title>
+    <meta name="description" content="Klondike solitaire as Windows 7 played it: the green table, Draw one or Draw three, Standard or Vegas scoring, hints and statistics, and the bouncing cards when you win.">
+    <meta name="theme-color" content="#3a6ea5">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DanyilT Games">
+    <meta property="og:title" content="Solitaire">
+    <meta property="og:description" content="Klondike solitaire as Windows 7 played it: the green table, Draw one or Draw three, Standard or Vegas scoring, hints and statistics, and the bouncing cards when you win.">
+    <meta property="og:url" content="https://solitaire.dt-games.pages.dev/">
+    <meta property="og:image" content="https://solitaire.dt-games.pages.dev/img/desktop-screenshot.png">
+    <meta property="og:image:width" content="1440">
+    <meta property="og:image:height" content="900">
+    <meta property="og:image:alt" content="Solitaire: a Windows 7 Solitaire window with its green table">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="img/icon.svg">
+    <link rel="icon" href="img/icon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+    <link rel="stylesheet" href="css/page.css">
+    <link rel="stylesheet" href="css/game.css">
+    <!-- GameHub support, before the game's own scripts: saves, the frame view, and centring the play area -->
+    <script src="js/gamehub.js" data-game="solitaire"></script>
+</head>
+<body>
+<main class="game-container">
+    <div class="window-title-bar">
+        <div class="title">
+            <img src="img/icon-no-bg.svg" alt="Solitaire Icon">
+            <h1 style="all: unset;">Solitaire</h1>
+        </div>
+        <div class="window-controls">
+            <!-- Full screen on or off (js/buttons-handler.js) -->
+            <div class="window-button minimize" role="button" tabindex="0" aria-label="Leave full screen"></div>
+            <div class="window-button maximize" role="button" tabindex="0" aria-label="Full screen on or off"></div>
+            <div class="window-button close" role="button" tabindex="0" aria-label="Leave full screen"></div>
+        </div>
+    </div>
+    <div class="game-area">
+        <div class="menu-bar">
+            <!-- The menus open by a click, a tap or the keyboard (js/buttons-handler.js) -->
+            <div class="menu-item">
+                <span class="menu-title" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-controls="game-menu">Game</span>
+                <div class="menu-dropdown" id="game-menu" role="menu" aria-label="Game">
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="new-game-button">New Game <kbd>F2</kbd></div>
+                    <div class="menu-separator" role="separator"></div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="undo-button" aria-disabled="true">Undo <kbd>Ctrl+Z</kbd></div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="hint-button">Hint <kbd>H</kbd></div>
+                    <div class="menu-separator" role="separator"></div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="statistics-button">Statistics <kbd>F4</kbd></div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="options-button">Options <kbd>O</kbd></div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="appearance-button">Change Appearance <kbd>C</kbd></div>
+                    <div class="menu-separator" role="separator"></div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="exit-game">Exit</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                <span class="menu-title" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-controls="help-menu">Help</span>
+                <div class="menu-dropdown" id="help-menu" role="menu" aria-label="Help">
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="instructions-button">View Help <kbd>I</kbd></div>
+                    <div class="menu-separator" role="separator"></div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="about-button">About Solitaire</div>
+                </div>
+            </div>
+        </div>
+        <!-- The table: the stock, the waste and the four foundations along the top, the seven columns below. Each pile
+             is a button for the keyboard and screen readers (it says what's on it); the cards are pictures over them
+             (js/solitaire.js, js/extend-controls.js). -->
+        <div id="table" data-play-area>
+            <div class="pile stock" data-pile="S" role="button" tabindex="0"></div>
+            <div class="pile waste" data-pile="W" role="button" tabindex="-1"></div>
+            <div class="pile foundation" data-pile="a" role="button" tabindex="-1"></div>
+            <div class="pile foundation" data-pile="b" role="button" tabindex="-1"></div>
+            <div class="pile foundation" data-pile="c" role="button" tabindex="-1"></div>
+            <div class="pile foundation" data-pile="d" role="button" tabindex="-1"></div>
+            <div class="pile column" data-pile="0" role="button" tabindex="-1"></div>
+            <div class="pile column" data-pile="1" role="button" tabindex="-1"></div>
+            <div class="pile column" data-pile="2" role="button" tabindex="-1"></div>
+            <div class="pile column" data-pile="3" role="button" tabindex="-1"></div>
+            <div class="pile column" data-pile="4" role="button" tabindex="-1"></div>
+            <div class="pile column" data-pile="5" role="button" tabindex="-1"></div>
+            <div class="pile column" data-pile="6" role="button" tabindex="-1"></div>
+            <div id="cards" aria-hidden="true"></div>
+            <!-- The win: the cards bounce off the foundations (js/solitaire.js cascade()) -->
+            <canvas id="cascade" aria-hidden="true"></canvas>
+        </div>
+        <!-- The time and the score, as Windows 7's status bar showed them -->
+        <div class="status-bar">
+            <span id="tip-panel" class="tip"></span>
+            <span id="time-panel"></span>
+            <span id="score-panel"></span>
+        </div>
+        <!-- What just happened, for screen readers -->
+        <div id="announce" class="sr-only" role="status" aria-live="polite"></div>
+    </div>
+    <!-- JavaScript for this page -->
+    <script src="js/buttons-handler.js"></script>
+    <script src="js/extend-controls.js"></script>
+</main>
+<div class="instructions">
+    <h2>How to play Solitaire</h2>
+    <p>Move all 52 cards onto the four foundations at the top right, each suit from the ace up to the king.</p>
+    <h3>The table</h3>
+    <ul>
+        <li>On the seven columns, build down in alternating colours: a red 6 on a black 7. You can move a whole run of face-up cards at once, and a face-down card left on top turns over by itself.</li>
+        <li>Only a king, or a run starting with one, goes into an empty column.</li>
+        <li>Click the stock (top left) to deal 1 card, or 3, onto the waste. When it's empty, click it to turn the waste over and go through again.</li>
+        <li>When there are no more useful moves, the game is lost.</li>
+    </ul>
+    <!-- The controls, lined up: the mouse, the touch and the keys on the left, what they do on the right -->
+    <table class="keys">
+        <tr><th colspan="2">Mouse and touch</th></tr>
+        <tr><td><b>Drag</b></td><td>Move a card (and the cards on it) to where it goes</td></tr>
+        <tr><td><b>Click</b></td><td>Pick a card up, then click where it goes</td></tr>
+        <tr><td><b>Double-click</b></td><td>Send a card to its foundation</td></tr>
+        <tr><td><b>Right-click</b></td><td>Send every card that can go to the foundations (or double-tap an empty spot)</td></tr>
+        <tr><th colspan="2">Keyboard</th></tr>
+        <tr><td><kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd></td><td>Move between the piles</td></tr>
+        <tr><td><kbd>Space</kbd> <kbd>Enter</kbd></td><td>Pick up, put down, or deal</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Put back; with nothing picked up, the Game menu</td></tr>
+        <tr><td><kbd>D</kbd></td><td>Deal from the stock</td></tr>
+        <tr><td><kbd>A</kbd></td><td>Send every card that can go to the foundations</td></tr>
+        <tr><td><kbd>H</kbd></td><td>Hint</td></tr>
+        <tr><td><kbd>U</kbd> or <kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td>Undo</td></tr>
+        <tr><td><kbd>F2</kbd> <kbd>N</kbd></td><td>New game</td></tr>
+        <tr><td><kbd>F4</kbd> <kbd>S</kbd></td><td>Statistics</td></tr>
+        <tr><td><kbd>O</kbd></td><td>Options</td></tr>
+        <tr><td><kbd>C</kbd></td><td>Change Appearance</td></tr>
+        <tr><td><kbd>I</kbd></td><td>This help</td></tr>
+    </table>
+    <h3>Scoring (Game › Options)</h3>
+    <ul>
+        <li><b>Standard:</b> 10 points for each card onto a foundation, 5 for a card from the waste onto a column or a card turned over, −15 for a card taken back off a foundation. Each new pass through the deck costs 100 with Draw one, and 20 after the third with Draw three. In a timed game you lose 2 points every 10 seconds, and a win that takes more than 30 seconds earns a bonus of 700,000 ÷ its seconds.</li>
+        <li><b>Vegas:</b> each game costs $52 and every card onto a foundation wins $5. One pass through the deck with Draw one, three with Draw three. With <b>Cumulative</b>, your dollars carry on from game to game.</li>
+        <li><b>No scoring:</b> just the time.</li>
+    </ul>
+</div>
+<footer style="display: none">&copy; Dany | Solitaire | 2026 | The cards are Windows 7's own (&copy; Microsoft). <hr> <a href="https://github.com/DanyilT/dt-games/tree/solitaire" target="_blank" rel="noopener">source code</a></footer>
+<!-- The Game menu's dialogs (js/buttons-handler.js) -->
+<dialog class="modal-overlay" id="options-dialog" aria-labelledby="options-dialog-title">
+    <form class="modal-window" method="dialog">
+        <div class="window-title-bar">
+            <div class="modal-title" id="options-dialog-title">Options</div>
+            <div class="window-controls"><button class="modal-close" value="cancel" aria-label="Close" formnovalidate></button></div>
+        </div>
+        <div class="modal-content options">
+            <fieldset>
+                <legend>Draw</legend>
+                <label><input type="radio" name="draw" value="1"> Draw one</label>
+                <label><input type="radio" name="draw" value="3"> Draw three</label>
+            </fieldset>
+            <fieldset>
+                <legend>Scoring</legend>
+                <label><input type="radio" name="scoring" value="none"> No scoring</label>
+                <label><input type="radio" name="scoring" value="standard"> Standard scoring</label>
+                <label><input type="radio" name="scoring" value="vegas"> Vegas scoring</label>
+                <label class="indent"><input type="checkbox" name="cumulative"> Cumulative</label>
+            </fieldset>
+            <div class="checks">
+                <label><input type="checkbox" name="animations"> Display animations</label>
+                <label><input type="checkbox" name="timed"> Timed game</label>
+                <label><input type="checkbox" name="sounds"> Play sounds</label>
+            </div>
+            <p class="note">Draw, scoring and timing take effect in the next game.</p>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-button" value="ok" autofocus>OK</button>
+            <button class="modal-button" value="cancel" formnovalidate>Cancel</button>
+        </div>
+    </form>
+</dialog>
+<dialog class="modal-overlay" id="appearance-dialog" aria-labelledby="appearance-dialog-title">
+    <form class="modal-window" method="dialog">
+        <div class="window-title-bar">
+            <div class="modal-title" id="appearance-dialog-title">Change Appearance</div>
+            <div class="window-controls"><button class="modal-close" value="cancel" aria-label="Close"></button></div>
+        </div>
+        <div class="modal-content appearance">
+            <!-- One choice for each back and each background (js/buttons-handler.js) -->
+            <h3 id="backs-title">Select deck</h3>
+            <div class="choices backs" role="radiogroup" aria-labelledby="backs-title"></div>
+            <h3 id="faces-title">Select card faces</h3>
+            <div class="choices faces" role="radiogroup" aria-labelledby="faces-title"></div>
+            <h3 id="backgrounds-title">Select background</h3>
+            <div class="choices backgrounds" role="radiogroup" aria-labelledby="backgrounds-title"></div>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-button" value="ok" autofocus>OK</button>
+            <button class="modal-button" value="cancel">Cancel</button>
+        </div>
+    </form>
+</dialog>
+<dialog class="modal-overlay" id="statistics-dialog" aria-labelledby="statistics-dialog-title">
+    <form class="modal-window" method="dialog">
+        <div class="window-title-bar">
+            <div class="modal-title" id="statistics-dialog-title">Solitaire Statistics</div>
+            <div class="window-controls"><button class="modal-close" value="close" aria-label="Close"></button></div>
+        </div>
+        <div class="modal-content statistics">
+            <label>Game type <select id="statistics-mode"></select></label>
+            <dl id="statistics-list"></dl>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-button" value="close" autofocus>Close</button>
+        </div>
+    </form>
+</dialog>
+<dialog class="modal-overlay" id="won-dialog" aria-labelledby="won-dialog-title">
+    <form class="modal-window" method="dialog">
+        <div class="window-title-bar">
+            <div class="modal-title" id="won-dialog-title">Game Won</div>
+            <div class="window-controls"><button class="modal-close" value="close" aria-label="Close"></button></div>
+        </div>
+        <div class="modal-content won">
+            <p class="headline">Congratulations, you won!</p>
+            <dl id="won-list"></dl>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-button" value="again" autofocus>Play again</button>
+            <button class="modal-button" value="close">Close</button>
+        </div>
+    </form>
+</dialog>
+<dialog class="modal-overlay" id="lost-dialog" aria-labelledby="lost-dialog-title">
+    <form class="modal-window" method="dialog">
+        <div class="window-title-bar">
+            <div class="modal-title" id="lost-dialog-title">Game Lost</div>
+            <div class="window-controls"><button class="modal-close" value="close" aria-label="Close"></button></div>
+        </div>
+        <div class="modal-content won">
+            <p class="headline">There are no more moves.</p>
+            <p>Better luck next time!</p>
+            <dl id="lost-list"></dl>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-button" value="again" autofocus>New game</button>
+            <button class="modal-button" value="close">Close</button>
+        </div>
+    </form>
+</dialog>
+<!-- Solitaire Code -->
+<script src="js/rules.js"></script>
+<script src="js/cards.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/solitaire.js"></script>
+<!-- Very important script -->
+<script src="js/qwerty.js"></script>
+</body>
+</html>

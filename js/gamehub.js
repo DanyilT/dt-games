@@ -30,8 +30,8 @@
  * hub can't be reached), everything stays in this browser.
  *
  * Offline: GameHub can download the game to play it offline (the Download button on its page there). GameHub's script
- * then keeps the game's files in this browser and registers sw.js (next to index.html), which answers with them when
- * there's no network.
+ * then registers sw.js (next to index.html), which keeps a copy of the game in this browser (the files offline.json
+ * lists, written at each deploy), answers from it at once, and keeps it up to date (see sw.js).
  *
  * The play area: when the frame loads, and after it changes size, GameHub sends { type: 'gamehub:center' } to ask the
  * game to put its play area in the middle of the frame. The hub can't scroll another site's page, so the game does it.

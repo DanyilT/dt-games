@@ -11,7 +11,8 @@
  * - Get Ready, the game, a scoreboard with the best score and a medal (bronze from 10, silver 20, gold 30, platinum 40)
  * - Flap with Space, ↑, W, a click or a tap; pause with P, Esc or the pause button on the canvas
  * - Sounds, made in the browser (Web Audio), on or off with M
- * - Pauses by itself when the page is hidden, loses the keyboard, or GameHub asks
+ * - Pauses by itself when the page is hidden, loses the keyboard, or GameHub asks; a paused game is saved, and carries on
+ *   (paused) next time
  * - GameHub's panel and replays (js/gamehub.js): each game is a run, with the pipes placed from the run's seed, the game
  *   moving in fixed steps (GameRules.TICK), and every flap recorded with the step it came after, so GameHub can play it
  *   again
@@ -108,7 +109,8 @@ let soundOn = true;
 // The game under way, recorded so GameHub can play it again (js/gamehub.js): its random numbers place the pipes
 let run = null;
 
-// What's saved: the best score and the medals, and whether the sound is on
+// What's saved: the best score and the medals, whether the sound is on, and a game under way (resumed once GameHub has
+// handed over its tickets, below)
 const dataLoaded = loadGameData().then((data) => {
     gameData = data;
     if (highScore > gameData.highScore) {
@@ -139,7 +141,7 @@ function showStatus() {
                 { label: 'Bronze', value: medals.bronze },
             ],
         }],
-        ongoing: screen === 'playing', // A game under way isn't kept: a reload loses it
+        ongoing: false, // A game under way is saved when it pauses or the page is closed (saveProgress): a reload keeps it
     });
 }
 
@@ -202,12 +204,14 @@ function toggleSound() {
 
 // Back to Get Ready (a game under way is dropped: not kept)
 function toReady() {
-    if (screen === 'playing') run?.discard();
+    const dropped = screen === 'playing';
+    if (dropped) run?.discard();
     screen = 'ready';
     paused = false;
     game = null;
     newBest = false;
     document.getElementById('score').textContent = 0;
+    if (dropped) saveProgress(); // No game to carry on
     sound('swoosh');
     showStatus();
 }
@@ -284,6 +288,7 @@ function gameOver() {
         if (gameData) {
             gameData.highScore = highScore;
             if (medal) gameData.medals[medal]++;
+            gameData.game = null; // It ended: no game to carry on
             saveGameData(gameData);
         }
     }
@@ -295,6 +300,7 @@ function pause() {
     if (screen !== 'playing' || paused || GameHub.replaying) return;
     paused = true;
     accumulator = 0;
+    saveProgress(); // Kept as it is, so closing the page now loses nothing
 }
 
 // Carry on
@@ -310,8 +316,43 @@ function togglePause() {
     else pause();
 }
 
+// The game under way goes with what's saved (when it pauses, or the page is hidden or closed), so it carries on next
+// time; a game that ended or was dropped is taken out
+function saveProgress() {
+    if (!gameData || GameHub.replaying) return;
+    gameData.game = screen === 'playing' ? { state: GameRules.saveState(game), run: run.save(), best: bestBefore } : null;
+    saveGameData(gameData);
+}
+
+// A game saved half-way (saveProgress()) carries on, paused, with its run
+function resumeSavedGame() {
+    const saved = gameData?.game;
+    if (!saved || GameHub.replaying || screen !== 'ready') return;
+
+    // The run carries on from where it was (its random numbers too), and the game from its saved state (js/rules.js)
+    const resumedRun = GameHub.resumeRun(saved.run);
+    const resumed = GameRules.loadState(saved.state, resumedRun.random);
+    if (!resumed) {
+        // Not a game this version can carry on: drop it
+        resumedRun.discard();
+        gameData.game = null;
+        saveGameData(gameData);
+        return;
+    }
+    run = resumedRun;
+    game = resumed;
+    previousY = game.y;
+    bestBefore = saved.best;
+    screen = 'playing';
+    paused = true; // It waits for the player: a flap, P, or the play button
+    newBest = false;
+    accumulator = 0;
+    document.getElementById('score').textContent = game.score;
+    showStatus();
+}
+
 // The page hidden or closed, the keyboard gone elsewhere (a click outside GameHub's frame), or GameHub asks: a game
-// under way pauses
+// under way pauses (and is saved)
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) pause();
 });
@@ -782,7 +823,8 @@ function frame(now) {
 }
 
 // Initialize the game: Get Ready, until the player flaps (once GameHub has handed over its tickets, so the first game
-// gets one too); or GameHub opened it to play a replay, which plays the game from its own steps and flaps
+// gets one too), or a game saved half-way, paused; or GameHub opened it to play a replay, which plays the game from its
+// own steps and flaps
 if (GameHub.replaying) {
     GameHub.onReplay({
         begin: (replayRun) => startGame(replayRun),
@@ -792,6 +834,7 @@ if (GameHub.replaying) {
 }
 document.fonts?.load("16px 'Pixelify Sans'").catch(() => {}); // The canvas's text font (css/game.css imports it)
 Promise.all([dataLoaded, GameHub.ready()]).then(() => {
+    resumeSavedGame();
     ready = true;
     GameHub.playable(); // Ready to play: GameHub stops showing it as loading
 });

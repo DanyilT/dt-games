@@ -11,6 +11,8 @@
  * - A pipe passed (its middle behind the bird's) is a point. Touching a pipe (they reach up for ever, above the screen
  *   too) or the ground ends the game.
  * - Inputs: 'F', a flap, each after the steps before it. The game starts with the first one.
+ * - A game under way can be kept (saveState()) and carried on another time (loadState()), with the run's numbers going on
+ *   from where they were.
  *
  * GameHub uses this file as it is, and adds `export const { simulate } = GameRules;` after it to make it a module. So it
  * declares nothing but GameRules, and uses nothing but the language: no page, timers, storage, Math.random or Date.
@@ -81,6 +83,43 @@ const GameRules = (() => {
         };
         game.pipes.push(newPipe(game, FIRST_PIPE));
         return game;
+    }
+
+    // The game under way, as an object JSON can hold, to carry on another time (loadState())
+    function saveState(game) {
+        return {
+            y: game.y,
+            speed: game.speed,
+            pipes: game.pipes.map(({ x, gapTop, gap, passed }) => ({ x, gapTop, gap, passed })),
+            gap: game.gap,
+            steps: game.steps,
+            score: game.score,
+        };
+    }
+
+    // The game saveState() gave, carrying on with random (the run's numbers, from where they were); null if it isn't one
+    function loadState(data, random) {
+        const isCount = (value) => Number.isSafeInteger(value) && value >= 0;
+        const isGap = (value) => Number.isInteger(value) && value > 0 && value <= GROUND - GAP_MARGIN * 2;
+        const isPipe = (pipe) => pipe !== null && typeof pipe === 'object' && Number.isInteger(pipe.x) && pipe.x <= WIDTH + PIPE_SPACING
+            && Number.isInteger(pipe.gapTop) && isGap(pipe.gap) && typeof pipe.passed === 'boolean';
+        if (data === null || typeof data !== 'object' || !Number.isSafeInteger(data.y)
+            || !Number.isInteger(data.speed) || data.speed < FLAP || data.speed > MAX_FALL
+            || !Array.isArray(data.pipes) || data.pipes.length === 0 || data.pipes.length > 4 || !data.pipes.every(isPipe)
+            || !isGap(data.gap) || !isCount(data.steps) || !isCount(data.score)) {
+            return null;
+        }
+        // Not newGame(): its first pipe would take one of the run's numbers
+        return {
+            random,
+            y: data.y,
+            speed: data.speed,
+            pipes: data.pipes.map(({ x, gapTop, gap, passed }) => ({ x, gapTop, gap, passed })),
+            gap: data.gap,
+            steps: data.steps,
+            score: data.score,
+            over: false,
+        };
     }
 
     // A flap: the bird goes up at once
@@ -169,6 +208,7 @@ const GameRules = (() => {
     }
 
     return Object.freeze({
-        TICK, WIDTH, GROUND, BIRD_X, BIRD_START, PIPE_WIDTH, PIPE_SPEED, GAP, seededRandom, newGame, flap, step, medal, simulate,
+        TICK, WIDTH, GROUND, BIRD_X, BIRD_START, PIPE_WIDTH, PIPE_SPEED, GAP, seededRandom, newGame, saveState, loadState, flap, step,
+        medal, simulate,
     });
 })();

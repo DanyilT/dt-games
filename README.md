@@ -30,13 +30,14 @@ On a phone or tablet:
 - Get Ready, then a scoreboard with your score, your best and a medal: bronze from 10, silver from 20, gold from 30, platinum from 40
 - Smooth on any screen: the game moves in fixed steps, and the picture is drawn in between
 - Sounds made in the browser (Web Audio), on or off with M
-- Pauses by itself when you switch away (another tab, a locked phone, a click outside GameHub's frame)
+- Pauses by itself when you switch away (another tab, a locked phone, a click outside GameHub's frame), and carries on where you left off next time
 - Mobile-friendly: a tap is a flap
 - Easter Egg
 
 ## 💾 Saved data
 
-The game saves one object: `{ "highScore": <int>, "medals": { "bronze": <int>, "silver": <int>, "gold": <int>, "platinum": <int> }, "sound": <bool> }`: your best score, the medals you've won, and whether the sound is on. A game under way isn't saved: it's over in a minute or two.
+The game saves one object: `{ "highScore": <int>, "medals": { "bronze": <int>, "silver": <int>, "gold": <int>, "platinum": <int> }, "sound": <bool>, "game": { … } | null }`: your best score, the medals you've won, whether the sound is on, and the game you're playing.
+`game` is kept when the game pauses, or when you switch away or close the page, so it comes back next time, paused: the bird, the pipes and the score (`state`), the run so far for GameHub (`run`, see below), and your best before it. It's taken out when the game ends, or when you go back to Get Ready.
 It's kept in the browser, in `localStorage` under `flappy-birdGameData`, and in your GameHub account when you play in GameHub signed in (see below).
 If the browser blocks storage (some do inside an iframe), the game still plays, but it doesn't remember your best score.
 
@@ -50,7 +51,7 @@ If the browser blocks storage (some do inside an iframe), the game still plays, 
 - **Pausing and loading:** the game pauses when GameHub asks (the `gamehub:pause` message) and when its frame loses the keyboard, and it tells GameHub when it's ready to play (`GameHub.playable()`, the `gamehub:playable` message).
 - **Offline:** you can download the game in GameHub (the Download button on its page there) to play it offline.
 - **The panel and replays:** under the game, GameHub shows what the game tells it with `GameHub.status()` (the score now, your best, and your medals behind its More button), and each game you finish is kept as a run, so you can watch it again there: the run's random seed and your flaps, never a video. The game moves in fixed 16 ms steps, the pipes' gaps come from the run's seed, and each flap is recorded with the step it came after. Runs stay in your browser. A cheat (the console, the Easter egg) means that game isn't kept.
-- **Checked runs:** signed in, GameHub hands the game a few tickets, each a seed its server chose, and each run takes one. GameHub then plays the run again on its server with this game's own rules (`js/rules.js`, the code the game plays by, in whole numbers so every browser and the server work it out the same), so only results it got itself count as your records (it does this offline too, once you're back online). A game's run starts with its first flap, so Get Ready takes no ticket; the first one waits for the tickets (`GameHub.ready()`) if you're quicker.
+- **Checked runs:** signed in, GameHub hands the game a few tickets, each a seed its server chose, and each run takes one. GameHub then plays the run again on its server with this game's own rules (`js/rules.js`, the code the game plays by, in whole numbers so every browser and the server work it out the same), so only results it got itself count as your records (it does this offline too, once you're back online). A game's run starts with its first flap, so Get Ready takes no ticket; the first one waits for the tickets (`GameHub.ready()`) if you're quicker. It's saved with the game in progress, so it carries on after a reload.
 - **Only GameHub:** it loads GameHub's script (`/hub-bridge.js`) only when the game is in a frame on GameHub's own address.
 
 The game works without it: played on its own, or when GameHub can't be reached (the game gives it 3 seconds at most), everything stays in this browser.

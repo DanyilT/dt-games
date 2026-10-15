@@ -2,15 +2,17 @@
  * Saved data
  *
  * The game saves one object: { "highScore": 34, "medals": { "bronze": 3, "silver": 1, "gold": 1, "platinum": 0 },
- * "sound": true }. highScore is the best score, shown as Best; medals counts the medals won; sound says whether the
- * sounds are on. A game under way isn't saved: it's over in a minute or two.
+ * "sound": true, "game": { … } | null }. highScore is the best score, shown as Best; medals counts the medals won; sound
+ * says whether the sounds are on. game is the game under way, kept when it pauses (or the page is hidden or closed) so it
+ * carries on next time: its state (js/rules.js saveState()), its run so far (js/gamehub.js run.save()), and the best
+ * score before it.
  * js/gamehub.js keeps it: in this browser (localStorage, key flappy-birdGameData), and in the player's GameHub account
  * when they play in GameHub signed in. This file knows what's in it: the defaults, and what to keep.
  */
 
 // What a new player starts with
 function defaultGameData() {
-    return { highScore: 0, medals: { bronze: 0, silver: 0, gold: 0, platinum: 0 }, sound: true };
+    return { highScore: 0, medals: { bronze: 0, silver: 0, gold: 0, platinum: 0 }, sound: true, game: null };
 }
 
 // Keep only what the game understands, and use the defaults for anything missing or broken
@@ -25,6 +27,12 @@ function checkGameData(saved) {
     }
     if (typeof saved?.sound === 'boolean') {
         data.sound = saved.sound;
+    }
+    // The game under way: checked in full when it's loaded (GameRules.loadState(), GameHub.resumeRun())
+    const game = saved?.game;
+    if (game !== null && typeof game === 'object' && game.state !== null && typeof game.state === 'object'
+        && Number.isInteger(game.best) && game.best >= 0) {
+        data.game = { state: game.state, run: game.run ?? null, best: game.best };
     }
     return data;
 }

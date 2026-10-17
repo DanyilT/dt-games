@@ -1,4 +1,5 @@
 # Tic-Tac-Toe
+[![tic-tac-toe@v1.0.0](https://img.shields.io/badge/tic--tac--toe-v1.0.0-blue)](https://github.com/DanyilT/dt-games/releases/tag/tic-tac-toe@v1.0.0)
 
 Noughts and crosses against a bot that plays by minimax, drawn in pencil on a sheet of notebook paper. Three levels; on Hard, a draw is the best you can do.
 

@@ -172,8 +172,16 @@ button {
     cursor: pointer;
 }
 
-.controls button:hover {
-    background-color: rgba(63, 63, 66, 0.06);
+/* Shaded under the mouse (only with a mouse: on a touch screen it would stay shaded after a tap), darker while
+   pressed */
+@media (hover: hover) {
+    .controls button:hover {
+        background-color: rgba(63, 63, 66, 0.06);
+    }
+}
+
+.controls button:active {
+    background-color: rgba(63, 63, 66, 0.12);
 }
 
 .instructions {
@@ -195,6 +203,34 @@ button {
 .instructions hr {
     border: none;
     border-top: 1.5px dashed rgba(63, 63, 66, 0.5);
+}
+
+/* The controls, lined up in a table with no lines (each row on a ruled line): the keys (or the mouse) on the left, what
+   they do on the right */
+.keys {
+    border-collapse: collapse;
+}
+
+.keys td {
+    padding: 0;
+    vertical-align: baseline;
+}
+
+.keys td:first-child {
+    padding-right: 1em;
+    white-space: nowrap;
+}
+
+/* A key: drawn round in pencil */
+.instructions kbd {
+    display: inline-block;
+    min-width: 1.3em;
+    padding: 0 5px;
+    border: 1.5px solid var(--pencil);
+    border-radius: 5px 3px 6px 4px;
+    font: inherit;
+    line-height: 1.25;
+    text-align: center;
 }
 
 /* A phone: a narrower margin, and a little smaller writing, so the board has the room */

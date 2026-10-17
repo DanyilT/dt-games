@@ -84,8 +84,16 @@
         <p>A round won is 2 points, a draw 1. Most points after 5 rounds wins the match.</p>
         <p>Easy and Medium slip up now and then. Hard never does: a draw is the best you can get there.</p>
         <hr>
-        <p>Click or tap a square, or press 1 to 9 (1 is the top left, 9 the bottom right). The arrow keys move between the squares, and Enter plays one.</p>
-        <p>Press "N" for a new match, and "E", "M" or "H" for the level.</p>
+        <!-- The controls, lined up: the keys (or the mouse) on the left, what they do on the right -->
+        <table class="keys">
+            <tr><td><b>Click</b> a square</td><td>Play there (or tap it)</td></tr>
+            <tr><td><kbd>1</kbd> … <kbd>9</kbd></td><td>Play a square: 1 is the top left, 9 the bottom right</td></tr>
+            <tr><td><kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd></td><td>Move between the squares</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Play the square</td></tr>
+            <tr><td><kbd>N</kbd></td><td>New match</td></tr>
+            <tr><td><kbd>E</kbd> <kbd>M</kbd> <kbd>H</kbd></td><td>Level: Easy, Medium or Hard</td></tr>
+            <tr><td><kbd>I</kbd></td><td>Show or hide these instructions</td></tr>
+        </table>
     </aside>
     <!-- JavaScript for this page -->
     <script src="js/buttons-handler.js"></script>

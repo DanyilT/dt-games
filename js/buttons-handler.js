@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // A tapped button shows its pressed look (:active) on iPhones and iPads too: Safari shows it only to a page that
+    // listens for touches
+    document.addEventListener('touchstart', function() {}, { passive: true });
+
     const instructionsBtn = document.getElementById('instructions-button');
     const instructions = document.querySelector('.instructions');
 

@@ -87,8 +87,11 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-.cell:hover:not(.taken):not([aria-disabled="true"]) {
-    background-color: rgba(124, 156, 196, 0.1);
+/* Shaded under the mouse (only with a mouse: on a touch screen it would stay shaded after a tap) */
+@media (hover: hover) {
+    .cell:hover:not(.taken):not([aria-disabled="true"]) {
+        background-color: rgba(124, 156, 196, 0.1);
+    }
 }
 
 .cell[aria-disabled="true"] {

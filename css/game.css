@@ -1,4 +1,4 @@
-/* The game itself: its board, the next piece, and its move buttons */
+/* The game itself: its board, the next piece, and its move buttons (each a picture of what it does) */
 
 /* The GAME OVER text's font (js/tetris.js loads it as the game starts, so it's there for the canvas) */
 @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans&display=swap');
@@ -42,23 +42,47 @@ canvas#next-piece {
 .game-controls {
     display: flex;
     justify-content: space-between;
+    gap: 6px;
 }
 
 .game-controls button {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    padding: 0;
     background-color: slategray;
     color: white;
-    height: 2em;
-    width: 2em;
-    font-size: 1.5em;
-    text-align: center;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 3px 0 #4b5663;
     cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s, box-shadow 0.3s;
+    touch-action: manipulation; /* Quick taps aren't taken for a zoom */
+    transition: background-color 0.2s;
 }
 
-.game-controls button:hover {
-    background-color: slategray;
-    box-shadow: inset -2px -2px 5px rgba(255, 255, 255, 0.5), inset 2px 2px 5px rgba(0, 0, 0, 0.5);
+/* Lighter under the mouse (only with a mouse: on a touch screen it would stay light after a tap) */
+@media (hover: hover) {
+    .game-controls button:hover {
+        background-color: #7d8a97;
+    }
+}
+
+/* Pressed: it goes down */
+.game-controls button:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #4b5663;
+}
+
+/* The picture: a thick, rounded line in the button's colour */
+.game-controls svg {
+    width: 62%;
+    height: 62%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 /* Responsive styles */

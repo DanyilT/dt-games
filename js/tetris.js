@@ -1,5 +1,5 @@
 /**
- * TETRIS Game
+ * Tetris
  *
  * This is a simple implementation of the classic Tetris game using HTML5 Canvas and JavaScript.
  * The game features tetrominoes that fall from the top of the screen, and the player must rotate and move them to fit into complete lines.
@@ -13,14 +13,16 @@
  * - Line clearing and scoring
  * - A ghost piece: where the piece would land, dropped now
  * - Game over detection
- * - Pause and resume functionality
+ * - Pause and resume functionality (Esc, or Pause)
+ * - New Game (N): back to the start screen
+ * - Sounds, made in the browser (Web Audio), on or off with M
  * - GameHub's panel and replays (js/gamehub.js): each game is a run, with the pieces drawn from the run's seed, the game
  *   moving in fixed steps (GameRules.TICK), and every move recorded with the step it came after, so GameHub can play it
  *   again
  *
  * Instructions:
- * - Press Enter, an arrow key or Space, tap the board or press Start to start; the first game waits for it, so its run
- *   (and its GameHub ticket) starts with the player.
+ * - Press an arrow key (or W A S D) or Space, or tap the board, to start; the first game waits for it, so its run (and
+ *   its GameHub ticket) starts with the player.
  * - Use the arrow keys to move and rotate the tetrominoes.
  * - Use wasd / touch controls / control buttons to move and rotate the tetrominoes. (in extend-controls.js / buttons-handler.js)
  * - Press the spacebar to hard drop the tetromino.
@@ -39,8 +41,8 @@ const canvas = document.getElementById('tetris');
 const ctx = canvas.getContext('2d');
 const nextPieceCanvas = document.getElementById('next-piece');
 const nextPieceCtx = nextPieceCanvas.getContext('2d');
-const startButton = document.getElementById('start-button'); // Start, then Pause and Resume
-const resetButton = document.getElementById('reset-button');
+const pauseButton = document.getElementById('start-button'); // Pause and Resume, while a game is under way
+const newGameButton = document.getElementById('reset-button');
 const scoreElement = document.getElementById('score');
 const levelElement = document.getElementById('level');
 const linesElement = document.getElementById('lines');
@@ -84,8 +86,55 @@ const dataLoaded = loadGameData().then((data) => {
     }
     highScore = gameData.highScore;
     bestScoreElement.textContent = highScore;
+    document.dispatchEvent(new Event('tetris:sound')); // More's Sound button shows whether it's on
     showStatus();
 });
+
+// --- Sounds, made in the browser (no files): a move, a turn, a drop, a piece set down, lines, a level, the end ---
+
+let audio = null;
+
+// A short tone: its wave, its pitch from start to end (Hz), how long (s) and how loud, after a delay (s)
+function tone(wave, from, to, length, volume, delay = 0) {
+    const start = audio.currentTime + delay;
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
+    oscillator.type = wave;
+    oscillator.frequency.setValueAtTime(from, start);
+    oscillator.frequency.exponentialRampToValueAtTime(to, start + length);
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + length);
+    oscillator.connect(gain).connect(audio.destination);
+    oscillator.start(start);
+    oscillator.stop(start + length);
+}
+
+// Play a sound, if the sound is on (not in a replay)
+function sound(kind) {
+    if (gameData?.sound === false || GameHub.replaying) return;
+    try {
+        audio ??= new AudioContext();
+        if (audio.state === 'suspended') audio.resume();
+        if (kind === 'move') tone('square', 260, 250, 0.04, 0.03);
+        if (kind === 'rotate') tone('triangle', 520, 700, 0.06, 0.06);
+        if (kind === 'lock') tone('triangle', 180, 120, 0.08, 0.08);
+        if (kind === 'drop') tone('sawtooth', 220, 70, 0.14, 0.07);
+        if (kind === 'clear') [523, 659, 784].forEach((pitch, i) => tone('square', pitch, pitch, 0.08, 0.05, i * 0.06));
+        if (kind === 'tetris') [523, 659, 784, 1047, 1319].forEach((pitch, i) => tone('square', pitch, pitch, 0.1, 0.05, i * 0.07));
+        if (kind === 'level') [392, 523, 659, 784].forEach((pitch, i) => tone('triangle', pitch, pitch, 0.12, 0.07, i * 0.09));
+        if (kind === 'over') [392, 330, 262, 196].forEach((pitch, i) => tone('triangle', pitch, pitch * 0.97, 0.22, 0.08, i * 0.18));
+    } catch (error) {
+        // No Web Audio here: no sounds
+    }
+}
+
+// Sound on or off (saved; More's Sound button says which)
+function toggleSound() {
+    if (!gameData) return;
+    gameData.sound = gameData.sound === false;
+    saveGameData(gameData);
+    document.dispatchEvent(new Event('tetris:sound'));
+}
 
 // GameHub's panel: the score, lines, level and best score
 function showStatus() {
@@ -152,7 +201,7 @@ function resetGame(replayRun = null) {
     updateHighScore();
     levelElement.textContent = game.level;
     linesElement.textContent = game.lines;
-    startButton.textContent = 'Pause (p)';
+    showButtons();
 
     if (gameInterval) {
         clearInterval(gameInterval);
@@ -292,8 +341,17 @@ function drawNextPiece() {
     }
 }
 
-// A piece locked (js/rules.js): show the score, lines, level and best, and the next piece; or the game is over
-function pieceLocked() {
+// A piece locked (js/rules.js): show the score, lines, level and best, and the next piece; or the game is over. Its
+// sound: lines cleared (four at once, a Tetris), a new level, or just the piece set down (before: the lines and the
+// level before it; dropped: a hard drop, which has its own sound)
+function pieceLocked(before, dropped = false) {
+    const cleared = game.lines - before.lines;
+    if (game.over) sound('over');
+    else if (cleared >= 4) sound('tetris');
+    else if (cleared > 0) sound('clear');
+    else if (!dropped) sound('lock');
+    if (!game.over && game.level > before.level) sound('level');
+
     scoreElement.textContent = game.score;
     updateHighScore();
     levelElement.textContent = game.level;
@@ -314,11 +372,12 @@ function gameLoop() {
     }
     run.step();
 
+    const before = { lines: game.lines, level: game.level };
     const fell = GameRules.step(game);
     if (fell === 'waiting') {
         return;
     }
-    if (fell !== 'moved') pieceLocked();
+    if (fell !== 'moved') pieceLocked(before);
     drawBoard();
     drawPiece();
 }
@@ -330,7 +389,7 @@ function pauseGame() {
         gamePause = true;
         clearInterval(gameInterval);
         showPaused();
-        startButton.textContent = 'Resume (p)';
+        showButtons();
         saveProgress(); // Kept as it is, so closing the page now loses nothing
     } else if (gameActive && gamePause) {
         // Resume the game
@@ -338,8 +397,36 @@ function pauseGame() {
         gameInterval = setInterval(gameLoop, TICK);
         drawBoard();
         drawPiece();
-        startButton.textContent = 'Pause (p)';
+        showButtons();
     }
+}
+
+// Pause shows only while a game is under way, and says what it does now
+function showButtons() {
+    pauseButton.hidden = !gameActive || GameHub.replaying;
+    pauseButton.textContent = gamePause ? 'Resume (Esc)' : 'Pause (Esc)';
+}
+
+// New Game: back to the start screen (a game under way is dropped: not kept); the next one starts as the first did
+function newGame() {
+    if (GameHub.replaying) return; // A replay plays by itself
+    if (gameActive) run?.discard();
+    clearInterval(gameInterval);
+    gameActive = false;
+    gamePause = false;
+    gameOverShown = false;
+    game = null;
+    if (gameData?.game) {
+        gameData.game = null; // No game to carry on
+        saveGameData(gameData);
+    }
+    scoreElement.textContent = 0;
+    levelElement.textContent = 1;
+    linesElement.textContent = 0;
+    nextPieceCtx.clearRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
+    showButtons();
+    showStartScreen();
+    showStatus();
 }
 
 // Game over
@@ -354,7 +441,7 @@ function gameOver() {
     saveProgress(); // The game ended: no game to carry on
     showStatus();
     gameOverShown = true;
-    startButton.textContent = 'Start (p)';
+    showButtons();
 
     // Draw the game over screen in the next frame to ensure it's not overwritten
     requestAnimationFrame(() => {
@@ -365,9 +452,9 @@ function gameOver() {
 // What the screen says starts, resumes or restarts the game: on a touch screen (no mouse), a tap; with a keyboard, its
 // keys, once the page has it (in GameHub's frame, a click on the game gives it the keyboard)
 const KEYS_HINTS = {
-    start: { touch: 'Tap the board to start', away: 'Click here to play', keys: 'Press Enter to start' },
-    resume: { touch: 'Tap the board to resume', away: 'Click here, then press Enter', keys: 'Press Enter or P to resume' },
-    restart: { touch: "Tap 'Start' to play again", away: 'Click here, then press Enter', keys: 'Press Enter to play again' },
+    start: { touch: 'Tap the board to start', away: 'Click here to play', keys: 'Press Space or an arrow to start' },
+    resume: { touch: 'Tap the board to resume', away: 'Click here, then press Esc', keys: 'Press Esc or an arrow to resume' },
+    restart: { touch: "Tap 'New Game' to play again", away: 'Click here, then press N', keys: 'Press N for a new game' },
 };
 function keysHint(action, focused = document.hasFocus()) {
     const hints = KEYS_HINTS[action];
@@ -427,19 +514,15 @@ const MOVE_KEYS = { ArrowLeft: 'L', ArrowRight: 'R', ArrowUp: 'U', ArrowDown: 'D
 document.addEventListener('keydown', event => {
     if (GameHub.replaying) return; // A replay plays by itself
     if (event.ctrlKey || event.metaKey || event.altKey) return; // The browser's shortcuts
-    // Enter on a button presses it
-    if (event.key === 'Enter' && event.target instanceof Element && event.target.closest('button, a, input, select, textarea')) {
-        return;
-    }
 
     // The game's keys don't scroll the page, or press a button that still has focus
     const moveKey = Object.hasOwn(MOVE_KEYS, event.key);
     if (moveKey) event.preventDefault();
 
-    // Not moving (the start screen, paused, or over): Enter starts or resumes it, and so does a move key (or a tap) but
-    // after a game over, so a last key pressed in a hurry doesn't start another. Neither moves the piece.
+    // Not moving (the start screen, or paused): a move key (or a tap) starts or resumes it, without moving the piece.
+    // After a game over it doesn't, so a last key pressed in a hurry doesn't start another: N goes back to the start.
     if (!gameActive || gamePause) {
-        if (!event.repeat && (event.key === 'Enter' || (moveKey && !gameOverShown))) playOn();
+        if (!event.repeat && moveKey && !gameOverShown) playOn();
         return;
     }
     // Holding Space drops one piece, not one after another
@@ -467,22 +550,27 @@ function startGame() {
 }
 
 // One move (js/rules.js). It's recorded with the run first (a drop can end the game), so a replay makes it at the same
-// step.
+// step. Its sound, when it did something.
 function move(code) {
     if (!game || game.over || !GameRules.MOVES.includes(code)) return;
     run.input(code);
-    if (GameRules.move(game, code) !== 'moved') pieceLocked();
+    const before = { lines: game.lines, level: game.level, x: game.current.x, y: game.current.y, shape: game.current.shape };
+    const moved = GameRules.move(game, code);
+    if (code === 'H') sound('drop');
+    else if (moved === 'moved' && code === 'U' && game.current.shape !== before.shape) sound('rotate');
+    else if (moved === 'moved' && (game.current.x !== before.x || game.current.y !== before.y)) sound('move');
+    if (moved !== 'moved') pieceLocked(before, code === 'H');
 
     drawBoard();
     drawPiece();
 }
 
-startButton.addEventListener('click', () => {
-    if (GameHub.replaying) return; // A replay plays by itself
-    playOn();
+pauseButton.addEventListener('click', () => {
+    if (GameHub.replaying || !gameActive) return; // A replay plays by itself; nothing to pause
+    pauseGame();
 });
 
-resetButton.addEventListener('click', startGame);
+newGameButton.addEventListener('click', newGame);
 
 // Initialize the game: the start screen, until the player starts (once GameHub has handed over its tickets, so the first
 // game gets one too); or GameHub opened it to play a replay, which plays the game from its own steps and moves
@@ -495,7 +583,6 @@ if (GameHub.replaying) {
     });
     GameHub.playable();
 } else {
-    startButton.textContent = 'Start (p)';
     showStartScreen();
     // A game saved half-way carries on (paused); otherwise one starts if the player has asked already
     Promise.all([dataLoaded, GameHub.ready()]).then(() => {
@@ -533,7 +620,7 @@ function resumeSavedGame() {
     drawBoard();
     drawPiece();
     drawNextPiece();
-    pauseGame(); // It waits for the player: Enter, P, a move, or Resume
+    pauseGame(); // It waits for the player: Esc, a move, or Resume
     showStatus();
     return true;
 }

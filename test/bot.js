@@ -1,12 +1,13 @@
 /**
  * Replay test: Tetris's bot (test/index.html, with test/check.js)
  *
- * Each game starts with Enter (or R, if one is still going). The bot steps the game itself (the page's own timer is
- * stopped), so a game takes no time, and plays through the page's own keys. For each piece it picks a turn and a column:
- * the one that leaves the stack lowest and flattest, with the fewest holes, and clears lines; or one at random, more and
- * more often after 30 lines, so a game reaches level 4 or so and then ends. It moves there (arrows and W A S D), then
- * drops the piece hard (Space) or lets it fall, with a slip now and then. Once in a while it pauses (P) and resumes with
- * Enter. A game still going after 100000 steps is left, and its run isn't kept.
+ * Each game starts with a new game (N: back to the start screen) and a move key, which starts it without moving the
+ * piece. The bot steps the game itself (the page's own timer is stopped), so a game takes no time, and plays through
+ * the page's own keys. For each piece it picks a turn and a column: the one that leaves the stack lowest and flattest,
+ * with the fewest holes, and clears lines; or one at random, more and more often after 30 lines, so a game reaches
+ * level 4 or so and then ends. It moves there (arrows and W A S D), then drops the piece hard (Space) or lets it fall,
+ * with a slip now and then. Once in a while it pauses (Esc) and resumes with Esc or a move key. A game still going
+ * after 100000 steps is left, and its run isn't kept.
  */
 window.ReplayBot = (function () {
     const MAX_STEPS = 100000;
@@ -86,7 +87,8 @@ window.ReplayBot = (function () {
         },
 
         async play(page, t) {
-            t.key(page.eval('gameActive') ? 'r' : 'Enter'); // A new game (and its run)
+            t.key('n'); // New Game: the start screen (a game still going is dropped)
+            press(t, 'LRUDH'[Math.floor(t.random() * 5)]); // A new game (and its run): the key doesn't move the piece
             t.watch();
             stopTimer(page);
 
@@ -97,8 +99,9 @@ window.ReplayBot = (function () {
 
                 const chance = t.random();
                 if (chance < 0.002) {
-                    t.key('p'); // Pause (the Pause button's key)
-                    t.key('Enter'); // Resume
+                    t.key('Escape'); // Pause
+                    if (t.random() < 0.5) t.key('Escape'); // Resume: Esc…
+                    else press(t, 'LRUDH'[Math.floor(t.random() * 5)]); // …or a move key, which doesn't move the piece
                     stopTimer(page);
                 } else if (chance < 0.01) {
                     press(t, 'LRUD'[Math.floor(t.random() * 4)]); // A slip
@@ -118,7 +121,7 @@ window.ReplayBot = (function () {
                     }
                 }
                 if (page.eval('gamePause')) {
-                    t.key('Enter'); // Paused by the page (it was hidden): carry on
+                    t.key('Escape'); // Paused by the page (it was hidden): carry on
                     stopTimer(page);
                 }
                 if (page.eval('gameActive')) page.gameLoop();

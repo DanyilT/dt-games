@@ -33,12 +33,13 @@ h1 {
     flex-wrap: wrap;
 }
 
+/* The cards and buttons: one width from the start, wide enough for the buttons in a game (Resume, New Game, More), so
+   nothing changes size when a game starts or the instructions open */
 .game-info {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    min-width: 160px;
-    max-width: 280px;
+    width: 290px;
 }
 
 .score-box, .level-box, .lines-box, .next-piece-box, .instructions {
@@ -61,6 +62,48 @@ h1 {
     font-size: 0.8em;
 }
 
+.instructions p {
+    margin: 0.8em 0 0;
+}
+
+/* The controls, lined up in a table with no lines: the keys (or the touch) on the left, what they do on the right */
+.keys {
+    border-collapse: collapse;
+}
+
+.keys th {
+    padding: 0.8em 0 0.2em;
+    color: dimgray;
+    text-align: left;
+}
+
+.keys tr:first-child th {
+    padding-top: 0.3em;
+}
+
+.keys td {
+    padding: 4px 0 3px;
+    vertical-align: baseline;
+}
+
+.keys td:first-child {
+    padding-right: 1.2em;
+    white-space: nowrap;
+}
+
+/* A key: like the move buttons, in slate grey */
+.instructions kbd {
+    display: inline-block;
+    min-width: 1.2em;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background-color: slategray;
+    box-shadow: 0 2px 0 #4b5663;
+    color: white;
+    font: bold 0.95em Arial, sans-serif;
+    text-align: center;
+}
+
 h2 {
     font-size: 1.2em;
     margin: 0 0 5px 0;
@@ -75,20 +118,23 @@ h2 {
     color: #222;
 }
 
+/* Pause (in a game), New Game and More, in one row */
 .controls {
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
 }
 
 .controls button {
     background-color: green;
     color: white;
     border: none;
-    padding: 12px;
+    padding: 10px 12px;
     border-radius: 5px;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
     transition: background-color 0.3s;
 }
 
@@ -96,12 +142,90 @@ h2 {
     background-color: red;
 }
 
-.controls button:hover {
-    background-color: darkgreen;
+/* A button darkens under the mouse (only with a mouse: on a touch screen it would stay dark after a tap), and while
+   it's pressed */
+@media (hover: hover) {
+    .controls button:hover {
+        background-color: darkgreen;
+    }
+
+    .controls #reset-button:hover {
+        background-color: darkred;
+    }
 }
 
-.controls #reset-button:hover {
+.controls button:active {
+    background-color: darkgreen;
+    transition: none;
+}
+
+.controls #reset-button:active {
     background-color: darkred;
+}
+
+/* More: its menu (the instructions and the sound) opens on hover with a mouse, or with a click or a tap; More stays
+   dark while it's open */
+.more {
+    position: relative;
+}
+
+.controls #more-button {
+    background-color: dimgray;
+}
+
+.controls #more-button:active,
+.more.open #more-button {
+    background-color: #555;
+}
+
+@media (hover: hover) {
+    .controls #more-button:hover {
+        background-color: #555;
+    }
+}
+
+.more-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 10;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 0 0; /* The pointer can cross to it without leaving */
+    min-width: 190px;
+}
+
+@media (hover: hover) {
+    .more:hover .more-menu {
+        display: flex;
+    }
+}
+
+.more.open .more-menu {
+    display: flex;
+}
+
+.more-menu button {
+    width: 100%;
+    background-color: #444;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    text-align: left;
+}
+
+@media (hover: hover) {
+    .controls .more-menu button:hover {
+        background-color: #222;
+    }
+}
+
+.controls .more-menu button:active {
+    background-color: #222;
+}
+
+/* Sound off: the button says so */
+.more-menu #sound-button[aria-pressed="false"] {
+    background-color: #777;
 }
 
 /* Responsive styles */
@@ -120,26 +244,59 @@ h2 {
         gap: 15px;
     }
 
+    /* Under the board: the move buttons, then the next piece with the score, the level and the lines beside it, then
+       the buttons (and the instructions, when they're shown) */
     .game-info {
-        order: 2;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
+        order: 2; /* After the board (css/game.css) */
+        display: grid;
+        grid-template-columns: auto 1fr 1fr;
+        grid-template-areas:
+            "keys keys keys"
+            "next score score"
+            "next level lines"
+            "buttons buttons buttons"
+            "help help help";
         gap: 10px;
-        max-width: 300px;
+        width: 100%;
+        max-width: 320px;
     }
 
     .game-info .game-controls {
-        order: 1;
-        width: 100%;
+        grid-area: keys;
     }
 
-    .score-box, .level-box, .lines-box {
-        order: 2;
+    .next-piece-box {
+        grid-area: next;
+        padding: 10px;
     }
 
-    .next-piece-box, .instructions, .controls {
-        order: 3;
+    .next-piece-box canvas#next-piece {
+        width: 80px;
+        height: 80px;
+        margin: 4px;
+    }
+
+    .score-box {
+        grid-area: score;
+        padding: 10px;
+    }
+
+    .level-box {
+        grid-area: level;
+        padding: 10px;
+    }
+
+    .lines-box {
+        grid-area: lines;
+        padding: 10px;
+    }
+
+    .controls {
+        grid-area: buttons;
+    }
+
+    .instructions {
+        grid-area: help;
     }
 }
 
@@ -149,12 +306,12 @@ h2 {
     }
 }
 
-/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the board, the next piece, Start (then Pause)
-   and Reset (a phone has no other way to them), and the move buttons, on the page's own background, in the middle of the frame. It
+/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the board, the next piece, Pause and New Game
+   (a phone has no other way to them), and the move buttons, on the page's own background, in the middle of the frame. It
    fits whatever frame GameHub gives it (in the frame, vw and vh are the frame's), so the frame's height (its sizes in
    GameHub's games table) only decides how big the board gets:
    - from 400 px wide, the board as tall as the frame, with the rest beside it;
-   - narrower, the board on top, the next piece with Pause and Reset under it, and the move buttons at the bottom. */
+   - narrower, the board on top, the next piece with Pause and New Game under it, and the move buttons at the bottom. */
 [data-gamehub-view="frame"] body {
     box-sizing: border-box;
     min-height: 100vh;
@@ -167,7 +324,7 @@ h2 {
 [data-gamehub-view="frame"] .level-box,
 [data-gamehub-view="frame"] .lines-box,
 [data-gamehub-view="frame"] .instructions,
-[data-gamehub-view="frame"] #instructions-button {
+[data-gamehub-view="frame"] .more {
     display: none;
 }
 
@@ -245,7 +402,7 @@ h2 {
 
 @media (max-width: 399px) {
     [data-gamehub-view="frame"] .game-container {
-        --next: 104px; /* the next piece's row: its box, with Pause and Reset beside it */
+        --next: 104px; /* the next piece's row: its box, with Pause and New Game beside it */
         --keys: 44px; /* the move buttons' row */
         --board: min(calc(100vw - 16px), calc((100vh - 16px - var(--next) - var(--keys) - 2 * var(--gap)) / 2));
     }

@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // A tapped button shows its pressed look (:active) on iPhones and iPads too: Safari shows it only to a page that
+    // listens for touches
+    document.addEventListener('touchstart', function() {}, { passive: true });
+
     const infoBtn = document.getElementById('showInfoBtn');
     const infoContainer = document.querySelector('.info-container');
     const restartBtn = document.getElementById('newGameBtn');
@@ -24,11 +28,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Toggle info container visibility
         if (infoContainer.style.display === 'none') {
             infoContainer.style.display = 'block';
-            infoBtn.textContent = 'Hide Info (i)';
+            infoBtn.textContent = 'Hide Info (I)';
             window.scrollTo({ top: window.scrollY + infoContainer.getBoundingClientRect().top, behavior: 'smooth' });
         } else {
             infoContainer.style.display = 'none';
-            infoBtn.textContent = 'Show Info (i)';
+            infoBtn.textContent = 'Show Info (I)';
             infoContainer.scrollTo({top: 0, behavior: 'smooth'});
         }
     }
@@ -46,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // New game shortcut
-        if (e.key === 'r' && !e.repeat) {
+        if (e.key === 'n' && !e.repeat) {
             restartBtn.click();
         }
 

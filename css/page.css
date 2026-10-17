@@ -1,4 +1,4 @@
-/* Neomorphic Sudoku Game Styles
+/* Neomorphic Sudoku Styles
  * The page around the game: the colours, the layout, the title, the buttons, the info and the notifications (and
  * GameHub's frame view) */
 
@@ -83,8 +83,11 @@ button {
     box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
     transition: box-shadow 0.2s ease, transform 0.2s ease;
 
-    &:hover {
-        box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+    /* Only with a mouse: on a touch screen it would stay that way after a tap */
+    @media (hover: hover) {
+        &:hover {
+            box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+        }
     }
 
     &:active {
@@ -146,6 +149,43 @@ select {
         border: none;
         height: 1px;
         background-color: var(--shadow-dark);
+    }
+}
+
+/* The controls, lined up in a table with no lines: the keys (or the touch) on the left, what they do on the right */
+.keys {
+    border-collapse: collapse;
+    font-size: 0.9rem;
+
+    th {
+        padding: 12px 0 4px;
+        color: var(--primary);
+        font-weight: 500;
+        text-align: left;
+    }
+
+    td {
+        padding: 5px 0;
+        vertical-align: baseline;
+    }
+
+    td:first-child {
+        padding-right: 20px;
+        white-space: nowrap;
+        line-height: 2;
+    }
+
+    /* A key: raised out of the page, like the buttons */
+    kbd {
+        display: inline-block;
+        min-width: 1.8em;
+        padding: 0 7px;
+        border-radius: 6px;
+        background: var(--background);
+        box-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light);
+        color: var(--primary);
+        font: 600 0.85em/1.8 "Poppins", sans-serif;
+        text-align: center;
     }
 }
 

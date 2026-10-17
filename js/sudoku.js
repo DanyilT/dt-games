@@ -1,5 +1,5 @@
 /**
- * Sudoku Game
+ * Sudoku
  *
  * The classic number puzzle: fill the 9×9 grid so that no row, column or 3×3 box has a digit twice.
  * The rules (the puzzle, made from the run's random numbers, and when it's solved) are in js/rules.js: this file shows the

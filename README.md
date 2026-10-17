@@ -1,9 +1,9 @@
-# Sudoku Game
+# Sudoku
 [![sudoku@v1.0.0](https://img.shields.io/badge/sudoku-v1.0.0-blue)](https://github.com/DanyilT/dt-games/releases/tag/sudoku@v1.0.0)
 
 Challenge your mind with this classic Japanese number puzzle game. Fill the grid following Sudoku rules.
 
-![Sudoku Game on a computer](img/desktop-screenshot.png)
+![Sudoku on a computer](img/desktop-screenshot.png)
 
 **[Play in GameHub](https://gamehub.foo/g/sudoku)** · [Play directly](https://sudoku.dt-games.pages.dev) · [Source code](https://github.com/DanyilT/dt-games/tree/sudoku)
 
@@ -18,7 +18,7 @@ Challenge your mind with this classic Japanese number puzzle game. Fill the grid
 | <kbd>Enter</kbd> | Check the solution (when no cell is selected) |
 | <kbd>Shift</kbd> + <kbd>Enter</kbd> | Check the solution |
 | <kbd>Shift</kbd> + <kbd>1</kbd> … <kbd>5</kbd> | Difficulty: For a Bread / Easy / Medium / Hard / Expert |
-| <kbd>R</kbd> | New game |
+| <kbd>N</kbd> | New game |
 | <kbd>I</kbd> | Show or hide the info (your wins and the instructions) |
 
 On a phone or tablet:

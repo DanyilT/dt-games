@@ -1,7 +1,8 @@
 /**
  * Saved data
  *
- * The game saves one object: { "highScore": 12, "game": { … } | null }.
+ * The game saves one object: { "highScore": 12, "sound": true, "game": { … } | null }. sound says whether the sounds
+ * are on (M).
  * game is the game under way, kept when it pauses (or the page is hidden or closed) so it carries on next time: its
  * state (js/rules.js saveState()), its run so far (js/gamehub.js run.save()), its speed and the best score before it.
  * js/gamehub.js keeps it: in this browser (localStorage, key snakeGameData), and in the player's GameHub account when they
@@ -10,7 +11,7 @@
 
 // What a new player starts with
 function defaultGameData() {
-    return { highScore: 0, game: null };
+    return { highScore: 0, sound: true, game: null };
 }
 
 // Keep only what the game understands, and use the defaults for anything missing or broken
@@ -18,6 +19,9 @@ function checkGameData(saved) {
     const data = defaultGameData();
     if (Number.isInteger(saved?.highScore) && saved.highScore > 0) {
         data.highScore = saved.highScore;
+    }
+    if (typeof saved?.sound === 'boolean') {
+        data.sound = saved.sound;
     }
     // The game under way: checked in full when it's loaded (GameRules.loadState(), GameHub.resumeRun())
     const game = saved?.game;

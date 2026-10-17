@@ -1,5 +1,5 @@
-/* The page around the game: the layout, the title, the score, the buttons and the instructions (and GameHub's frame
-   view) */
+/* The page around the game: the layout, the title, the score, the direction pad, the buttons and the instructions (and
+   GameHub's frame view) */
 
 body {
     font-family: Arial, sans-serif;
@@ -27,6 +27,7 @@ h1 {
     margin: 1em auto 2em auto;
 }
 
+/* Pause (in a game), New Game and More, in one row in the middle (the instructions under them don't move them) */
 .controls {
     display: flex;
     justify-content: center;
@@ -34,18 +35,129 @@ h1 {
     flex-wrap: wrap;
     gap: 1em;
     max-width: 400px;
+    margin: 0 auto;
 }
+
+/* More: its menu (the instructions and the sound) opens on hover with a mouse, or with a click or a tap */
+.more {
+    position: relative;
+}
+
+.more-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 10;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 6px; /* The pointer can cross to it without leaving */
+    min-width: 200px;
+}
+
+@media (hover: hover) {
+    .more:hover .more-menu {
+        display: flex;
+    }
+}
+
+.more.open .more-menu {
+    display: flex;
+}
+
+.more-menu button {
+    width: 100%;
+    text-align: left;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Sound off: the button says so */
+.more-menu #sound-button[aria-pressed="false"] {
+    color: dimgray;
+}
+
+/* The direction pad: only on a touch screen (with a mouse and keys, there's the keyboard). A button for each way round
+   Pause, like the page's other buttons, each with a sharp-cornered picture of what it does; Pause shows a play sign
+   while the game is paused. With the pad, its Pause is the one: the Pause button under it goes. */
+.game-controls {
+    display: none;
+    grid-template-columns: repeat(3, 64px);
+    grid-template-rows: repeat(3, 56px);
+    grid-template-areas:
+        ". up ."
+        "left pause right"
+        ". down .";
+    gap: 6px;
+    justify-content: center;
+    margin: 0 auto 1.5em;
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .game-controls {
+        display: grid;
+    }
+
+    .controls #pauseBtn {
+        display: none;
+    }
+}
+
+.game-controls button {
+    display: grid;
+    place-items: center;
+    padding: 0;
+    touch-action: manipulation; /* Quick taps aren't taken for a zoom */
+}
+
+.game-controls svg {
+    width: 55%;
+    height: 55%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+}
+
+#pad-pause .play,
+#pad-pause.paused .bars {
+    display: none;
+}
+
+#pad-pause.paused .play {
+    display: inline;
+    fill: currentColor;
+}
+
+#turn-up { grid-area: up; }
+#turn-left { grid-area: left; }
+#pad-pause { grid-area: pause; }
+#turn-right { grid-area: right; }
+#turn-down { grid-area: down; }
 
 button {
     padding: 0.8em 1em;
     font-size: 1em;
 }
 
-button:hover {
+/* A button lights up under the mouse (only with a mouse: on a touch screen it would stay lit after a tap), and darkens
+   while it's pressed; More stays lit while its menu is open */
+@media (hover: hover) {
+    button:hover {
+        background-color: lightgray;
+    }
+}
+
+button:active {
+    background-color: silver;
+}
+
+.more.open #more-button {
     background-color: lightgray;
 }
 
 .instructions {
+    box-sizing: border-box; /* No wider than the board, with its padding */
     margin: 20px auto;
     background-color: #fff;
     padding: 1em;
@@ -61,6 +173,44 @@ button:hover {
     font-size: 1.2em;
 }
 
+.instructions p {
+    margin: 0.5em 0;
+}
+
+/* The controls, lined up in a table with no lines: the keys (or the touch) on the left, what they do on the right,
+   under a heading for each */
+.keys {
+    border-collapse: collapse;
+}
+
+.keys th {
+    padding: 1em 0 0.3em;
+    text-align: left;
+}
+
+.keys td {
+    padding: 3px 0;
+    vertical-align: baseline;
+}
+
+.keys td:first-child {
+    padding-right: 1.5em;
+    white-space: nowrap;
+}
+
+/* A key: square, like the direction pad */
+.instructions kbd {
+    display: inline-block;
+    min-width: 1.2em;
+    padding: 2px 5px;
+    border: 1px solid darkgray;
+    border-bottom-width: 3px;
+    background-color: whitesmoke;
+    color: #222;
+    font: bold 0.95em Arial, sans-serif;
+    text-align: center;
+}
+
 /* Responsive styles */
 @media (max-width: 600px) {
     button {
@@ -68,10 +218,10 @@ button:hover {
     }
 }
 
-/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the canvas only, on its own black, in the
-   middle of the frame and as big as it allows (in the frame, vw and vh are the frame's), so it fits whatever frame
-   GameHub gives it; the frame's sizes in GameHub's games table decide how big. A tap on the canvas pauses, and a swipe
-   starts a new game (js/extend-controls.js). */
+/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the canvas only (and on a touch screen, the
+   direction pad under it), on its own black, in the middle of the frame and as big as it allows (in the frame, vw and
+   vh are the frame's), so it fits whatever frame GameHub gives it; the frame's sizes in GameHub's games table decide
+   how big. A tap on the canvas pauses, and a swipe starts a new game (js/extend-controls.js). */
 [data-gamehub-view="frame"] body {
     min-height: 100vh;
     background-color: #000;
@@ -90,4 +240,19 @@ button:hover {
     box-sizing: border-box;
     width: min(100vw, 100vh);
     max-width: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+    [data-gamehub-view="frame"] .game-container {
+        --pad: 188px; /* the direction pad's height (3 × 56px and 2 gaps of 6px), and its 8px gap */
+    }
+
+    [data-gamehub-view="frame"] .game-container > .game-controls {
+        display: grid;
+        margin: 8px auto 0;
+    }
+
+    [data-gamehub-view="frame"] canvas {
+        width: min(100vw, calc(100vh - var(--pad)));
+    }
 }

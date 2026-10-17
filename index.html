@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Game</title>
+    <title>Snake</title>
     <meta name="description" content="Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!">
     <meta name="theme-color" content="#d3d3d3">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="DanyilT Games">
-    <meta property="og:title" content="Snake Game">
+    <meta property="og:title" content="Snake">
     <meta property="og:description" content="Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!">
     <meta property="og:url" content="https://snake.dt-games.pages.dev/">
     <meta property="og:image" content="https://snake.dt-games.pages.dev/img/desktop-screenshot.png">
     <meta property="og:image:width" content="1440">
     <meta property="og:image:height" content="900">
-    <meta property="og:image:alt" content="Snake Game: the Snake board on a computer, before a game">
+    <meta property="og:image:alt" content="Snake: the Snake board on a computer, before a game">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="img/icon-32.png" sizes="32x32" type="image/png">
     <link rel="icon" href="img/icon.svg" type="image/svg+xml">
@@ -26,32 +26,70 @@
 </head>
 <body>
 <main class="game-container">
-    <h1>Snake Game</h1>
+    <h1>Snake</h1>
     <canvas id="game" width="400" height="400" data-play-area role="img" aria-label="The Snake board"></canvas>
     <div class="score-container">
         <p>Score: <span id="score">0</span></p>
         <p>High Score: <span id="highScore">0</span></p>
     </div>
+    <!-- The direction pad, on a touch screen (css/page.css): a button for each way, and Pause in the middle -->
+    <div class="game-controls" aria-label="Controls">
+        <button id="turn-up" aria-label="Up">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg>
+        </button>
+        <button id="turn-left" aria-label="Left">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
+        </button>
+        <button id="pad-pause" aria-label="Pause or resume">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="bars" d="M9 6v12M15 6v12"/><path class="play" d="M8 6v12l10-6z"/></svg>
+        </button>
+        <button id="turn-right" aria-label="Right">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <button id="turn-down" aria-label="Down">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg>
+        </button>
+    </div>
     <div class="controls">
-        <button id="restartBtn">Restart Game (r)</button>
-        <button id="pauseBtn">Pause Game (space)</button>
-        <button id="showInstructionsBtn">Show Instructions (i)</button>
+        <!-- Pause, while a game is under way (js/snake.js) -->
+        <button id="pauseBtn" hidden>Pause (Space)</button>
+        <button id="restartBtn">New Game (N)</button>
+        <!-- More: the instructions and the sound, on hover or a click (js/buttons-handler.js) -->
+        <div class="more">
+            <button id="more-button" aria-haspopup="true" aria-expanded="false" aria-controls="more-menu">More</button>
+            <div class="more-menu" id="more-menu">
+                <button id="showInstructionsBtn">Show Instructions (I)</button>
+                <button id="sound-button" aria-pressed="true">Sound: On (M)</button>
+            </div>
+        </div>
     </div>
     <aside class="instructions">
-        <h2>How to Play:</h2>
-        <p>Use arrow keys to control the snake.</p>
-        <p>Eat the food to grow longer and earn points.</p>
-        <p>Avoid hitting the walls or your own tail!</p>
-        <hr>
-        <p>Press "SPACE" to pause the game, and "SPACE" or an arrow key to resume it.</p>
-        <p>Press "R" to restart the game.</p>
+        <h2>How to Play</h2>
+        <p>Steer the snake to the food: each bite makes it longer, and is a point. Don't hit the walls or your own tail!</p>
+        <!-- The controls, lined up: the keys (or the touch) on the left, what they do on the right -->
+        <table class="keys">
+            <tr><th colspan="2">Keys</th></tr>
+            <tr><td><kbd>↑</kbd> <kbd>W</kbd></td><td>Go up</td></tr>
+            <tr><td><kbd>←</kbd> <kbd>A</kbd></td><td>Go left</td></tr>
+            <tr><td><kbd>↓</kbd> <kbd>S</kbd></td><td>Go down</td></tr>
+            <tr><td><kbd>→</kbd> <kbd>D</kbd></td><td>Go right</td></tr>
+            <tr><td><kbd>Space</kbd> <kbd>Esc</kbd></td><td>Pause or resume</td></tr>
+            <tr><td><kbd>N</kbd></td><td>New game</td></tr>
+            <tr><td><kbd>M</kbd></td><td>Sound on or off</td></tr>
+            <tr><td><kbd>I</kbd></td><td>Show or hide these instructions</td></tr>
+            <tr><th colspan="2">Touch</th></tr>
+            <tr><td><b>Swipe</b></td><td>Turn</td></tr>
+            <tr><td><b>Tap</b> the board</td><td>Pause or resume</td></tr>
+            <tr><td><b>The pad</b></td><td>Turn; the middle pauses or resumes</td></tr>
+        </table>
+        <p>Turning starts a game, and resumes a paused one.</p>
     </aside>
     <!-- JavaScript for this page -->
     <script src="js/buttons-handler.js"></script>
     <script src="js/extend-controls.js"></script>
 </main>
-<footer style="display: none">&copy; Dany | SnakeGame | 2025-2026 <hr> <a href="https://github.com/DanyilT/dt-games/tree/snake">source code</a></footer>
-<!-- Snake Game Code -->
+<footer style="display: none">&copy; Dany | Snake | 2025-2026 <hr> <a href="https://github.com/DanyilT/dt-games/tree/snake">source code</a></footer>
+<!-- Snake Code -->
 <script src="js/storage.js"></script>
 <script src="js/rules.js"></script>
 <script src="js/snake.js"></script>

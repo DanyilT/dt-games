@@ -1,6 +1,7 @@
 /* The game itself: its canvas */
 
 canvas {
+    box-sizing: border-box; /* The border inside its width: filling a narrow screen, it doesn't stick out */
     background-color: #000;
     border: 2px solid dimgray;
     width: 100%;

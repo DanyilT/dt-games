@@ -1,5 +1,5 @@
 /**
- * Snake Game
+ * Snake
  *
  * A simple implementation of the classic Snake game using JavaScript and HTML5 Canvas.
  * The game features a snake that grows longer as it eats food, and the player must avoid colliding with the walls or itself.
@@ -13,7 +13,9 @@
  * - Collision detection
  * - Score tracking
  * - Game over and restart functionality
- * - Pause functionality
+ * - Pause functionality (Space or Esc, or Pause)
+ * - Sounds, made in the browser (Web Audio), on or off with M
+ * - A direction pad on touch screens (index.html, buttons-handler.js)
  * - High score tracking
  * - Instructions and controls
  * - Responsive design for different screen sizes
@@ -25,8 +27,8 @@
  *
  * Instructions:
  * - Use arrow keys to control the snake's direction.
- * - Press the spacebar to pause or resume the game (an arrow key resumes it too).
- * - Press 'r' to restart the game.
+ * - Press the spacebar or Esc to pause or resume the game (an arrow key resumes it too).
+ * - Press 'n' for a new game (back to the start screen).
  * - Use the 'i' key to toggle instructions. (in index.html, see buttons-handler.js)
  *
  * Parameters - call the setGameParameters function to set:
@@ -74,9 +76,59 @@ loadGameData().then((data) => {
     }
     highScore = gameData.highScore;
     document.getElementById('highScore').textContent = highScore;
+    document.dispatchEvent(new Event('snake:sound')); // More's Sound button shows whether it's on
     showStatus();
     resumeSavedGame();
 });
+
+// --- Sounds, made in the browser (no files): a game starting, food eaten, the end ---
+
+let audio = null;
+
+// A short tone: its wave, its pitch from start to end (Hz), how long (s) and how loud, after a delay (s)
+function tone(wave, from, to, length, volume, delay = 0) {
+    const start = audio.currentTime + delay;
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
+    oscillator.type = wave;
+    oscillator.frequency.setValueAtTime(from, start);
+    oscillator.frequency.exponentialRampToValueAtTime(to, start + length);
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + length);
+    oscillator.connect(gain).connect(audio.destination);
+    oscillator.start(start);
+    oscillator.stop(start + length);
+}
+
+// Play a sound, if the sound is on (not in a replay)
+function sound(kind) {
+    if (gameData?.sound === false || GameHub.replaying) return;
+    try {
+        audio ??= new AudioContext();
+        if (audio.state === 'suspended') audio.resume();
+        if (kind === 'start') tone('square', 330, 660, 0.12, 0.05);
+        if (kind === 'eat') tone('square', 660, 990, 0.07, 0.06);
+        if (kind === 'over') [330, 262, 196].forEach((pitch, i) => tone('triangle', pitch, pitch * 0.95, 0.2, 0.09, i * 0.16));
+    } catch (error) {
+        // No Web Audio here: no sounds
+    }
+}
+
+// Sound on or off (saved; More's Sound button says which)
+function toggleSound() {
+    if (!gameData) return;
+    gameData.sound = gameData.sound === false;
+    saveGameData(gameData);
+    document.dispatchEvent(new Event('snake:sound'));
+}
+
+// Pause shows only while a game is under way, and says what it does now
+function showButtons() {
+    const pauseBtn = document.getElementById('pauseBtn');
+    pauseBtn.hidden = !gameActive || GameHub.replaying;
+    pauseBtn.textContent = gamePause ? 'Resume (Space)' : 'Pause (Space)';
+    document.getElementById('pad-pause').classList.toggle('paused', gameActive && gamePause); // The pad's: a play sign
+}
 
 // GameHub's panel: the score and the high score
 function showStatus() {
@@ -134,9 +186,9 @@ window.onload = function() {
 // What the screen says starts, resumes or restarts the game: on a touch screen (no mouse), a swipe or a tap; with a
 // keyboard, its keys, once the page has it (in GameHub's frame, a click on the game gives it the keyboard)
 const KEYS_HINTS = {
-    start: { touch: 'Swipe to start', away: 'Click here to play', keys: 'Press an arrow key to start' },
+    start: { touch: 'Swipe or tap an arrow to start', away: 'Click here to play', keys: 'Press an arrow key to start' },
     resume: { touch: 'Tap or swipe to resume', away: 'Click here, then press SPACE', keys: 'Press SPACE or an arrow key to resume' },
-    restart: { touch: 'Swipe to play again', away: 'Click here to play again', keys: 'Press an arrow key to restart' },
+    restart: { touch: 'Swipe or tap an arrow to play again', away: 'Click here to play again', keys: 'Press an arrow key to play again' },
 };
 function keysHint(action, focused = document.hasFocus()) {
     const hints = KEYS_HINTS[action];
@@ -171,7 +223,7 @@ function resumeSavedGame() {
     gamePause = false;
     document.getElementById('score').textContent = game.score;
     render();
-    pauseGame(); // It waits for the player: Space, or a tap
+    pauseGame(); // It waits for the player: Space, Esc, an arrow key, or a tap
     showStatus();
 }
 
@@ -214,7 +266,11 @@ function resetGame(replayRun = null) {
     if (typeof gameInterval !== 'undefined') {
         clearInterval(gameInterval);
     }
-    if (!replayRun) gameInterval = setInterval(gameLoop, gameSpeed);
+    if (!replayRun) {
+        gameInterval = setInterval(gameLoop, gameSpeed);
+        sound('start');
+    }
+    showButtons();
     showStatus();
 }
 
@@ -232,6 +288,7 @@ function gameLoop() {
 
     if (moved === 'ate') {
         document.getElementById('score').textContent = game.score;
+        sound('eat');
 
         if (game.score > highScore) {
             highScore = game.score;
@@ -256,8 +313,8 @@ function keyDown(e) {
     if (GameHub.replaying) return;
     // The game's keys don't scroll the page, or press a button that still has focus
     if (e.key.startsWith('Arrow') || (e.key === ' ' && gameActive)) e.preventDefault();
-    // A held-down key doesn't start a new game, restart, flicker the pause, or do anything while paused
-    if (e.repeat && (!gameActive || gamePause || e.key === ' ' || e.key === 'r')) return;
+    // A held-down key doesn't start a new game, flicker the pause, or do anything while paused
+    if (e.repeat && (!gameActive || gamePause || e.key === ' ' || e.key === 'Escape' || e.key === 'n')) return;
 
     // If game is not active, start it with any arrow key
     const arrowKey = e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight';
@@ -283,17 +340,21 @@ function keyDown(e) {
             turn('R');
             break;
         case ' ':
-            // Pause game
+        case 'Escape':
+            // Pause or resume the game under way
             pauseGame();
             break;
-        case 'r':
-            run?.discard(); // Restarted before it ended: not kept
+        case 'n':
+            // New game: back to the start screen (a game under way is dropped: not kept)
+            if (gameActive) run?.discard();
+            clearInterval(gameInterval);
             gameActive = false;
             gamePause = false;
             gameOverShown = false;
             saveProgress(); // No game under way any more
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             showIntro();
+            showButtons();
             showStatus();
             break;
     }
@@ -312,7 +373,7 @@ function showIntro(focused) {
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
     ctx.font = '50px Arial';
-    ctx.fillText('Snake Game', canvas.width / 2, canvas.height / 2);
+    ctx.fillText('Snake', canvas.width / 2, canvas.height / 2);
     ctx.font = '20px Arial';
     ctx.fillText(keysHint('start', focused), canvas.width / 2, canvas.height / 2 + 50);
 }
@@ -370,6 +431,7 @@ function pauseGame() {
         gamePause = false;
         gameInterval = setInterval(gameLoop, gameSpeed);
     }
+    showButtons();
 }
 
 // Game over
@@ -380,6 +442,8 @@ function gameOver() {
     saveProgress(); // The game ended: no game to carry on
     showStatus();
     gameOverShown = true;
+    sound('over');
+    showButtons();
     showGameOver();
 }
 

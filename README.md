@@ -1,15 +1,15 @@
-# Snake Game
+# Snake
 [![snake@v1.0.0](https://img.shields.io/badge/snake-v1.0.0-blue)](https://github.com/DanyilT/dt-games/releases/tag/snake@v1.0.0)
 
 Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!
 
-![Snake Game on a computer](img/desktop-screenshot.png)
+![Snake on a computer](img/desktop-screenshot.png)
 
 **[Play in GameHub](https://gamehub.foo/g/snake)** · [Play directly](https://snake.dt-games.pages.dev) · [Source code](https://github.com/DanyilT/dt-games/tree/snake)
 
 ## 🕹️ Controls
 
-Press an arrow key (or swipe on a phone) to start. In GameHub, click the game first, so it has the keyboard: it says so.
+Press an arrow key (or, on a phone, swipe or tap an arrow under the board) to start. In GameHub, click the game first, so it has the keyboard: it says so.
 
 | Keys | Action |
 | --- | --- |
@@ -17,28 +17,33 @@ Press an arrow key (or swipe on a phone) to start. In GameHub, click the game fi
 | <kbd>A</kbd> / <kbd>←</kbd> | Go left |
 | <kbd>S</kbd> / <kbd>↓</kbd> | Go down |
 | <kbd>D</kbd> / <kbd>→</kbd> | Go right |
-| <kbd>Space</kbd> | Pause or resume (an arrow key or <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> resumes too, and turns) |
-| <kbd>R</kbd> | Restart |
+| <kbd>Space</kbd> / <kbd>Esc</kbd> | Pause or resume (an arrow key or <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> resumes too, and turns) |
+| <kbd>N</kbd> | New game: back to the start screen (a game under way is dropped) |
+| <kbd>M</kbd> | Sound on or off |
 | <kbd>I</kbd> | Show or hide the instructions |
+
+The buttons under the board: Pause (during a game), New Game, and More, whose menu (on hover, or a click or a tap) has the instructions and the sound.
 
 On a phone or tablet:
 
 - **Swipe** on the board to turn the snake (or start a game, or resume a paused one).
 - **Tap** the board to pause or resume.
-- **Tap** the buttons under the board to restart, pause and show the instructions.
+- **Tap** the direction pad under the board to turn (or start, or resume); its middle button pauses or resumes (it shows a play sign while the game is paused). The pad shows on touch screens only, in GameHub's frame too, and takes the place of the Pause button.
+- **Tap** the buttons under it for a new game; More has the instructions and the sound.
 
 ## ✨ Features
 
 - Responsive controls
 - Score tracking
 - High score system (kept in the browser)
-- Mobile-friendly: swipe to turn, tap to pause
+- Sounds made in the browser (Web Audio): a game starting, food eaten, the end; on or off with M
+- Mobile-friendly: swipe or use the direction pad to turn, tap to pause
 - Pauses by itself when you switch away (another tab, a locked phone, a click outside GameHub's frame), and carries on where you left off next time
 - Easter Egg
 
 ## 💾 Saved data
 
-The game saves your high score, and the game you're playing, as one object: `{ "highScore": <int>, "game": { … } | null }`.
+The game saves your high score, whether the sound is on, and the game you're playing, as one object: `{ "highScore": <int>, "sound": <bool>, "game": { … } | null }`.
 `game` is kept when the game pauses, or when you switch away or close the page, so it comes back next time, paused: the snake, the food and the score (`state`), the run so far for GameHub (`run`, see below), the speed and your best before it. It's taken out when the game ends.
 It's kept in the browser, in `localStorage` under `snakeGameData`, and in your GameHub account when you play in GameHub signed in (see below).
 If the browser blocks storage (some do inside an iframe), the game still plays, but it doesn't remember your high score.
@@ -49,7 +54,7 @@ If the browser blocks storage (some do inside an iframe), the game still plays, 
 
 - **Saves:** the game saves only through `window.GameHub`. Every save stays in this browser, as before. When you play in GameHub signed in, your progress also goes to your GameHub account, and the game loads the account's copy, so it follows you from device to device. The first time you play signed in on a device, if your account has no save for this game yet, this device's goes up.
 - **The play area:** GameHub asks the game to put its play area in the middle of the frame (the `gamehub:center` message).
-- **The frame view:** in GameHub's frame, the game shows only what's needed to play: the canvas alone (a tap pauses, a swipe starts a new game). In full screen it shows the whole page. `js/gamehub.js` sets `data-gamehub-view` on the page (`frame`, or `full` when GameHub's `gamehub:view` message says so), and `css/page.css` says what the frame shows.
+- **The frame view:** in GameHub's frame, the game shows only what's needed to play: the canvas alone (a tap pauses, a swipe starts a new game), and on a touch screen the direction pad under it. In full screen it shows the whole page. `js/gamehub.js` sets `data-gamehub-view` on the page (`frame`, or `full` when GameHub's `gamehub:view` message says so), and `css/page.css` says what the frame shows.
 - **Pausing and loading:** the game pauses when GameHub asks (the `gamehub:pause` message) and when its frame loses the keyboard, and it tells GameHub when it's ready to play (`GameHub.playable()`, the `gamehub:playable` message).
 - **Offline:** you can download the game in GameHub (the Download button on its page there) to play it offline. The game's worker (`sw.js`, the same in every game) then keeps a copy of it: every file `offline.json` lists, each checked against its SHA-256. From then on the game opens from its copy at once, even on a slow network, and each time it opens, the worker checks the copy against the deployed game in the background: a new version, or a file that's changed or broken, is downloaded again, and the copy switches only once it's whole. It keeps GameHub's script too, so offline the game still connects to GameHub (tickets, runs, saves). `offline.json` isn't in git: `tools/offline-json.mjs` writes it at each deploy (Cloudflare Pages' build command).
 - **The panel and replays:** under the game, GameHub shows what the game tells it with `GameHub.status()` (the score now, your best, and more behind its More button), and each game you finish is kept as a run, so you can watch it again there: the run's random seed and your moves, never a video. The food is placed from the run's seed, and each turn is recorded with the step it came after. Runs stay in your browser. A cheat (the console, the Easter egg) means that game isn't kept.

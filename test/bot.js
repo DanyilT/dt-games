@@ -4,7 +4,8 @@
  * Each game starts with an arrow key. The bot steps the game itself (the page's own timer is stopped), so a game takes
  * no time, and steers through the page's own keys (arrows and W A S D): towards the food, never into a wall or itself,
  * except for a turn at random now and then (which may be the end of it). Once in a while it pauses (Space) and resumes
- * with an arrow key. A game still going after 4000 steps is restarted (R), and its run isn't kept.
+ * with an arrow key (or Esc pauses, and Esc resumes). A game still going after 4000 steps is dropped with a new game
+ * (N), and its run isn't kept.
  */
 window.ReplayBot = (function () {
     const KEYS = { U: ['ArrowUp', 'w'], D: ['ArrowDown', 's'], L: ['ArrowLeft', 'a'], R: ['ArrowRight', 'd'] };
@@ -62,9 +63,13 @@ window.ReplayBot = (function () {
 
             for (let steps = 0; steps < MAX_STEPS && page.eval('gameActive'); steps++) {
                 const chance = t.random();
-                if (chance < 0.005) {
+                if (chance < 0.003) {
                     t.key(' '); // Pause
                     press(t, anyDirection(t)); // An arrow key resumes it, and turns
+                    stopTimer(page);
+                } else if (chance < 0.005) {
+                    t.key('Escape'); // Pause
+                    t.key('Escape'); // And resume
                     stopTimer(page);
                 } else if (chance < 0.007) {
                     press(t, anyDirection(t)); // At random: maybe the end of it
@@ -79,7 +84,7 @@ window.ReplayBot = (function () {
                 page.gameLoop();
                 if (steps % 200 === 0) await t.pause();
             }
-            if (page.eval('gameActive')) t.key('r'); // Gave up: restart (the run is discarded)
+            if (page.eval('gameActive')) t.key('n'); // Gave up: a new game (the run is discarded)
         },
     };
 })();

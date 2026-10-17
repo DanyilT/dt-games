@@ -9,7 +9,7 @@
  *
  * Features:
  * - Get Ready, the game, a scoreboard with the best score and a medal (bronze from 10, silver 20, gold 30, platinum 40)
- * - Flap with Space, ↑, W, a click or a tap; pause with P, Esc or the pause button on the canvas
+ * - Flap with Space, ↑, W, a click or a tap; pause with Esc or the pause button on the canvas
  * - Sounds, made in the browser (Web Audio), on or off with M
  * - Pauses by itself when the page is hidden, loses the keyboard, or GameHub asks; a paused game is saved, and carries on
  *   (paused) next time
@@ -202,7 +202,7 @@ function toggleSound() {
 
 // --- The game ---
 
-// Back to Get Ready (a game under way is dropped: not kept)
+// A new game: back to Get Ready (a game under way is dropped: not kept)
 function toReady() {
     const dropped = screen === 'playing';
     if (dropped) run?.discard();
@@ -295,7 +295,7 @@ function gameOver() {
     showStatus();
 }
 
-// Pause the game under way (the pause button, P, Esc; the page hidden; GameHub)
+// Pause the game under way (the pause button, Esc; the page hidden; GameHub)
 function pause() {
     if (screen !== 'playing' || paused || GameHub.replaying) return;
     paused = true;
@@ -344,7 +344,7 @@ function resumeSavedGame() {
     previousY = game.y;
     bestBefore = saved.best;
     screen = 'playing';
-    paused = true; // It waits for the player: a flap, P, or the play button
+    paused = true; // It waits for the player: a flap, Esc, or the play button
     newBest = false;
     accumulator = 0;
     document.getElementById('score').textContent = game.score;
@@ -360,16 +360,16 @@ window.addEventListener('pagehide', pause);
 window.addEventListener('blur', pause);
 document.addEventListener('gamehub:pause', pause);
 
-// The keys: Space and ↑ flap; P and Esc pause; R goes back to Get Ready (js/extend-controls.js adds W, clicks and taps;
-// js/buttons-handler.js, M and I)
+// The keys: Space and ↑ flap; Esc pauses; N starts a new game, back at Get Ready (js/extend-controls.js adds W, clicks
+// and taps; js/buttons-handler.js, M and I)
 document.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey || GameHub.replaying) return;
     if (e.key === ' ' || e.key === 'ArrowUp') {
         e.preventDefault(); // Not a scroll, or a button that still has focus
         if (!e.repeat) flap();
-    } else if ((e.key === 'p' || e.key === 'Escape') && !e.repeat) {
+    } else if (e.key === 'Escape' && !e.repeat) {
         togglePause();
-    } else if (e.key === 'r' && !e.repeat) {
+    } else if (e.key === 'n' && !e.repeat) {
         toReady();
     }
 });
@@ -391,7 +391,7 @@ function pressCanvas(clientX, clientY) {
 // GameHub's frame, a click on the game gives it the keyboard)
 const KEYS_HINTS = {
     start: { touch: 'Tap to flap', away: 'Click here to play', keys: 'Press Space to flap' },
-    resume: { touch: 'Tap to carry on', away: 'Click here to carry on', keys: 'Space or P to carry on' },
+    resume: { touch: 'Tap to carry on', away: 'Click here to carry on', keys: 'Space or Esc to carry on' },
     restart: { touch: 'Tap to play again', away: 'Click here to play again', keys: 'Press Space to play again' },
 };
 function keysHint(action) {

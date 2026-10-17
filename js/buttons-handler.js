@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // A tapped button shows its pressed look (:active) on iPhones and iPads too: Safari shows it only to a page that
+    // listens for touches
+    document.addEventListener('touchstart', function() {}, { passive: true });
+
     const instructionsBtn = document.getElementById('showInstructionsBtn');
     const instructions = document.querySelector('.instructions');
     const restartBtn = document.getElementById('restartBtn');
@@ -9,11 +13,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function toggleInstructions() {
         if (instructions.style.display === 'none') {
             instructions.style.display = 'block';
-            instructionsBtn.textContent = 'Hide Instructions (i)';
+            instructionsBtn.textContent = 'Hide Instructions (I)';
             window.scrollTo({ top: window.scrollY + instructions.getBoundingClientRect().top, behavior: 'smooth' });
         } else {
             instructions.style.display = 'none';
-            instructionsBtn.textContent = 'Show Instructions (i)';
+            instructionsBtn.textContent = 'Show Instructions (I)';
             instructions.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }
@@ -24,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // The Sound button says whether the sound is on (js/flappy-bird.js tells it when that changes)
     function showSound() {
-        soundBtn.textContent = soundOn ? 'Sound: On (m)' : 'Sound: Off (m)';
+        soundBtn.textContent = soundOn ? 'Sound: On (M)' : 'Sound: Off (M)';
         soundBtn.setAttribute('aria-pressed', String(soundOn));
     }
     showSound();
@@ -37,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'm') toggleSound();
     });
 
-    // The buttons: back to Get Ready, pause or resume, the sound
+    // The buttons: a new game (back to Get Ready), pause or resume, the sound
     restartBtn.addEventListener('click', toReady);
     pauseBtn.addEventListener('click', togglePause);
     soundBtn.addEventListener('click', toggleSound);

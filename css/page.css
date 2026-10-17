@@ -58,8 +58,12 @@ button {
     cursor: pointer;
 }
 
-button:hover {
-    background-color: #f5f0c4;
+/* Lighter under the mouse (only with a mouse: on a touch screen it would stay light after a tap); pressed, it goes
+   down */
+@media (hover: hover) {
+    button:hover {
+        background-color: #f5f0c4;
+    }
 }
 
 button:active {
@@ -81,6 +85,47 @@ button:active {
 .instructions h2 {
     margin-top: 0;
     font-size: 1.2em;
+}
+
+.instructions p {
+    margin: 0.5em 0;
+}
+
+/* The controls, lined up in a table with no lines: the keys (or the mouse and touch) on the left, what they do on the
+   right */
+.keys {
+    border-collapse: collapse;
+}
+
+.keys th {
+    padding: 0.8em 0 0.3em;
+    text-align: left;
+}
+
+.keys td {
+    padding: 4px 0 3px;
+    vertical-align: baseline;
+}
+
+.keys td:first-child {
+    padding-right: 1.5em;
+    white-space: nowrap;
+}
+
+/* A key: like the buttons, in the game's sand and brown */
+.instructions kbd {
+    display: inline-block;
+    min-width: 1.2em;
+    padding: 1px 6px;
+    border: 2px solid #543847;
+    border-radius: 5px;
+    background-color: #f5f0c4;
+    box-shadow: 0 2px 0 #543847;
+    color: #543847;
+    font-family: inherit;
+    font-size: 0.95em;
+    font-weight: bold;
+    text-align: center;
 }
 
 /* The Easter egg (js/qwerty.js): the page at night too, its writing light */

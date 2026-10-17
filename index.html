@@ -33,20 +33,28 @@
         <p>Best: <span id="highScore">0</span></p>
     </div>
     <div class="controls">
-        <button id="restartBtn">Restart (r)</button>
-        <button id="pauseBtn">Pause (p)</button>
-        <button id="soundBtn" aria-pressed="true">Sound: On (m)</button>
-        <button id="showInstructionsBtn">Show Instructions (i)</button>
+        <button id="restartBtn">New Game (N)</button>
+        <button id="pauseBtn">Pause (Esc)</button>
+        <button id="soundBtn" aria-pressed="true">Sound: On (M)</button>
+        <button id="showInstructionsBtn">Show Instructions (I)</button>
     </div>
     <aside class="instructions">
-        <h2>How to Play:</h2>
-        <p>Press Space (or ↑, or W), click or tap to flap: each flap lifts the bird, and it falls in between.</p>
-        <p>Fly through the gaps between the pipes. Each pipe you pass is a point.</p>
-        <p>Don't touch a pipe or the ground!</p>
+        <h2>How to Play</h2>
+        <p>Flap through the gaps between the pipes: each flap lifts the bird, and it falls in between. Each pipe you pass is a point. Don't touch a pipe or the ground!</p>
         <p>Medals: bronze from 10 points, silver from 20, gold from 30, platinum from 40.</p>
-        <hr>
-        <p>Press "P" or "Esc" (or the button at the top left of the game) to pause. A paused game is saved: close the page, and it carries on next time.</p>
-        <p>Press "R" to go back to Get Ready, and "M" to turn the sound on or off.</p>
+        <!-- The controls, lined up: the keys (or the mouse and touch) on the left, what they do on the right -->
+        <table class="keys">
+            <tr><th colspan="2">Keys</th></tr>
+            <tr><td><kbd>Space</kbd> <kbd>↑</kbd> <kbd>W</kbd></td><td>Flap</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Pause or resume</td></tr>
+            <tr><td><kbd>N</kbd></td><td>New game</td></tr>
+            <tr><td><kbd>M</kbd></td><td>Sound on or off</td></tr>
+            <tr><td><kbd>I</kbd></td><td>Show or hide these instructions</td></tr>
+            <tr><th colspan="2">Mouse and touch</th></tr>
+            <tr><td><b>Click</b> or <b>tap</b></td><td>Flap</td></tr>
+            <tr><td>The <b>pause button</b></td><td>Pause or resume (at the top left)</td></tr>
+        </table>
+        <p>A flap starts a game, and carries on a paused one. A paused game is saved: close the page, and it carries on next time.</p>
     </aside>
     <!-- JavaScript for this page -->
     <script src="js/buttons-handler.js"></script>

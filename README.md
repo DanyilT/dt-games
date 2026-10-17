@@ -1,4 +1,5 @@
 # Flappy Bird
+[![flappy-bird@v1.0.0](https://img.shields.io/badge/flappy--bird-v1.0.0-blue)](https://github.com/DanyilT/dt-games/releases/tag/flappy-bird@v1.0.0)
 
 Flap through the gaps between the pipes, as far as you can: the classic one-button game, in the original's style. Every picture is drawn in code (no image files from the original), and the sounds are made in the browser.
 
@@ -14,8 +15,8 @@ Flap to start. In GameHub, click the game first, so it has the keyboard: it says
 | --- | --- |
 | <kbd>Space</kbd> / <kbd>↑</kbd> / <kbd>W</kbd> | Flap (and start, carry on after a pause, or leave the scoreboard) |
 | Click | Flap (or, on the button at the top left, pause) |
-| <kbd>P</kbd> / <kbd>Esc</kbd> | Pause or resume |
-| <kbd>R</kbd> | Back to Get Ready |
+| <kbd>Esc</kbd> | Pause or resume |
+| <kbd>N</kbd> | New game: back to Get Ready (a game under way is dropped) |
 | <kbd>M</kbd> | Sound on or off |
 | <kbd>I</kbd> | Show or hide the instructions |
 

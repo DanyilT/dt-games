@@ -1,0 +1,1405 @@
+{
+ "diffs": [
+  {
+   "version": "Bounce_1.01_LockedRes_128x128_EnMulti (MIDlet-Version 1.01, Nokia, MIDP-1.0/CLDC-1.0, 128x128, built 2 Oct 2002)",
+   "classMap": "Not obfuscated, and it has the same class names as 1.8: Bounce=Bounce, Ball=Ball, BounceCanvas=BounceCanvas, BounceUI=BounceUI, Local=Local, Profile=Profile (byte-identical class file), TileCanvas=TileCanvas, TileCanvas$GameTimer=TileCanvas$GameTimer. There is no BounceConst class. Its constants are declared where they are used: physics and scoring in Ball (Ball.java:40-84), tile and image IDs, colours and sizes in TileCanvas (TileCanvas.java:44-236), HUD layout in BounceCanvas (BounceCanvas.java:46-64). Field renames only: Ball.myParent is 1.8 Ball.mCanvas, and BounceCanvas.myBall is 1.8 BounceCanvas.mBall. Ball has an extra unused field mCDEdgeFlag. Both class sets carry LineNumberTables. All line numbers below are CFR lines in <ver>/cfr/com/nokia/mid/appl/boun/<File>.java.",
+   "differences": [
+    {
+     "area": "timing",
+     "what": "Game timer period",
+     "baseline": "30 ms: TileCanvas.java:984 timer.schedule(this,0,30)",
+     "thisVersion": "40 ms: TileCanvas.java:1148 timer.schedule(this,0,40)",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "No speed clamp. 1.8 clamps ySpeed and xSpeed to [-150,150] at the start of each update, before the vertical loop. 1.01 has no clamp, so stacked rubber jumps (jumpOffset -10 per rubber bounce with UP held), jump bonus and ramp redirects can give |speed|>150, which means more pixels per step.",
+     "baseline": "Ball.java:776-785 (MAX_TOTAL_SPEED=150, BounceConst.java:42)",
+     "thisVersion": "Ball.java:716-721: nothing between the slideCntr update and the vertical loop",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "A floor bounce does not end the vertical movement loop. In 1.8, once the ball hits the floor (or the ceiling under reversed gravity), ySpeed=-ySpeed/2, grounded=true, and the loop is left with break (bytecode goto 946, outside the loop). In 1.01 the loop keeps running (goto 854 = i++), and its bound abs(ySpeed)/10 is re-read with the new halved, reversed speed. If i+1 < |new ySpeed|/10, the ball moves back up the remaining pixels in the same step. Each such move sets mGroundedFlag=false (Ball.java:728). That has two effects: (a) no jump on that landing, because the jump test at Ball.java:807 needs grounded, so the ball makes a natural half-speed bounce and jumps on a later, slower landing; (b) gravity is applied after the loop that step.",
+     "baseline": "Ball.java:814-830 (break after the bounce in every case)",
+     "thisVersion": "Ball.java:748-759 (no break; loop continues to 764)",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Ceiling rebound speed is ±6 instead of ±20. After hitting a ceiling (or the floor under reversed gravity), ySpeed = bl?-6:6. Because |6|/10=0, the rest of the vertical loop is skipped that step. In 1.8 it is ±20, which allows up to one more pixel that step and a faster drop.",
+     "baseline": "Ball.java:831-833 ySpeed = bl ? -20 : 20 (ROOF_COLLISION_SPEED=20, BounceConst.java:38)",
+     "thisVersion": "Ball.java:760-762 ySpeed = bl ? -6 : 6 (ROOF_COLLISION_SPEED=6, Ball.java:72)",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "When a large ball leaves water mid-loop, ySpeed is halved with integer division (rounds toward 0) instead of an arithmetic shift (rounds toward -inf). The two differ for odd negative ySpeed (for example -15 gives -7 in 1.01 and -8 in 1.8), and that feeds the following |ySpeed|<=10 → 0 snap.",
+     "baseline": "Ball.java:795-800 ySpeed >>= 1 (bytecode ishr at 598)",
+     "thisVersion": "Ball.java:729-734 ySpeed /= 2 (bytecode idiv at 524)",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "No wall bounce. In the horizontal loop, when the ramp flag is set and both diagonal moves are blocked, 1.8 reverses and halves xSpeed (xSpeed = -(xSpeed>>1)). 1.01 has no else branch, so xSpeed is kept and the ball keeps pushing into the wall.",
+     "baseline": "Ball.java:892-905 (else at 902-904)",
+     "thisVersion": "Ball.java:821-832 (no else)",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Plain (non-rubber) ramps 30-33 redirect the ball at full speed. In 1.01 the triangle redirect swaps speeds at full value for all 8 triangles (31,33,35,37: x=y,y=x; 30,32,34,36: x=-y,y=-x). In 1.8 only the rubber triangles 34-37 swap at full value; plain triangles 30-33 halve (x=y>>1,y=x>>1 or x=-(y>>1),y=-(x>>1)). triangleCollide and TRI_TILE_DATA are identical.",
+     "baseline": "Ball.java:215-242",
+     "thisVersion": "Ball.java:254-273",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Wrong collision position when the ball centre is above the top of the buffer (y<0). For y<0, 1.01 sets k=|y|/12+1, y=0, firstRow=(0-half)/12-k=-k, lastRow exclusive=1, globalBallY=-half-12k (+tileY*12). The pixel mask is therefore tested with its centre snapped to -12k, i.e. -12 for y in [-1,-11] and -24 for y in [-12,-23], instead of the real position. 1.8 keeps the real globalBallY and only shifts the row range by 12 px (n3=12). Consequences when jumping through the top edge into the screen above: hits against row tileY-1 are tested at a different height; row tileY-2 is not tested until the centre reaches -12, so the ball can rise up to about 5 px further and end up overlapping a brick after the flip (+84). The same applies to the horizontal moves and ramp moves made while y<0.",
+     "baseline": "Ball.java:104-121 (n3=12; n5=(n2-n3-half)/12; globalBallY=n2-half; n7=(n2-n3-1+half)/12+1)",
+     "thisVersion": "Ball.java:142-160 (n3=|n2|/12+1; n2=0; n5=(n2-half)/12-n3; globalBallY=n2-half-12*n3; n7=(n2-1+half)/12+1)",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "No hoop rims (no edgeCollide). 1.8 has small rim rectangles (HOOP_EDGE_DOWN_BY 6, IN_BY 11) that make hoop edges solid. Active hoops in 1.8: on a rim hit, tile 23 is solid and gives no ring; tiles 15,24,16,21,13 are solid but still give the ring; 14 and 22 have no rim. Inactive (already collected) hoops in 1.8: 17,19,20 are solid at the rim for the small ball (solid when thin-hit for the large ball); 18 is solid only for the large ball; 25,27,28 are solid at the rim for any ball; 26 is passable. In 1.01, active hoops are pure triggers: 23,24,21,22 always collect; 13,14,15,16 collect for the small ball and are solid (thin rect) for the large ball. Inactive 17-20 are solid only for the large ball (thin rect). Inactive 25,26,27,28 are fully passable.",
+     "baseline": "Ball.java:392-432 (edgeCollide); calls at 515,531,542,557,568,583,620,627; cases 17/19/20 at 612-623, 25/27/28 at 624-630, 18 at 631-635; passable cases 0/8/26 at 446-450",
+     "thisVersion": "Ball.java:433-439 (0,8,25,26,27,28 passable), 503-586 (hoop cases, no rim test), 579-586 (17-20: thinCollide && large → solid)",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Collecting a hoop clears the water flag of its two tiles. 1.01 writes plain 145-156 (dirty|17..28). 1.8 ORs in the tile's 0x40 water bit. Wet hoops exist in level 3 (74,33-34), level 5 (54-55,22), (48-49,25), (60-61,25), level 7 (43,12-13), level 8 (66,15-16), (110,15-16), (88,19-20), and level 11 (121-122,44), (165-166,49), (47-48,53), (110,54-55), (154,54-55). After the pass, those two tiles behave as air: air gravity and maximum speed, the large ball no longer floats there, and the water halving test (Ball.java:729) applies. They are also drawn with the sky colour instead of water. (Checkpoints 128/136 and extra life 128 lose the water bit in both versions.)",
+     "baseline": "Ball.java:520-521, 535-536, 546-547, 561-562, 572-573, 587-588, 595-596, 607-608 ((short)(0x9B|n3) etc., n3=tile&0x40 at 442)",
+     "thisVersion": "Ball.java:506-507, 518-519, 526-527, 537-538, 544-545, 556-557, 564-565, 575-576 (=155,156,147,148,153,154,145,146)",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Closed exit is passable. In 1.01, tile 9 does something only if thinCollide is true and mOpenFlag is set (then exit and pickup sound). While the door is closed, nothing happens and bl stays true, so the ball can roll into and through the closed 2x2 door. In 1.8 a closed exit is solid (bl=false). Exits are mid-level in levels 3, 4, 6, 7, 8, 9 and 10. If the ball is inside the door when it finishes opening, the next collision test ends the level.",
+     "baseline": "Ball.java:636-645",
+     "thisVersion": "Ball.java:587-592",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "testTile does not strip the 0x80 redraw flag. 1.01 masks only the water bit (tile & ~0x40; bytecode bipush -65/iand), so any tile carrying 0x80 matches no case and counts as empty. 1.8 masks both bits. The 13x8 buffer is cleaned by cleanBuffer(true) right before update (BounceCanvas.java:317-318), so this matters for two kinds of tiles. (a) Hoop tiles rewritten earlier in the same update: harmless, they become passable anyway in 1.01. (b) Tiles outside the buffer that the ball still touches during a step: rows below tileY+7 (centre ≥ ~89-91, and more with fast falls) and rows above tileY (via the y<0 path). These tiles can carry a stale 0x80: moving-spike tiles (10|0x80; in 1.01 these stay set because of mMODrawFlag), the exit top-left tile marked while the door opens (BounceCanvas.java:362-364), and tiles under the ball at a death site after respawning on another screen. On such tiles a moving spike does not pop the ball, an open exit does not trigger, and a brick does not block. Example: level 9, spike column (41,10)-(43,18) seen from window rows 7-14.",
+     "baseline": "Ball.java:442-445 (n4 = tile & ~0x40 & ~0x80)",
+     "thisVersion": "Ball.java:431-432 (n3 = tile & ~0x40)",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "Vertical screen flip at the left map edge misplaces the ball when divisorLine != 156. The left-edge non-scroll branch is taken when tileX-(13-divisorLine/12)==0. That state arises with divisorLine<156 after the camera has scrolled left to the edge from a scroll-mode start or flip. Example: level 2 starts in scroll mode with tileX=3, and scrolling to the edge gives tileX=3, divisorLine=120. The flip resets to tileX=0, divisorLine=156. 1.8 converts the ball's buffer x correctly: xPos>divisorLine ? xPos-divisorLine : xPos-divisorLine+156. 1.01 only handles xPos>divisorLine. A ball left of the divisor keeps its old xPos, which puts it (156-divisorLine) px too far left, 36 px in the example, possibly inside a wall. With xPos==divisorLine the error is divisorLine px.",
+     "baseline": "BounceCanvas.java:164-169 (165)",
+     "thisVersion": "BounceCanvas.java:170-177 (174-176)",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "Horizontal buffer wrap of xPos does not adjust scrollOffset. In 1.8, when xPos wraps by ±156, scrollOffset (the trigger testScroll uses to resume scrolling at map edges) is shifted by 156 when it lies near the wrap boundary (scrollOffset-10>156+size, or scrollOffset-size<10). 1.01 leaves scrollOffset unchanged, so the point where scrolling resumes differs when scrollOffset is in about [16,22) or [16,26).",
+     "baseline": "Ball.java:909-920",
+     "thisVersion": "Ball.java:836-841",
+     "affectsPlay": true
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "Moving-spike redraw throttle (mMODrawFlag). In 1.01, updateMovingSpikeObj marks a spike's swept tiles dirty only if that spike was drawn since the last update (drawTile case 10 sets the flag; the flag is cleared after marking). In 1.8 the swept tiles of every spike are marked every step. Spike movement, bounds and collision geometry are identical. Effects in 1.01: (1) a spike that leaves the 13x8 buffer and comes back while the camera is still is not redrawn: it is invisible or stale until a scroll column, a flip or the ball redraws its tiles; (2) its off-buffer tiles keep a stale 0x80 (see the testTile mask entry).",
+     "baseline": "TileCanvas.java:239-300 (unconditional marking at 270-297), drawTile case 10 at 485-502",
+     "thisVersion": "TileCanvas.java:210, 359, 372 (flag field and init), 425-458 (conditional marking), 649-651 (set in drawTile)",
+     "affectsPlay": false
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "mOpenExitFlag is not cleared on level completion. 1.8 clears it in the mExitFlag block; 1.01 does not. In normal play the flag is already cleared once the door finishes opening (mOpenFlag → mExitPos=-1, mOpenExitFlag=false at BounceCanvas.java:356-358, same in 1.8), so no observable difference.",
+     "baseline": "BounceCanvas.java:381-384 (383 mOpenExitFlag=false)",
+     "thisVersion": "BounceCanvas.java:386-389",
+     "affectsPlay": false
+    },
+    {
+     "area": "keys and cheats",
+     "what": "Left soft key does nothing in game. In 1.01 only the right soft key (-7) opens the main menu; -6 and -5 are ignored. In 1.8 both -6 and -7 open the menu, and -5 is ignored. Number keys, cheat codes (7-8-7-8-9 then 8 for invincibility or 9 for level select; keys 1 and 3 change level) and game actions are identical.",
+     "baseline": "BounceCanvas.java:459-467",
+     "thisVersion": "BounceCanvas.java:461-468",
+     "affectsPlay": false
+    },
+    {
+     "area": "keys and cheats",
+     "what": "No hideNotify and no resetDirections. 1.8 pauses on hide (incoming call): it clears the held direction bits (Ball.resetDirections) and shows the main menu, using mIncomingCall to skip its own menu or level transitions. 1.01 has neither, so the game keeps running while hidden and held keys are not cleared.",
+     "baseline": "BounceCanvas.java:536-544, Ball.java:100-102; mIncomingCall at BounceCanvas.java:50,275,294,319,389,392,464",
+     "thisVersion": "absent (BounceCanvas.java ends at 537; Ball.java has no resetDirections)",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "MIDlet lifecycle. 1.01 builds BounceUI in the MIDlet constructor. Its pauseApp stops the game timer, rewrites both RMS records (best level, best score) and calls notifyPaused. startApp does not restart the timer, so after a system pause the game stays frozen until the player opens the menu (right soft key) and picks Continue. destroyApp calls notifyDestroyed itself. In 1.8, BounceUI is built lazily in startApp, pauseApp is empty, destroyApp null-checks, and BounceUI calls notifyDestroyed. The RMS layout is identical: store 'bounceRMS', record 1 = 1 byte best level, record 2 = 8 bytes of decimal digits of the best score (BounceUI.java:198-308 vs 199-309).",
+     "baseline": "Bounce.java:21-38, BounceUI.java:188-191",
+     "thisVersion": "Bounce.java:20, 23-40, BounceUI.java:188-192",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "BounceUI STATE_GAME_STARTING constant is 5 instead of 4. It is only compared with itself ('New game' guard), so there is no behavioural effect. Menus, forms and commands are otherwise identical.",
+     "baseline": "BounceUI.java:36, 177-178",
+     "thisVersion": "BounceUI.java:36, 177-178",
+     "affectsPlay": false
+    },
+    {
+     "area": "sounds",
+     "what": "Hoop sound is missing on the second hoop half. For tiles 24, 16, 22 and 14 (right half of horizontal hoops, bottom half of vertical hoops) 1.01 collects the ring silently; 1.8 plays up.ott. 1.01 also plays sounds immediately inside the switch, while 1.8 defers one sound to the end of testTile (no audible difference).",
+     "baseline": "Ball.java:548, 563, 597, 609; 699-701",
+     "thisVersion": "Ball.java:523-529, 530-540, 561-567, 568-578 (no play)",
+     "affectsPlay": false
+    },
+    {
+     "area": "sounds",
+     "what": "Sound files. All are Nokia Smart Messaging OTT played with com.nokia.mid.sound.Sound type 1, at 125 bpm. pop.ott is byte-identical. pickup.ott: 1.01 = G (default octave) 1/16, C(scale3) 1/8; 1.8 = C3 1/8, G2 1/16, C3 1/8. up.ott (hoop): 1.01 = pause 1/32, C3, C2, E2, F2, G2, C3 (all 1/32); 1.8 = C3, E2, G2, C3 (all 1/16).",
+     "baseline": "x/sounds/pickup.ott (16 B, hex 024a3a400400111cc511624c41445800), up.ott (18 B, 024a3a400400131cc511824ac0c414460000)",
+     "thisVersion": "x/sounds/pickup.ott (14 B, 024a3a4004000b1cc31051160000), up.ott (22 B, 024a3a400400191cc214511a248d0ad0b50c51446800)",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "Sprite sheet objects_nm.png (48x72, 12x12 cells). Only cell col 0, row 3 differs: the static spike (tileImages[2..9]: spikes in 4 orientations, dry and wet). 1.01 draws it as a dark blue-grey thorn; 1.8 as a red, orange and yellow thorn with black outline. The opaque silhouette is identical, and spike collision uses fixed rectangles anyway. All other 23 cells are pixel-identical.",
+     "baseline": "x/icons/objects_nm.png (2234 B)",
+     "thisVersion": "x/icons/objects_nm.png (2255 B)",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Language files. lang.xx (English) differs only in string 12 (HIGH_SCORES): 'High scores' in 1.01, 'High score' in 1.8. lang.de string 12: 'Höchstpunkte' in 1.01, 'Punkterekord' in 1.8. The language sets differ: 1.01 has de, es-ES, fr, it, nl-NL, pt-PT, tr-TR, xx; 1.8 has da-DK, de, fi-FI, is-IS, no-NO, sv, xx. Local.class logic is identical (only access modifiers differ).",
+     "baseline": "x/lang.xx (756 B), Local.java",
+     "thisVersion": "x/lang.xx (757 B), Local.java",
+     "affectsPlay": false
+    },
+    {
+     "area": "other",
+     "what": "Minor items with no effect on step logic. 1.01 does not null the ball in createNewLevel (1.8 BounceCanvas.java:86) and has no gc in createBufferFocused (1.8 :96). n3/2 and mWidth/2 instead of >>1 (same for positive values). Level stream is opened outside the try, and there is no error println (TileCanvas.java:280-281 vs 124-126, 153). loadSound prints on failure (BounceCanvas.java:531). Bounce.DEBUG=true is unused. Unused fields mState, mRedrawAll and mCDEdgeFlag.",
+     "baseline": "BounceCanvas.java:86, 96, 122; TileCanvas.java:124-153",
+     "thisVersion": "BounceCanvas.java:93-100, 102-128; TileCanvas.java:265-311",
+     "affectsPlay": false
+    }
+   ],
+   "physicsIdenticalToBaseline": false,
+   "notes": "Build: an official Nokia build (MIDlet-Vendor Nokia, Created-By 1.3.1.02 Hewlett-Packard Co., the same toolchain as 1.8). Class and resource files are dated 2 Oct 2002, against 10 Dec 2002 for 1.8. It is unobfuscated, with LineNumberTables, and uses MIDP-1.0/CLDC-1.0 with Nokia FullCanvas, DirectGraphics and Sound. This is the earliest build in the set. 1.8 reads as a bug-fix of it: the closed exit becomes solid, hoop rims are added, the left-edge flip is fixed, a ±150 speed clamp, a wall bounce and halved plain-ramp redirects are added, the ring water flag is kept, the dirty bit is masked in collisions, the floor bounce ends the vertical loop, the roof rebound goes from 6 to 20, and pause-on-hide plus the left soft key are added.\n\nIdentical to 1.8: all 11 level files (byte-identical); bouncesplash.png, icon.png and nokiagames.png; Profile.class; the collision masks TRI_TILE_DATA, SMALL_BALL_DATA and LARGE_BALL_DATA; gravity, jump, friction and acceleration constants (-67, -10, -80, 4/6/3/-2, 80/42/38/-30, 50/100, 6, 4); scoring (ring 500, gem 200, life 1000 with max 5 lives, exit 5000) and 3 starting lives; 11 levels; spike movement (updateMovingSpikeObj positions); exit opening (4 px per step to 24); camera code testScroll, scrollBuffer, cleanBuffer and createNewBuffer, plus createBufferFocused apart from the gc; the step order in BounceCanvas.run(); the cheat codes; the RMS layout; screen layout (buffer 156x96, 13x8 tiles of 12 px, HUD band y=97..128 colour 0x0853AA, lives at y=99, rings at y=112, score at (64,100), 'Level N' at (44,84) for 120 steps, bonus bar at x=1); and the splash flow.\n\nFor a 1.01 mode in js/rules.js, the 1.01 vertical loop is:\n\n  for (i=0; i < abs(ySpeed)/10; i++) {   // bound re-read every pass\n    s = sign(ySpeed);\n    if (free(x, y+s)) { y += s; grounded = false; [large-ball water exit: ySpeed /= 2, |ySpeed|<=10 → 0] }\n    else {\n      ramp slide as in 1.8;\n      if (s>0 || rev&&s<0) { ySpeed = -ySpeed/2; grounded = true; rubber/jumpOffset logic as in 1.8; if (|ySpeed|<10) ySpeed = rev ? -10 : 10; /* no break */ }\n      else if (s<0 || rev&&s>0) ySpeed = rev ? -6 : 6;\n    }\n  }\n\nThere is no ±150 clamp before it.\n\n1.01 collisionDetection(x, y):\n  k = 0; if (y < 0) { k = |y|/12 + 1; y = 0; }\n  rows (y-half)/12 - k up to (y-1+half)/12 (inclusive); gy = y - half - 12k + tileY*12.\n\ntestTile uses tile & ~0x40, so a tile with the 0x80 bit counts as empty. Passable tiles: 0, 8, 25-28, the closed exit 9, and any tile with 0x80. Hoops have no rims. Collected-hoop tiles get the plain values 145-156 (no water bit).\n\nPaths in the entries are relative to each version's cfr/com/nokia/mid/appl/boun/ (Java) or x/ (resources). Helper scripts (level scanner, OTT decoder, lang decoder) and javap dumps are in /tmp/claude-0/-home-user/9e293dcf-c6a7-5416-93b2-b9c9546fbcbb/scratchpad/work/versions/v1.01/."
+  },
+  {
+   "version": "Bounce_1.9_LockedRes_128x128_EnMulti (MIDlet-Version 1.9, Nokia, MIDP-1.0/CLDC-1.0, 128x128, unobfuscated)",
+   "classMap": "Not obfuscated, and the class names match the baseline one to one: Bounce=Bounce (MIDlet), Ball=Ball, BounceCanvas=BounceCanvas, BounceConst=BounceConst, BounceUI=BounceUI, Local=Local, Profile=Profile, TileCanvas=TileCanvas, TileCanvas$GameTimer=TileCanvas$GameTimer. Local.class and Profile.class are byte-identical to 1.8. TileCanvas$GameTimer has the same bytecode (Timer.schedule(this, 0, 30L), so 30 ms); only its LineNumberTable differs. Some fields were renamed, which changes nothing at runtime: Ball.ballSize->mBallSize, Ball.ballImage->mBallImage, BounceCanvas.mExitFlag->mLeaveGame, TileCanvas.buffer/bufferGraphics->mGameBuffer/mGameGraphics, mStartPosX/Y->mStartCol/mStartRow, mTopLeftTileCol/Row->mTopLeftExitTileCol/Row, BounceUI.getGameData/setGameData->loadGameData/saveGameData. Line references below are to the CFR files under .../jars/<version>/cfr/com/nokia/mid/appl/boun/. Every method was checked against the baseline by a normalized javap -c -p diff. After that diff, only these methods differ: Ball.<init>, Ball.setRespawn; Bounce.destroyApp; BounceCanvas.createNewLevel, createBufferFocused, resetGame(int), run, paint2Buffer (0-x became -x, same result), plus new methods resetGame(int,int), resetTiles, tileNotSavedAsActive; TileCanvas.loadLevel, drawTile (exit case only), createExitTileObject; BounceUI.<clinit>, displayMainMenu, displayGameOver, commandAction, load/saveGameData, plus new methods displayNewGameMenu and gameOver. Ball.update, testTile, collisionDetection, square/triangle/thin/edgeCollide, enlarge/shrink/popBall, redirectBall, dirtyTiles, all of TileCanvas scrolling/cleanBuffer/updateMovingSpikeObj/loadTileImages, screenFlip, keyPressed/keyReleased, the cheat codes, hideNotify, checkData and paint have the same bytecode as 1.8.",
+   "differences": [
+    {
+     "area": "ball physics",
+     "what": "Every spawn and respawn puts the ball 1 pixel higher (yPos is one less) than 1.8. This covers level start, respawn after death, and resume.",
+     "baseline": "BounceCanvas.java:122 creates new Ball((col-tileX)*12+(size>>1), (row-tileY)*12+(size>>1), ...), where size=16 if mBallSize==1 else 12. A small ball's centre is at row*12+6, a big ball's at row*12+8 (screen-relative).",
+     "thisVersion": "BounceCanvas.java:141-143: n8 = n - tileX*12; n9 = n2 - tileY*12 - 1; new Ball(n8, n9, size, this). The callers pass n = col*12+(size>>1) and n2 = row*12+(size>>1) (createNewLevel :111, respawn :339), so the centre y is (row-tileY)*12 + size/2 - 1. Confirmed in bytecode (iconst_1 isub at createBufferFocused offset 191). X is unchanged. Example: on level 1 (start col 2, row 1, brick ceiling above) the small ball now starts 1 px inside the ceiling tile and only drops free on frame 3. It also reaches the floor 1 px later than in 1.8, so every later step is offset.",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "The big-ball unstick nudge at spawn was removed.",
+     "baseline": "BounceCanvas.java:124-134: if the spawned ball is big (mBallSize==1) and collisionDetection(x,y) fails, it tries x-4, then y-4, then both, and moves the ball to the first spot that fits. These collisionDetection calls also run testTile side effects (items, spikes, deflators, mCDRampFlag/mCDRubberFlag, globalBallX/Y).",
+     "thisVersion": "BounceCanvas.java:115-147 makes no collision test and no adjustment at spawn, for any size. With the shipped levels no level start triggers the nudge (big starts L03 (52,2), L05 (32,32), L11 (142,37) all have free tiles right and below). The only checkpoint where it could fire is L11 (143,45), which is ringed by deflator tiles. So in practice only the 1 px offset above shows up, but a rules.js that copies 1.8 must not nudge for 1.9.",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "The spawn API changed from tile coordinates to pixel centre plus size plus speeds, and the respawn size moved from a canvas field into the Ball. The behaviour is the same.",
+     "baseline": "createBufferFocused(col,row) (BounceCanvas.java:95-136) uses the camera tests col*12+6 <64 and > W*12-64, tileX = col-6, tileY = row/7*7. Respawn size is the canvas flag mBallSize, set by loadLevel (TileCanvas.java:129) and by Ball.setRespawn (Ball.java:85). On death it calls createBufferFocused(respawnX, respawnY) (BounceCanvas.java:323), which also calls setRespawn again (:123). There is also a Runtime.gc() (:96), and createNewLevel sets mBall=null (:86).",
+     "thisVersion": "createBufferFocused(px,py,size,xSpeed,ySpeed) (BounceCanvas.java:115-147) uses the tests px<64 and px>W*12-64, with tileX=px/12-6 and tileY=(py/12)/7*7. For whole-number columns these give the same camera as 1.8 for both sizes. Ball.respawnSize is set in setRespawn (Ball.java:82-86). On death, run() saves respawnX/Y/Size, rebuilds the ball, and restores them (BounceCanvas.java:336-342). createNewLevel calls setRespawn(startCol,startRow) (:112). The new ball's xSpeed and ySpeed are set from the arguments (0,0 except on resume). There is no gc, and mBall is never nulled.",
+     "affectsPlay": false
+    },
+    {
+     "area": "collisions and items",
+     "what": "The level header's start-size byte is decoded differently.",
+     "baseline": "TileCanvas.java:129 stores the raw byte in mBallSize. Ball.java:71-79 maps 0 to 12 and 1 to 16; any other value leaves the size at 0 with no image.",
+     "thisVersion": "TileCanvas.java:127-128 sets mStartBallSize = (byte==0 ? 12 : 16). Ball.java:72-79 treats 12 as small and anything else as 16. All 11 shipped level files are identical to 1.8 and use only 0 or 1, so nothing changes.",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "Exit door drawing: all four 2x2 exit tiles are now redrawn while the door opens, each clipped to its own 12x12 cell. The unused bottom-right exit coordinates were dropped.",
+     "baseline": "BounceCanvas.java:357-359 marks only tileMap[topRow][topCol] |= 0x80 each opening step. drawTile case 9 (TileCanvas.java:478-483) draws the whole 24x24 exit image unclipped. createExitTileObject(col,row,col+1,row+2,img) is at TileCanvas.java:132, 925-935.",
+     "thisVersion": "BounceCanvas.java:376-387 marks (r,c), (r,c+1), (r+1,c) and (r+1,c+1). drawTile case 9 (TileCanvas.java:477-485) calls setClip(x,y,12,12), draws the image, then resets the clip to the buffer size. createExitTileObject(col,row,img) is at TileCanvas.java:131, 926-934. mExitPos = x-(tileCol-exitCol)*12+11 gives the same value from any exit tile, and cleanBuffer draws in column order, so the opening timing (6 openExit steps, mOpenFlag, mExitPos=-1) is the same.",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "There is no longer a black clear frame after a level is completed. mClearScreenFlag is never set to true anywhere, so the clear branch of paint() is dead code.",
+     "baseline": "BounceCanvas.java:394 sets mClearScreenFlag = true after displayLevelComplete(), so paint() (:258-261) fills the screen black once.",
+     "thisVersion": "BounceCanvas.java:422 sets mClearScreenFlag = false.",
+     "affectsPlay": false
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "Game over now goes through a new BounceUI.gameOver(), which sets mState=3 and invalidates the saved game. The win path (mLevelNum>=11 after a level is completed) still calls displayGameOver() directly, which no longer sets mState=3.",
+     "baseline": "BounceUI.java:129-131: displayGameOver() sets mState=3 for both death and win (called from BounceCanvas.java:320 and :390). After winning, Continue (shown because mBestLevel>1) calls resetGame(mCanvas.mLevelNum): level 11 with 3 lives and score 0 (BounceUI.java:168-175).",
+     "thisVersion": "BounceCanvas.java:333 calls mUI.gameOver() (BounceUI.java:366-370: mState=3, mSavedValid=-16, displayGameOver). displayGameOver (BounceUI.java:160-177) does not touch mState. Win path: BounceCanvas.java:416-418. After winning, mState stays 1, so Continue calls displayGame(false,...). run() then sees mLoadLevelFlag and loads level 11 with the current lives, score and ring count, not 3/0.",
+     "affectsPlay": true
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "New rule for when the main menu shows Continue.",
+     "baseline": "BounceUI.java:79: shown if mState==1 || mBestLevel>1.",
+     "thisVersion": "BounceUI.java:95: shown if mState==1 || mSavedValid==-6 (a valid saved snapshot was loaded from RMS at startup).",
+     "affectsPlay": false
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "Continue now resumes a saved snapshot instead of restarting a level.",
+     "baseline": "BounceUI.java:168-175: if mState!=1, Continue calls resetGame(mState==3 ? mCanvas.mLevelNum : mBestLevel). That is a fresh level with 3 lives, score 0 and 0 rings.",
+     "thisVersion": "BounceUI.java:201-210: if mState==1 it resumes the current game. Otherwise, if mSavedValid==-6, it calls BounceCanvas.resetGame(savedGlobalX+size/2, savedGlobalY+size/2) (BounceCanvas.java:85-103). That sets level, rings, lives and score from the save, reloads the level, and calls resetTiles() (:574-631). resetTiles sets every crystal (7), extra-life ball (29) and unpassed hoop tile (13-16, 21-24) that is not in the saved active list to its collected form (0, or 17-20/25-28), keeping the 0x40 water bit. It sets mLevelDisCntr=120, sets the saved respawn tile to 8|water only if respawnX!=startCol && respawnY!=startRow (&& where || was meant; visual only), places the ball (1 px above the saved centre) with the saved size and xSpeed/ySpeed, restores respawnX/Y and the speed, gravity and jump bonus counters, then sets mSavedTiles=null and mState=1. Not restored: jumpOffset, grounded/ramp/rubber flags, slideCntr, direction, moving-spike offsets, exit-opening progress, the saved tileX/tileY/xPos/yPos (read but unused), mInvincible and mCheat. The camera is recomputed from the ball position. respawnSize becomes the ball's size at save time, not its size when the crystal was taken.",
+     "affectsPlay": true
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "New Game now opens a level-select list once the player has reached a level above 1.",
+     "baseline": "BounceUI.java:176-181: New Game always calls displayGame(true,1) (with mState=4 and mNewBestScore=false).",
+     "thisVersion": "BounceUI.java:211-220: if mBestLevel>1 it calls displayNewGameMenu() (BounceUI.java:114-127). That is an IMPLICIT List titled with Local string 16 ('New game'), with items Local 14 ('Level %U') for 1..mBestLevel and a Back command. Selecting an item calls displayGame(true, index+1) (BounceUI.java:196-197): that level with 3 lives and score 0. This path does not reset mNewBestScore, so a stale 'New high score!' can appear on the next game-over screen. If mBestLevel<=1 the behaviour is as in 1.8.",
+     "affectsPlay": true
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "New record store layout. 'bounceRMS' now has 3 records written with DataOutputStream, instead of 2 records in digit format.",
+     "baseline": "BounceUI.java:199-309: the store must hold exactly 2 records, otherwise 2 records are added ([0] and 8 zero bytes) and then read. Record 1 is 1 byte (best level). Record 2 is 8 bytes, the best score as 8 decimal digits, most significant first, one per byte (0-9). setGameData(1|2) rewrites one record.",
+     "thisVersion": "BounceUI.java:239-364: if getNumRecords()!=3 it adds 1, 4 and 255 zero bytes and reads nothing; otherwise it reads all three. Record 1 is readByte (best level). Record 2 is readInt, big-endian (best score). Record 3 is the snapshot: byte valid (-6=0xFA valid; -16 is only ever kept in memory), byte lives, byte rings, byte level, byte ballSize (12/16), then ints score, tileX, tileY, globalBallX, globalBallY, xSpeed, ySpeed, xPos, yPos, respawnX, respawnY, speedBonusCntr, gravBonusCntr, jumpBonusCntr (65 bytes so far), then byte n, then n times (short row, short col, byte tileId) for still-active tiles of type 7, 29, 13, 14, 15, 16, 21, 22, 23 or 24, using a fixed int[40][3] buffer. An old 1.8 store (2 records) is never read again: 3 records are added on every launch, so the count is never 3.",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "The game state is saved automatically on exit, and only on exit. This brings bugs that change play on the next launch.",
+     "baseline": "Bounce.java:31-38: destroyApp stops the canvas, clears the display and calls System.gc(). Nothing is saved.",
+     "thisVersion": "Bounce.java:31-38: destroyApp calls mUI.saveGameData(3) after stop() (line 34) and no longer calls System.gc(). saveGameData(3) (BounceUI.java:309-356) always writes valid=-6 and never checks mState. (a) Exiting after a Game Over saves lives=-1, so the next launch offers Continue and resumes at the death spot with numLives=-1, which is one extra life. (b) Exiting from the level-complete or win screen saves the next level number together with the old level's ball position and ring count. (c) More than 40 active collectibles throws ArrayIndexOutOfBounds, which is silently caught, so nothing is saved. Level 11 has 50 at its start; levels 1-10 have 15-35. (d) If no game was played, mBall is null, the NPE is caught, and the old save is kept.",
+     "affectsPlay": true
+    },
+    {
+     "area": "other",
+     "what": "Some debug output and memory housekeeping were removed.",
+     "baseline": "TileCanvas.java:153 prints 'Error trying to read file' on IOException. BounceCanvas.java:86 sets mBall=null during level load, :96 calls Runtime.gc() on every (re)spawn. Bounce.java:37 calls System.gc().",
+     "thisVersion": "TileCanvas.java:152 has an empty catch, and the mBall=null and gc calls are gone. BounceConst gains only compile-time constants (ID_WATER_MASK, RMS_*, GAME_DATA_VALID/INVALID, STATE_*). BounceUI loses its private static RESTART_* booleans (<clinit>).",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "Different language packs ship with the game. The English fallback is unchanged.",
+     "baseline": "lang.xx, lang.da-DK, lang.de, lang.fi-FI, lang.is-IS, lang.no-NO, lang.sv",
+     "thisVersion": "lang.xx (byte-identical to 1.8), lang.tl-PH, lang.vi-VN, lang.zh-CN, lang.zh-TW. Same 21-string table and loader (Local.class identical). The file is chosen by exact match of microedition.locale, falling back to lang.xx.",
+     "affectsPlay": false
+    }
+   ],
+   "physicsIdenticalToBaseline": false,
+   "notes": "Who built it and when: Nokia, two days after 1.8 (jar entries dated Dec 12 2002 vs Dec 10 2002). The manifest's Created-By changed from '1.3.1.02 (Hewlett-Packard Co.)' to '1.3.1_02 (Sun Microsystems Inc.)'. It is the same unobfuscated com.nokia.mid.appl.boun source tree with some fields renamed to an m-prefix style, not a third-party port.\n\nThe per-frame step is unchanged. Ball.update, testTile, all hit-box routines and masks, screenFlip, scrollBuffer/testScroll, updateMovingSpikeObj, the order of operations in run(), scoring, lives, the level-end check (++mLevelNum, then win if >=11), key handling and cheats all have the same bytecode as 1.8, and the timer is 30 ms. physicsIdenticalToBaseline is false for one reason: where the ball is placed when it is created. It spawns 1 px higher, and the big-ball nudge is gone. Both apply at level start, respawn and resume. For rules.js, a per-version spawnYOffset (0 for 1.8, -1 for 1.9) plus a flag to turn off the 1.8 nudge covers the physics side.\n\nScreen layout and HUD are the same as 1.8: 128x128 full-screen buffer, 156x96 game buffer, HUD bar at y=97, lives at y=99, rings at y=112, score at (64,100), 'Level N' at (44,84).\n\nResources: icons/objects_nm.png (the sprite sheet, every cell), icon.png, nokiagames.png and bouncesplash.png are byte-identical to 1.8. So are sounds/up.ott, pickup.ott and pop.ott (Nokia Smart Messaging OTT tones, played with com.nokia.mid.sound.Sound type 1), and all 11 level files, including J2MElvl.011. loadTileImages is unchanged, so the cell mapping is the same.\n\nA bug present in both versions: after level 11 has been beaten (reachable through the win-Continue path or the 7-8-7-8-9 then 1/3 cheat), mBestLevel becomes 12. In 1.9 the level list then offers 'Level 12', and both Continue paths try to load J2MElvl.012. getResourceAsStream returns null, which raises an NPE that is not caught as an IOException, so the game timer thread dies.\n\nWithin one session the resume path runs at most once: after it, mState only ever becomes 1 or 3, and 3 sets mSavedValid=-16. None of the shipped levels has a crystal or extra-life tile in water, so the water-bit difference in resetTiles (it keeps 0x40, while live pickups write 128/136 and drop it) has no effect.\n\nHelper scripts and normalized javap dumps are in /tmp/claude-0/-home-user/9e293dcf-c6a7-5416-93b2-b9c9546fbcbb/scratchpad/work/versions/1.9/ (mdiff.py, levels.py, lang.py, javap1.8/, javap1.9/, mdiff.out)."
+  },
+  {
+   "version": "1.12 (Bounce_1.12_LockedRes_128x128_EnMulti: MIDlet-Version 1.12, vendor Nokia, MIDP-1.0/CLDC-1.0, 128x128, not obfuscated, files dated 12-14 Feb 2003)",
+   "classMap": "Not obfuscated, so each class keeps its 1.8 name: Ball=Ball, BounceCanvas=BounceCanvas, BounceConst=BounceConst, BounceUI=BounceUI, Local=Local, Profile=Profile, TileCanvas=TileCanvas, TileCanvas$GameTimer=TileCanvas$GameTimer, Bounce=Bounce (the MIDlet). Some fields and methods are renamed (no effect on behaviour): Ball.ballSize->mBallSize, Ball.ballImage->mBallImage, BounceCanvas.mExitFlag->mLeaveGame, TileCanvas.buffer/bufferGraphics->mGameBuffer/mGameGraphics, mStartPosX/Y->mStartCol/Row, TileCanvas.mBallSize (0/1)->mStartBallSize (12/16), mTopLeftTileCol/Row->mTopLeftExitTileCol/Row (mBotRightTileCol/Row removed), BounceUI.getGameData/setGameData->loadGameData/saveGameData, BounceCanvas.checkData moved to BounceUI.checkData, BounceUI.displayGameOver() split into gameOver(boolean)+displayGameOver(boolean). New in 1.12: Ball.respawnSize; BounceCanvas.resetGame(int,int) (restores a saved game), resetGame(int,int,int), resetTiles, resetSpikes and tileNotSavedAsActive; BounceUI.displayNewGameMenu and the mSaved* fields. I compared every method with javap (constant-pool indices and offsets stripped). These are byte-for-byte identical: Local, Profile, TileCanvas$GameTimer (30 ms), every Ball method except the constructor, setRespawn, redirectBall and one instruction group in update, and every TileCanvas method except loadLevel, drawTile (exit case only) and createExitTileObject. BounceConst only adds constants.",
+   "differences": [
+    {
+     "area": "ball physics",
+     "what": "Ramp deflection (redirectBall, triangle tiles 30-33 plain and 34-37 rubber, called from triangleCollide when the ball is not grounded) uses a new formula. 1.12 keeps the current xSpeed when the ball is already moving into the slope faster horizontally than the y-derived speed. Plain ramps no longer halve the new ySpeed. In 1.8, a ball rolling into a ramp at xSpeed 50, ySpeed 10: tile 32 gives x=-5, y=-25; tile 36 gives x=-10, y=-50 (it bounces back). In 1.12: tile 32 gives x=50, y=-50; tile 36 gives x=50, y=-50 (it keeps going over). Falling straight onto a ramp (xSpeed 0) gives the same result in both versions. Ramps appear in levels 2-11 (8 to 85 tiles per level).",
+     "baseline": "1.8 cfr Ball.java:215-242: n2=oldX; 35,37: x=y, y=n2. 31,33: x=y>>1, y=n2>>1. 34,36: x=-y, y=-n2. 30,32: x=-(y>>1), y=-(n2>>1).",
+     "thisVersion": "1.12 cfr Ball.java:215-258 (checked against javap): 35: x=(x>-y)?x:y, y=n2. 37: x=(-x>y)?x:y, y=n2. 34: x=(x<y)?x:-y, y=-n2. 36: x=(x>y)?x:-y, y=-n2. 31: x=(x>-y)?x:(y>>1), y=n2. 33: x=(-x>y)?x:(y>>1), y=n2. 30: x=(x<y)?x:-(y>>1), y=-n2. 32: x=(x>y)?x:-(y>>1), y=-n2.",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Bounce off a ceiling (Ball.update vertical sub-step loop, the blocked branch with n2<0 under normal gravity). 1.8 always sets ySpeed=+20. 1.12 sets ySpeed=(-ySpeed)>>1, which is half the upward speed reflected. A plain jump (-67) now comes back at 33, and a jump-boosted one (up to -147) at 73. The loop keeps running on the new speed in both versions (bound abs(ySpeed)/10 is re-evaluated), so the ball also travels further down in the same step. The '-20' arm is unreachable in both versions: with gravity inverted, every contact goes to the landing branch.",
+     "baseline": "1.8 cfr Ball.java:831-833: if (n2<0 || bl&&n2>0) ySpeed = bl ? -20 : 20; (javap Ball update @914-925: bipush 20)",
+     "thisVersion": "1.12 cfr Ball.java:847-849: ySpeed = bl ? -20 : -ySpeed >> 1; (javap @922-930: getfield ySpeed, ineg, iconst_1, ishr)",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "The ball now spawns 1 px higher, at level start and at every respawn after a death. createBufferFocused now takes pixel centres plus size and speeds, and places the ball at y = centre - tileY*12 - 1. The x position and the camera (tileX, tileY, scroll edges) come out the same for tile-aligned spawns. At 7 of the 11 level starts (L1, L2, L5, L7, L8, L9, L10) and at 45 of the 82 small-ball spawn points, the tile above is solid. There the 1.12 ball starts 1 px inside the ceiling, so horizontal moves stay blocked (or turn into the diagonal ramp-slide) until it has fallen 1 px. In 1.8 the ball starts clear.",
+     "baseline": "1.8 cfr BounceCanvas.java:92 createBufferFocused(mStartPosX,mStartPosY), :95-136; ball at ((n-tileX)*12+(size>>1), (n2-tileY)*12+(size>>1)) at :122; respawn at :323 createBufferFocused(respawnX,respawnY)",
+     "thisVersion": "1.12 cfr BounceCanvas.java:113 createBufferFocused(startCol*12+(size>>1), startRow*12+(size>>1), size, 0, 0); :118-150, with y = n2 - tileY*12 - 1 at :145 (javap @182-193: iconst_1 isub); respawn at :326-332 with respawnX*12+(respawnSize>>1), respawnY*12+(respawnSize>>1)",
+     "affectsPlay": true
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "Game length. 1.8 ends the game when level 10 is finished (mLevelNum becomes 11 and the test is >= 11). It shows the Game over screen, and level 11 can only be played via Continue from the main menu afterwards, with 3 lives and 0 points. 1.12 goes on from level 10 to level 11, carrying score and lives over, and ends after level 11 with a 'Congrats!' screen. Finishing a level still gives +5000 and runs the best-level/best-score check in both versions.",
+     "baseline": "1.8 cfr BounceCanvas.java:381-397, test at :388 if (mLevelNum >= 11) displayGameOver() (javap @745-747 bipush 11, if_icmplt)",
+     "thisVersion": "1.12 cfr BounceCanvas.java:399-413, test at :406 if (mLevelNum > 11) mUI.gameOver(true) (javap @901-903 bipush 11, if_icmple); BounceUI.java:167-188 shows Local text 7 'Congrats!' instead of text 11",
+     "affectsPlay": true
+    },
+    {
+     "area": "keys and cheats",
+     "what": "New cheat key. With the 7-8-7-8-9-9 cheat active, game action FIRE (keypad 5 or a FIRE-mapped key; key code -5 is still swallowed by its own case) sets mLeaveGame. That finishes the level at the end of the step: +5000, next level. In 1.8 FIRE does nothing. The level-select keys 1/3 and the invincibility code are unchanged.",
+     "baseline": "1.8 cfr BounceCanvas.java:468-485: getGameAction switch handles only 1,6,2,5 (javap tableswitch 1..6)",
+     "thisVersion": "1.12 cfr BounceCanvas.java:484-506: adds case 8: if (mCheat) mLeaveGame = true (javap tableswitch 1..8)",
+     "affectsPlay": true
+    },
+    {
+     "area": "other",
+     "what": "Large-ball spawn nudge removed. 1.8 checks a 16 px spawn and, if it collides, tries moving it by (-4,0), (0,-4), then (-4,-4). 1.12 has no such check. A port of collisionDetection/testTile over the shipped levels shows the 1.8 check never moves a ball. All large-ball starts (L3, L5, L11) and all checkpoints are free for a 16 px ball, except the L11 checkpoint at (143,45), which is boxed in by deflators so no nudge fits either. So, apart from the 1 px change above, there is no effect with these levels.",
+     "baseline": "1.8 cfr BounceCanvas.java:124-134",
+     "thisVersion": "1.12 cfr BounceCanvas.java:118-150 (no equivalent)",
+     "affectsPlay": false
+    },
+    {
+     "area": "other",
+     "what": "How the ball size is stored, with the same result. The level byte 2 is now turned into 12/16 at load time (0 means 12, anything else 16) instead of being kept as 0/1. The Ball constructor takes 12/16. The respawn size moves from TileCanvas.mBallSize to the new Ball.respawnSize, which setRespawn sets from the current size, as 1.8 did. The size after a respawn is unchanged: whatever it was when the last checkpoint (or the level start) was taken.",
+     "baseline": "1.8 cfr TileCanvas.java:129; Ball.java:71-79 (n3==0 means 12, n3==1 means 16) and :82-86 (setRespawn writes mCanvas.mBallSize)",
+     "thisVersion": "1.12 cfr TileCanvas.java:127-128; Ball.java:72-79 and :82-86 (respawnSize = mBallSize); BounceCanvas.java:326-332 keeps respawnX/Y/Size across the new Ball",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Save format. 1.8 uses RecordStore 'bounceRMS' with 2 records, created if the count is not 2 and then read. Record 1 is [bestLevel byte]. Record 2 is 8 bytes holding the decimal digits of the best score, most significant first. 1.12 uses 3 records, created (as zero bytes, not read) if the count is not 3. Record 1 is bestLevel as a byte. Record 2 is bestScore as a big-endian int. Record 3 is a game snapshot (DataOutputStream), written in Bounce.destroyApp, in this order: byte flag (-6 = snapshot taken while the game screen was showing, -16 = none or lives<0, -70 = restart at the start of mLevelNum); byte lives; byte rings; byte level; byte ballSize (12/16); int score; int tileX; int tileY; int globalBallX; int globalBallY; int xSpeed; int ySpeed; int xPos; int yPos; int respawnX; int respawnY; int speedBonus; int gravBonus; int jumpBonus; byte N; N times (short row, short col, byte id) for every tile still holding id 7, 29, 13-16 or 21-24 (array of 50; the most is L11 with exactly 50 at its start); byte spikeCount; spikeCount times (short offX, short offY, short dirX, short dirY). The best level is now capped at 11.",
+     "baseline": "1.8 cfr BounceUI.java:199-254 getGameData, :256-309 setGameData; BounceCanvas.java:138-149 checkData; Bounce.java:33-39 destroyApp (no save)",
+     "thisVersion": "1.12 cfr BounceUI.java:254-320 loadGameData, :322-406 saveGameData, :408-419 checkData (mBestLevel = Math.min(level, 11)); Bounce.java:34-41 destroyApp calls saveGameData(3) before stopping the canvas",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Resume from the snapshot (new feature). Flag -70: resetGame(savedLevel, savedScore, savedLives) restarts that level, keeping the points earned in the abandoned try. Flag -6: resetGame(globalBallX+size/2, globalBallY+size/2) reloads the level, then: any tile of id 7, 29 or 13-16/21-24 missing from the saved list becomes empty (0) or a used hoop (17-20/25-28), keeping the water bit; spike offsets and directions are restored; rings, lives and score are restored; the checkpoint marker (id 8) is restored, but only if the saved respawn column AND row both differ from the start (an && bug); the ball is rebuilt at the last collision-probe position (globalBallX/Y, not xPos/yPos), again 1 px higher, with the saved speeds and power-up counters. The respawn size becomes the current size. jumpOffset, the grounded flag, held directions, slideCntr and the popped state are not saved. The saved tileX/Y and xPos/yPos are read but never used.",
+     "baseline": "1.8: no saved game (BounceUI.java:164-197 Continue only restarts a whole level)",
+     "thisVersion": "1.12 cfr BounceUI.java:212-225; BounceCanvas.java:85-105 resetGame(int,int), :567-579 resetSpikes, :581-640 resetTiles, :642-651 tileNotSavedAsActive",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Main menu. 1.8: Continue is listed when a game is running or bestLevel>1. When no game is running it starts a new game (3 lives, 0 points) at the level you lost on (after Game over) or at bestLevel; the menu reopens on the last item chosen. 1.12: Continue is listed when a game is running or the saved flag is not -16, resumes the running game or the saved one, and is selected by default. Game over hides it (flag set to -16). New game opens a 'Level 1..bestLevel' list (text 14) when bestLevel>1 and starts the chosen level with 3 lives and 0 points. This path does not reset mNewBestScore or set state 4.",
+     "baseline": "1.8 cfr BounceUI.java:74-96 displayMainMenu (test at :79), :164-197 commandAction (Continue :168-175, New game :176-181), :98-105 displayGame -> resetGame(n)",
+     "thisVersion": "1.12 cfr BounceUI.java:93-119 (tests at :98 and :112-116), :121-134 displayNewGameMenu, :205-252 commandAction (level list :207-208, Continue :212-225, New game :226-235), :136-143 displayGame -> resetGame(n,0,3), :421-426 gameOver",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "HUD ring icons are packed tighter. The x step is (ringWidth-4)=8 px instead of (ringWidth-1)=11 px. The ring in sprite-sheet cell (col 1, row 4) is also drawn 3 px further left (pixel columns 1-5 instead of 4-8). Remaining rings therefore sit at x=6+8n..10+8n instead of 9+11n..13+11n (y=112). 1.8 shows at most 11 rings on the 128 px screen (L9-L11 need 12, 12 and 15); 1.12 shows all 15. The life icons are unchanged (step 11).",
+     "baseline": "1.8 cfr BounceCanvas.java:236-240: drawImage(mUIRing, 5 + n3*(mUIRing.getWidth()-1), 112, 20)",
+     "thisVersion": "1.12 cfr BounceCanvas.java:237-241: 5 + n3*(mUIRing.getWidth()-4); TileCanvas.java:881 mUIRing = extractImage(sheet,1,4)",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "Screen clear. 1.8: when mClearScreenFlag is set, it fills black and skips the frame buffer for that paint (one black frame). The flag is set on level complete and cleared on a new game. 1.12 fills with setColor(-1) (white), then draws the 128x128 buffer in the same paint, so nothing visible on a 128x128 screen. The flag is set on every new game, level load and resume.",
+     "baseline": "1.8 cfr BounceCanvas.java:258-264, :81 (false in resetGame), :394 (true on level complete)",
+     "thisVersion": "1.12 cfr BounceCanvas.java:260-265, set at :82, :104, :115",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "Drawing the exit door. 1.8 draws the whole 24x24 door image, offset to the door's top-left, every time any exit tile is drawn, and during opening marks only the top-left exit tile dirty. 1.12 clips each exit tile to its own 12x12 cell and marks all four exit tiles dirty while the door opens. mExitPos (set while drawing) uses the same formula, so when the door opens is unchanged.",
+     "baseline": "1.8 cfr TileCanvas.java:478-484; BounceCanvas.java:357-360",
+     "thisVersion": "1.12 cfr TileCanvas.java:477-485 (setClip n3,n4,12,12 then reset to 156x96); BounceCanvas.java:366-378",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Game-over screen. 1.8 always shows 'Game over' (text 11) as the body. 1.12 gameOver(bool) also sets mState=3, the saved flag to -16 and mIncomingCall=false. The body is 'Congrats!' (text 7) when level 11 was finished and 'Game over' otherwise; then 'New high score!' if one was set, then the score.",
+     "baseline": "1.8 cfr BounceUI.java:129-147; BounceCanvas.java:316-321",
+     "thisVersion": "1.12 cfr BounceUI.java:167-188, :421-426; BounceCanvas.java:319-325",
+     "affectsPlay": false
+    },
+    {
+     "area": "other",
+     "what": "MIDlet lifecycle. BounceUI is built in the MIDlet constructor instead of startApp. destroyApp now saves the snapshot (saveGameData(3)) and no longer calls System.gc(). loadLevel no longer prints IOExceptions, and createNewLevel no longer sets mBall=null before loading.",
+     "baseline": "1.8 cfr Bounce.java:21-27, :33-39; TileCanvas.java:152-154; BounceCanvas.java:85-86",
+     "thisVersion": "1.12 cfr Bounce.java:21-29, :34-41; TileCanvas.java:151-153; BounceCanvas.java:107-108",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "Sprite sheet icons/objects_nm.png (48x72, 4x6 cells of 12 px): every cell has identical RGBA except col 1, row 4 (the HUD ring icon), where the ring is shifted 3 px left (45 pixels differ). Sounds up.ott, pickup.ott and pop.ott are byte-identical. Icons bouncesplash.png, icon.png and nokiagames.png are byte-identical. Levels J2MElvl.001-011 are byte-identical to 1.8, including .011. lang.xx (English) and lang.de are byte-identical. The language pack differs: 1.8 ships da-DK, fi-FI, is-IS, no-NO and sv; 1.12 ships es-ES, fr, hu-HU, it, nl-NL, pl-PL, pt-PT, ro-RO and tr-TR.",
+     "baseline": "1.8 x/icons/objects_nm.png (2234 B), x/lang.{da-DK,de,fi-FI,is-IS,no-NO,sv,xx}",
+     "thisVersion": "1.12 x/icons/objects_nm.png (1926 B), x/lang.{de,es-ES,fr,hu-HU,it,nl-NL,pl-PL,pt-PT,ro-RO,tr-TR,xx}",
+     "affectsPlay": false
+    }
+   ],
+   "physicsIdenticalToBaseline": false,
+   "notes": "Who made it: Nokia's own build. Same package com.nokia.mid.appl.boun, same toolchain (\"Created-By: 1.3.1.02 (Hewlett-Packard Co.)\"), MIDlet-Vendor Nokia, not obfuscated, with original-style names (mLeaveGame, KJM2_DEBUG, RMS_* constants). It looks like a later revision of the 1.8 source (Dec 2002 -> Feb 2003).\n\nTiming: TileCanvas$GameTimer is byte-identical, schedule(this, 0, 30), so 30 ms as in 1.8. The order of a game step in BounceCanvas.run is unchanged: level-number countdown, then screen flip or (cleanBuffer, Ball.update, testScroll), then death/respawn, moving spikes, exit opening, power-up HUD bar, scrollBuffer, paint2Buffer, and the level-end check last.\n\nUnchanged: Ball.testTile (every tile's collision and side effects, scores 200/500/1000/5000, extra-life cap 5), the collision masks, collisionDetection, the gravity/water/power-up constants in update, horizontal movement and ramp sliding, enlarge/shrink, popBall (5 steps), screenFlip, scrolling and moving spikes.\n\nScreen layout is the same as 1.8: 128x128 FullCanvas, 156x96 circular game buffer, HUD panel 0x0853AA at y=97 (lives at y=99, rings at y=112, score at (64,100), level text at (44,84), bonus bar at x=1). Sounds are Nokia OTT ringtones played through com.nokia.mid.sound.Sound, unchanged.\n\nFixed relative to 1.8:\n- Level 11 can be reached in normal play.\n- The HUD can show all 15 rings.\n\nBugs introduced in 1.12:\n- Exiting from the main menu before ever playing writes nothing (saveGameData throws a NullPointerException on mCanvas.mBall, which is caught). Record 3 stays 255 zero bytes, so on the next launch the flag reads 0 instead of -16 and Continue appears. Choosing it calls resetGame(0,0,0) -> loadLevel(0) -> /levels/J2MElvl.000 is missing -> NullPointerException, which the IOException catch does not handle.\n- Winning the game and then exiting saves flag -70 with level 12 (lives>=0), so Continue later tries J2MElvl.012 and fails the same way.\n- A 1.8 record store (2 records) is never read: the count is never 3, so 3 new records are added on every launch.\n- Restoring the checkpoint marker uses && instead of ||.\n- Starting from the level list never resets mNewBestScore.\n\nFor the deterministic rules.js, if 1.12 is the target, change these against 1.8:\n- the redirectBall formulas;\n- the ceiling bounce ((-ySpeed)>>1 instead of 20);\n- spawn and respawn y = row*12 + size/2 - 1;\n- no large-ball nudge;\n- level 11 follows level 10, and the game ends after 11;\n- the FIRE cheat (finish the level).\n\nMy helper scripts and outputs are in /tmp/claude-0/-home-user/9e293dcf-c6a7-5416-93b2-b9c9546fbcbb/scratchpad/work/versions/1.12/:\n- mdiff.py: per-method javap diff\n- javap/: disassembly of both versions\n- spawn.py and spawn.out: spawn-collision check\n- cells.py: sprite-sheet cell diff\n- lang.py: lang decoder\n- count.py: save-tile count\n- ramps.py: ramp count"
+  },
+  {
+   "version": "1.18",
+   "classMap": "a = BounceUI (menus, commands, RMS \"bounceRMS\"; also now holds checkData and the fields of the saved game). b = TileCanvas (abstract FullCanvas: loadLevel, drawTile, 156x96 circular tile buffer, scrollBuffer/testScroll, moving spikes, exit door). c = Local (reads lang.<locale>, falls back to lang.xx). d = BounceCanvas (extends b: run() game step, keys, HUD, splash, sounds, plus new save-restore helpers). e = Ball (TRI/12x12/16x16 masks, update, testTile). f = TileCanvas$GameTimer (TimerTask, 40 ms). Bounce = Bounce (the MIDlet, name not obfuscated). BounceConst has no counterpart because its constants are inlined. Profile is removed.\nMain members. Ball(e): r/A=xPos/yPos, o/m=globalBallX/Y, p=xOffset, l/s=xSpeed/ySpeed, y=direction, a=ballSize, t=mHalfBallSize, C=ballState, u=popCntr, v=jumpOffset, h/g/B=speed/grav/jump bonus counters, n=mGroundedFlag, x=mCDRubberFlag, w=mCDRampFlag, F=slideCntr, d/c=respawnX/Y, b=NEW respawn ball size (in pixels). Methods: b()=update, a(IIZ)=testTile, c(II)=collisionDetection, b(I)=redirectBall, b(II)=squareCollide, c(III)=triangleCollide, b(III)=thinCollide, a(III)=edgeCollide, f()=enlargeBall, c()=shrinkBall, e()=popBall, d()=addRing, a(II)=setRespawn, a(Graphics)=paint, g()=dirtyTiles.\nTileCanvas(b): n/m=tileX/tileY, L/K=divTileX/Y, ag=divisorLine, i/I=right/leftDrawEdge, ai=scrollFlag, ar=scrollOffset, af=mExitPos, F=tileMap, d/aq=map width/height, ay=mTotalNumRings, E=mNumMoveObj, U/T/am/z=mMOTopLeft/BotRight/Direction/Offset, au/y=exit top-left col/row, c=mImageOffset, R=mOpenFlag, ak=mLevelNum, e=mLoadLevelFlag, a=start ball size (now 12/16, not 0/1). Methods: a(I)=loadLevel, a(IIII)=drawTile, l()=updateMovingSpikeObj, b(II)=findSpikeIndex, a(Z)=cleanBuffer, f()=createNewBuffer, b(III)=scrollBuffer, c(II)=testScroll, g()=openExit, a(IILImage)=createExitTileObject.\nBounceCanvas(d): aA=mBall, aa=numRings, j=numLives, g=mScore, r=mLevelDisCntr, f=mExitFlag, t=mOpenExitFlag, C=mPaintUIFlag, al=bonusCntrValue, an=mCheat, B=mInvincible, h=mCheatSeq, Z=clear-screen flag, M=mIncomingCall. Methods: a()=run, e()=screenFlip, a(IIIII)=createBufferFocused (pixel coords), j()=createNewLevel, a(III)=resetGame(level,score,lives), n()=paint2Buffer. New: a(II)=restore saved game, i()/a(IIB)=restore collected items, b()=restore spikes.\nUI(a): L=mState (new value 5 = level-complete screen), f=mBestLevel, h=mBestScore, p=mNewBestScore, D=mLastScore, K..l=saved-game fields. Methods: f()=displayMainMenu, a(ZI)=displayGame, d()=displayLevelComplete, b(Z)/a(Z)=displayGameOver, h()=getGameData, a(I)=setGameData, a()=checkData, g()=NEW level-select list.",
+   "differences": [
+    {
+     "area": "timing",
+     "what": "Game timer period is 40 ms instead of 30 ms. The splash screen (31 ticks) therefore lasts about 1.24 s instead of 0.93 s.",
+     "baseline": "cfr TileCanvas.java:984 timer.schedule(this, 0, 30)",
+     "thisVersion": "f.class constructor (javap: ldc2_w 40 then Timer.schedule). CFR wrote no f.java",
+     "affectsPlay": false
+    },
+    {
+     "area": "ball physics",
+     "what": "Ramp deflection (redirectBall, called from triangleCollide when the ball is not grounded) is rewritten. Baseline: tiles 35/37 swap (vx,vy)->(vy,vx); 31/33 (vy>>1, vx>>1); 34/36 (-vy,-vx); 30/32 (-(vy>>1), -(vx>>1)). In 1.18 the ball keeps its own x speed when that speed already points along the slope, and vy is never halved. The new vy is vx (31/33/35/37) or -vx (30/32/34/36). The new vx is: 35: vx>-vy ? vx : vy. 37: -vx>vy ? vx : vy. 34: vx<vy ? vx : -vy. 36: vx>vy ? vx : -vy. 31: vx>-vy ? vx : vy>>1. 33: -vx>vy ? vx : vy>>1. 30: vx<vy ? vx : -(vy>>1). 32: vx>vy ? vx : -(vy>>1). Verified with javap.",
+     "baseline": "cfr Ball.java:215-242",
+     "thisVersion": "cfr e.java:215-258 (e.b(int))",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "New minimum fall speed. At the start of every update, after the +-150 clamps and before the vertical move loop: if (0 < ySpeed < 10 && the ball's centre tile has no water bit) ySpeed = 10. The check ignores the gravity-bonus state. Effects: (1) Jump apex: instead of the baseline's 1,5,9 frames with no movement, the ball keeps moving 1 px a frame. (2) Bobbing at a water surface changes. (3) With antigravity active, once ySpeed turns positive (after a bounce off the ceiling or a jump), gravity -4 per frame and the clamp back to 10 alternate. The ball then sinks about 1 px a frame and never floats back up. It reaches the floor, the landing branch sets -10, it rises, bounces and sinks again, instead of settling on the ceiling as in 1.8.",
+     "baseline": "cfr Ball.java:776-787 (no such clamp before the y loop)",
+     "thisVersion": "cfr e.java:805-807 (bytecode: getfield s; bipush 10; if_icmpge; s>0; water flag local 8 ==0 -> s=10)",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Ceiling hit in normal gravity (the move up is blocked, n2<0): baseline sets ySpeed = 20. 1.18 sets ySpeed = (-ySpeed)>>1, so the ball rebounds at half its upward speed (e.g. -67 -> 33, -15 -> 7). The loop bound |ySpeed|/10 is re-read every iteration, so the rest of that frame's vertical steps also change. The antigravity branch is unchanged (-20).",
+     "baseline": "cfr Ball.java:831-833 ySpeed = bl ? -20 : 20",
+     "thisVersion": "cfr e.java:853-855 s = bl2 ? -20 : -s >> 1",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Brick tile 1 sets mCDRampFlag when the ball mask overlaps it, not only on a bounding-box near miss as in 1.8. The flag enables the 1-px diagonal slide when vertically blocked with xSpeed<10 and slideCntr==0. In the horizontal loop it enables the 1-px step up/down, or the bounce xSpeed = -(xSpeed>>1). These now trigger whenever the ball is touching bricks. For example, pushing into a brick wall now bounces the ball back, and the ball can slide or step over brick edges.",
+     "baseline": "cfr Ball.java:451-458 (if squareCollide -> bl=false only; else mCDRampFlag=true)",
+     "thisVersion": "cfr e.java:467-475 (both branches set w=true)",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "The ball spawns 1 px higher at level start and at every respawn. createBufferFocused now takes the ball centre in pixels and sets ballY = py - tileY*12 - 1, so local yPos = (row-tileY)*12 + size/2 - 1 (5 for the small ball, 7 for the large ball, instead of 6/8). X position and camera thresholds are unchanged: px<64 / px>W*12-64 give the same results as tile*12+6 for both sizes. A small ball under a ceiling brick starts 1 px inside it and moves away on frame 2. In 1.8 the first pixel move comes on frame 4 (ySpeed 0->4->8->12). Because of the new clamp the timing also differs.",
+     "baseline": "cfr BounceCanvas.java:95-136 (ball y at :122 = (n2-tileY)*12 + (size>>1)); respawn call :323",
+     "thisVersion": "cfr d.java:119-151 (-1 at :146); level start d.java:114; respawn d.java:330-336",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "Large-ball spawn correction removed. In 1.8, for a 16-px ball, createBufferFocused calls collisionDetection at the spawn point. That call has testTile side effects, e.g. the deflator in L11 at (143,45) shrinks the ball before frame 1. If the spot is blocked, the ball is nudged by 4 px (left, up, or up-left). 1.18 does no check and no nudge: the ball is created exactly where it is placed and the first collision test happens during update().",
+     "baseline": "cfr BounceCanvas.java:124-134",
+     "thisVersion": "cfr d.java:145-150 (no collisionDetection call)",
+     "affectsPlay": true
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "Last level. 1.8 ends the game after level 10: after ++mLevelNum, mLevelNum >= 11 leads to game over, so level 11 is reached only through Continue or the cheat. 1.18 ends after level 11 (ak > 11), so level 11 is played with score and lives carried over. In that case the game-over screen body shows 'Congrats!' instead of 'Game over'. The best level saved is min(level,11).",
+     "baseline": "cfr BounceCanvas.java:381-397 (if mLevelNum >= 11 displayGameOver)",
+     "thisVersion": "cfr d.java:403-417 (if ak > 11 X.b(true)); a.java:169-191, 414-417",
+     "affectsPlay": true
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "The next level runs behind the level-complete screen. displayLevelComplete stops the timer, then calls displayGame(false,0), which restarts the timer and sets the canvas, then shows the form. The next tick loads the next level and later ticks run the full game step with no input while 'Level N completed' is shown. The 120-tick 'Level N' counter runs down, moving spikes advance, and the ball falls and settles. Pressing Continue only re-displays the canvas. In 1.8 the timer is stopped and the level loads only after Continue.",
+     "baseline": "cfr BounceUI.java:149-162 (stop only), :194-196 (Continue -> displayGame starts timer)",
+     "thisVersion": "cfr a.java:193-208 (u.h(); a(false,0) restarts timer), a.java:253-255 (Continue -> setCurrent only)",
+     "affectsPlay": true
+    },
+    {
+     "area": "keys and cheats",
+     "what": "New cheat keys, active only after the 7,8,7,8,9,9 code. '#' (35) sets gravBonusCntr=300 (antigravity, no sound). Game action FIRE (keycode -5 or '5') sets mExitFlag, which completes the level (+5000, next level) even if the door is closed. Keycode -5 is no longer explicitly ignored and goes through getGameAction. Movement keys, '1'/'3' level skip, the invincibility code (7,8,7,8,9,8) and soft keys -6/-7 (menu) are unchanged.",
+     "baseline": "cfr BounceCanvas.java:400-488 (-5: break at :459-461; no '#', no FIRE)",
+     "thisVersion": "cfr d.java:420-515 ('#' :479-483, FIRE :508-511)",
+     "affectsPlay": true
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Record store layout changed. 1.8: 'bounceRMS' has 2 records: rec1 = 1 byte best level; rec2 = 8 bytes, best score as decimal digits, most significant first. If the count is not 2, empty records are added. 1.18 has 3 records: rec1 = writeByte(bestLevel); rec2 = writeInt(bestScore), 4 bytes big-endian; rec3 = saved game. It is created as 1/4/255 zero bytes and read only when exactly 3 records exist. rec3 layout: byte kind (0 none, 1 = in game (mState 1), 2 = on the level-complete screen (mState 5)), byte lives, byte rings, byte level, byte ballSize(12/16), then ints: score, tileX, tileY, globalBallX, globalBallY, xSpeed, ySpeed, xPos, yPos, respawnX, respawnY, speedBonus, gravBonus, jumpBonus. Then a byte count n (array of 50) and n entries (short row, short col, byte type) for every uncollected tile of type 7, 29, 13-16 or 21-24. Then a byte spike count m and m entries (short offX, short offY, short dirX, short dirY).",
+     "baseline": "cfr BounceUI.java:199-309",
+     "thisVersion": "cfr a.java:258-412",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "New save on exit and resume. Bounce.destroyApp calls setGameData(3). Main-menu Continue, when not playing and a save exists: kind 2 means resetGame(savedLevel, savedScore, savedLives). Kind 1 means: reload the level; collected items not in the saved list are turned into collected hoops or empty tiles; spike offsets and directions are restored; the respawn checkpoint gets tile 8 only if its column AND row both differ from the start (&& bug); the ball is created at (globalBallX+size/2, globalBallY+size/2) with the y-1 rule, the saved size and the saved x/y speed; respawn and bonus counters are restored. Not restored: jumpOffset, grounded/ramp/rubber flags, slideCntr. The saved xPos/yPos/tileX/tileY are read but unused. globalBallX/Y come from the last collision probe and can be off by 1 px.",
+     "baseline": "cfr Bounce.java:31-38 (destroyApp only stops the timer); no restore",
+     "thisVersion": "cfr Bounce.java:33-40; a.java:217-230; d.java:86-106, 573-657",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Main menu and new-game flow. 1.8 shows Continue when playing or when bestLevel>1. Continue after a game over restarts the level of death, and at startup it starts at the best level, both with 3 lives and score 0. New game always starts level 1. The menu has a 'Back' (BACK) command that exits. 1.18 shows Continue only when mState==1 or a save exists (kind 1/2), and game over clears the kind. New game opens a list 'Level 1'..'Level best' when best>1, and the chosen level starts with 3 lives and score 0. The menu has an 'Exit' (EXIT type) command, and other screens use 'Back'. With Continue present, the selected item is 0.",
+     "baseline": "cfr BounceUI.java:74-96, 164-197",
+     "thisVersion": "cfr a.java:93-135, 210-256",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "State bug in 1.18. Continue on the level-complete form does not set mState back to 1; it stays 5 for the rest of the game. After the first completed level, pausing with a soft key or an incoming call (hideNotify) gives a main menu without Continue. If a save from an earlier session exists, Continue instead loads that stale save. The arrays used by the restore were nulled by the first restore, so a second restore removes every remaining item. Exiting during play saves kind 2, so the resume restarts the current level.",
+     "baseline": "cfr BounceUI.java:194-196 (displayGame sets mState=1)",
+     "thisVersion": "cfr a.java:253-255, 99, 343-347",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Game-over form: the title is 'Game over' and the body is 'Congrats!' when the game is won (else 'Game over'). It adds a System.out debug line 'mNewBestScore: ...'. checkData moved into the UI class and clamps best level to 11.",
+     "baseline": "cfr BounceUI.java:129-147; BounceCanvas.java:138-149",
+     "thisVersion": "cfr a.java:169-191, 414-432",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "HUD ring row spacing is 8 px (5 + i*(w-4)) instead of 11 px (5 + i*(w-1)). The ring sprite moved 3 px left inside its cell, so more rings fit. The HUD font is set explicitly. Lives, score position (64,100), the bonus bar and the HUD box (0,97,128,32 in colour 0x0853AA) are unchanged.",
+     "baseline": "cfr BounceCanvas.java:236-239",
+     "thisVersion": "cfr d.java:235-241",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "The 'Level N' text (0xFFFFFE at 44,84, small proportional font, while the 120-tick counter is non-zero) is drawn directly on the screen in paint(), after the buffer. In 1.8 it is drawn into the off-screen 128x128 buffer in paint2Buffer.",
+     "baseline": "cfr BounceCanvas.java:223-227",
+     "thisVersion": "cfr d.java:265-269",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "Screen clear: on every level load, reset or restore, 1.18 fills the whole canvas with white (-1) once and then draws the buffer in the same paint. 1.8 fills black once after a level is completed, and that paint does not draw the buffer.",
+     "baseline": "cfr BounceCanvas.java:258-262, 394",
+     "thisVersion": "cfr d.java:259-264; Z set at d.java:83,105,116",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "The exit door tile is drawn with a 12x12 clip, so each of its 4 cells draws only its own part of the 24x24 door image. While the door opens, all 4 door tiles are marked dirty instead of only the top-left one. This fixes overdraw of neighbouring buffer cells and the buffer wrap.",
+     "baseline": "cfr TileCanvas.java:478-484; BounceCanvas.java:357-360",
+     "thisVersion": "cfr b.java:476-484; d.java:370-382",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "Sprite sheet icons/objects_nm.png (48x72, 4x6 cells of 12 px): the only visible change is cell col1,row4 (HUD ring icon). The yellow/orange ring on the HUD-blue background moved from columns 4-8 to columns 1-5. Alpha masks of all cells are identical. Cells (0,0),(0,1),(0,2),(0,3),(0,5),(1,5),(2,0),(2,4),(2,5),(3,0),(3,1),(3,5) differ only in the RGB of fully transparent pixels (#92ff87 -> #ffffff), which is invisible.",
+     "baseline": "x/icons/objects_nm.png (2234 bytes)",
+     "thisVersion": "x/icons/objects_nm.png (1926 bytes)",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "lang files: the index layout changed to match the code. 'Bounce' moved to index 0 (instructions are now 1-6, Back 7, Congrats 8, Continue 9, Exit 10, Game over 11, High score 12, Instructions 13, Level %U 14, Level %U completed! 15, New game 16, New high score! 17, OK 18), and 'Next' and 'Pause' were dropped. English and German texts are otherwise identical. The language set changed: 1.8 has da-DK, de, fi-FI, is-IS, no-NO, sv, xx; 1.18 has de, es-ES, fr, it, nl-NL, pt-PT, tr-TR, xx.",
+     "baseline": "x/lang.xx (21 strings, 'Bounce' at 10)",
+     "thisVersion": "x/lang.xx (19 strings); cfr a.java:87-90, 155-162",
+     "affectsPlay": false
+    },
+    {
+     "area": "other",
+     "what": "Ball size is passed in pixels. loadLevel converts header byte 2 (0 -> 12, otherwise 16) and Ball(x,y,size) takes 12 or 16. The respawn size lives in the ball (field b) instead of canvas.mBallSize. 1.8's Ball maps only 0->12 and 1->16. The level files contain only 0 or 1, so play is the same. The exit's bottom-right fields and getImage() are removed (unused in 1.8).",
+     "baseline": "cfr TileCanvas.java:129; Ball.java:50-86",
+     "thisVersion": "cfr b.java:126-127; e.java:51-86",
+     "affectsPlay": false
+    },
+    {
+     "area": "other",
+     "what": "The MIDlet creates the UI in its constructor (1.8: in startApp). destroyApp saves the game (setGameData(3)) and does not call System.gc. startApp still turns on the backlight.",
+     "baseline": "cfr Bounce.java:21-38",
+     "thisVersion": "cfr Bounce.java:20-40",
+     "affectsPlay": false
+    }
+   ],
+   "physicsIdenticalToBaseline": false,
+   "notes": "File and line references are to CFR output under /tmp/claude-0/-home-user/9e293dcf-c6a7-5416-93b2-b9c9546fbcbb/scratchpad/jars/<name>/cfr/com/nokia/mid/appl/boun/ (1.8: Ball, BounceCanvas, TileCanvas, BounceUI, Bounce .java; 1.18: a/b/c/d/e/Bounce .java). Every point was checked against javap. Normalized per-method bytecode (1.18 names mapped to baseline names) and the helper scripts are in /tmp/claude-0/-home-user/9e293dcf-c6a7-5416-93b2-b9c9546fbcbb/scratchpad/work/versions/1.18/norm/ and .../1.18/scripts/.\n\nBytecode identical to 1.8 after renaming: Ball collisionDetection, squareCollide, triangleCollide, thinCollide, edgeCollide, enlargeBall, shrinkBall, popBall, addRing, set/release/resetDirection(s), paint, dirtyTiles. In update() only the min-speed clamp and the ceiling rebound changed. In testTile only tile 1 changed: all other tiles have the same collisions, scores (ring 500, checkpoint 200, life 1000 with cap 5, level 5000), power-up counters (300), deflate/inflate, spikes and exit. TileCanvas scrollBuffer, testScroll, cleanBuffer, createNewBuffer, updateMovingSpikeObj, findSpikeIndex, openExit (+4 px per step to 24), loadTileImages, createMovingObj and rectCollide are identical. BounceCanvas screenFlip, add2Score, zeroString, keyReleased and loadSound are identical, as are Local and the order of steps in run(): load flag, splash, level counter, flip or (clean, update, testScroll), death/respawn, spikes, ring check, exit opening, bonus bar, scrollBuffer, paint2Buffer, level end. Lives start at 3; popping lasts 5 frames.\n\nResources: levels J2MElvl.001-011 are byte-identical to 1.8 (011 is the 1.8 version, not the 1.21/1.24 one). The sounds up.ott/pickup.ott/pop.ott are Nokia Smart Messaging tones played with com.nokia.mid.sound.Sound(bytes, 1) and are byte-identical. bouncesplash.png, nokiagames.png and icon.png are identical. Only the HUD-ring sprite cell changed visibly.\n\nScreen layout: 128x128 is hard-coded. There is a 128x128 full-screen buffer, a 156x96 tile buffer (13x8 tiles) viewed through a 128-px window, a HUD at y 97-128, lives at y 99 (x = 5 + 11i), rings at y 112 (x = 5 + 8i in 1.18), score at (64,100), and a bonus bar at x=1. Outside 128x128 the canvas is cleared to white in 1.18.\n\nBuild: a Nokia build (vendor Nokia, package com.nokia.mid.appl.boun, Nokia FullCanvas/DirectGraphics/DeviceControl/Sound), obfuscated, no debug info, class format 45.3, entries dated 2003-10-10. The JAR was re-packed later: the manifest says 'Created-By: 14.0.1 (Oracle Corporation)' and adds MIDlet-Icon.\n\nBugs introduced:\n- Antigravity no longer sticks to the ceiling: the ball sinks about 1 px a frame because of the ySpeed clamp.\n- The next level runs behind the level-complete form.\n- mState stays 5 after the first completed level, so Continue disappears from the pause menu.\n- Restore issues: the checkpoint marker uses && instead of ||, the position is taken from the last collision probe and is 1 px higher, and a second restore wipes the items.\n- The save fails silently if more than 50 items remain; level 11 starts with exactly 50, so it still fits.\n\nFixes and features: the exit door is drawn with a clip; level 11 is part of the normal run; there is a level-select list; the game is saved and resumed on exit; the end-of-game screen says 'Congrats!'."
+  },
+  {
+   "version": "1.21 (Bounce_1.21_LockedRes_128x128_EnMulti, MIDlet-Version 1.21, Nokia, MIDP-1.0/CLDC-1.0, 128x128, obfuscated)",
+   "classMap": "Bounce=Bounce (MIDlet), a=BounceUI, b=TileCanvas, c=Local, d=BounceCanvas (extends b), e=Ball, f=TileCanvas$GameTimer (now a top-level TimerTask; CFR wrote no f.java, so use javap on f.class). BounceConst and Profile are gone (constants inlined), and TileCanvas.getImage(int) is removed.\nBall e: r=xPos, A=yPos, o/m=globalBallX/Y, p=xOffset, l=xSpeed, s=ySpeed, y=direction, a=ballSize (12/16), t=mHalfBallSize, d/c=respawnX/Y, b=NEW respawn ball size, C=ballState, v=jumpOffset, h/g/B=speed/grav/jump bonus counters, n=mGroundedFlag, x=mCDRubberFlag, w=mCDRampFlag, F=slideCntr, f/e/z=TRI/SMALL/LARGE masks, u=popCntr. Methods: a(II)=setRespawn, c(I)=setDirection, a(I)=releaseDirection, a()=resetDirections, c(II)=collisionDetection, f()=enlargeBall, c()=shrinkBall, e()=popBall, d()=addRing, b(I)=redirectBall, b(II)=squareCollide, c(III)=triangleCollide, b(III)=thinCollide, a(III)=edgeCollide, a(IIZ)=testTile, b()=update, a(Graphics)=paint, g()=dirtyTiles.\nTileCanvas b: n/m=tileX/Y, L/K=divTileX/Y, ag=divisorLine, i=rightDrawEdge, I=leftDrawEdge, ai=scrollFlag, ar=scrollOffset, af=mExitPos, F=tileMap, d/aq=map width/height, ay=mTotalNumRings, E=mNumMoveObj, U/T/am/z=MO topLeft/botRight/direction/offset, au/y=exit top-left col/row, R=mOpenFlag, ak=mLevelNum, e=mLoadLevelFlag, v/Y=start x/y, a=start ball size (now 12/16). Methods: a(I)=loadLevel, l()=updateMovingSpikeObj, b(II)=findSpikeIndex, a(IIII)=drawTile, f()=createNewBuffer, a(Z)=cleanBuffer, b(III)=scrollBuffer, c(II)=testScroll, c()=loadTileImages, a(IILImage)=createExitTileObject, g()=openExit, a(8 ints)=rectCollide, a()=run, d()/h()=start/stop.\nBounceCanvas d: aA=mBall, X=mUI, aa=numRings, j=numLives, g=mScore, r=mLevelDisCntr, f=mExitFlag, t=mOpenExitFlag, C=mPaintUIFlag, Z=mClearScreenFlag, an=mCheat, B=mInvincible, h=mCheatSeq, M=mIncomingCall, az/w/p=splash. Methods: a(III)=resetGame(level,score,lives), j()=createNewLevel, a(IIIII)=createBufferFocused(pixelX,pixelY,size,xSpeed,ySpeed), e()=screenFlip, b(I)=add2Score, n()=paint2Buffer, a()=run. New: a(II)=restore saved game, b()=restore moving spikes, i()/a(IIB)=restore collected items.\nBounceUI a: M=mState, f=mBestLevel, h=mBestScore, q=mNewBestScore, E=mLastScore, L..o=saved-game fields. Methods: f()=displayMainMenu, a(ZI)=displayGame, c()=highscore, b()=instructions, a(Z)=displayGameOver, d()=displayLevelComplete, h()=getGameData, a(I)=setGameData, a()=checkData (moved here from BounceCanvas), plus new g() (level list), b(Z) (game over), e() (menu strings).\nA javap-normalised method-by-method diff (in /tmp/claude-0/-home-user/9e293dcf-c6a7-5416-93b2-b9c9546fbcbb/scratchpad/work/versions/1.21/) shows these are byte-identical to 1.8: collisionDetection, squareCollide, triangleCollide, enlargeBall, shrinkBall, popBall, addRing, setDirection, releaseDirection, resetDirections, paint, dirtyTiles, the static masks, scrollBuffer, testScroll, cleanBuffer, createNewBuffer, updateMovingSpikeObj, findSpikeIndex, loadTileImages, openExit, repaintExitTile, add2Score, zeroString, loadSound, keyReleased, hideNotify and highscore.",
+   "differences": [
+    {
+     "area": "timing",
+     "what": "Game-timer period is 40 ms instead of 30 ms. Every tick-based counter therefore lasts 4/3 longer in real time: the 300-tick bonuses (9 s become 12 s), the 120-tick level banner, the 5-tick pop and the 30-tick splash.",
+     "baseline": "TileCanvas.java:984 schedule(this,0,30)",
+     "thisVersion": "f.class (javap: f.<init> ldc2_w 40l, Timer.schedule); started from b.java:948-953",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "New minimum falling speed. Before moving, if 0 < ySpeed < 10, and the ball is not in water and the gravity bonus is not active, ySpeed is set to 10. So a ball that starts to fall moves 1 px at once instead of hovering until ySpeed reaches 10. At the top of a jump it hovers 2 steps instead of 5, and falls at 10,14,18,... instead of 13,17,21,... On flat ground a held-jump cycle is 33 steps instead of 35, with the same 51 px apex for the small ball. Bobbing at a water surface also changes.",
+     "baseline": "Ball.java:776-787 (only the ±150 clamps before the y loop)",
+     "thisVersion": "e.java:806-808 (if (s<10 && s>0 && !inWater && !gravFlag) s=10); inWater flag at e.java:755",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Hitting a ceiling (blocked while moving up, normal gravity): 1.8 sets ySpeed = +20. 1.21 sets ySpeed = (-ySpeed)>>1, half the impact speed reflected. A -67 jump stopped at once bounces back at +33. The y loop then continues with the new |ySpeed|/10. The bl ? -20 : ... arm is unreachable in both versions, because with gravity reversed a blocked move goes into the landing branch.",
+     "baseline": "Ball.java:831-833",
+     "thisVersion": "e.java:854-856",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Ramp deflection (redirectBall, called from triangleCollide when not grounded) is rewritten. Here X and Y are the old xSpeed and ySpeed.\n1.8: tiles 35/37 give X'=Y, Y'=X; 31/33 give X'=Y>>1, Y'=X>>1; 34/36 give X'=-Y, Y'=-X; 30/32 give X'=-(Y>>1), Y'=-(X>>1).\n1.21: 35 gives X'=(X>-Y)?X:Y; 37 gives X'=(-X>Y)?X:Y, with Y'=X for both; 34 gives X'=(X<Y)?X:-Y; 36 gives X'=(X>Y)?X:-Y, with Y'=-X for both; 31 gives X'=(X>-Y)?X:(Y>>1); 33 gives X'=(-X>Y)?X:(Y>>1), with Y'=X for both; 30 gives X'=(X<Y)?X:-(Y>>1); 32 gives X'=(X>Y)?X:-(Y>>1), with Y'=-X for both.\nSo the existing xSpeed is kept when it already exceeds the deflected value, and on the plain ramps 30-33 the new ySpeed is no longer halved. Verified with javap.",
+     "baseline": "Ball.java:215-242",
+     "thisVersion": "e.java:215-258",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Brick tile (type 1) now sets mCDRampFlag on every contact, including when it pixel-collides. In 1.8 the flag was set only when a brick lay in the bounding box without pixel overlap. This flag enables two moves in update: the 1-px sideways slide when landing (xSpeed<10, every 3rd step), and the 1-px step up/down when blocked horizontally. In 1.21 balls therefore slide off brick edges and corners and climb 1-px lips in cases where 1.8 stopped or bounced.",
+     "baseline": "Ball.java:451-458 (collide: bl=false only; no collide: flag=true); flag used at Ball.java:802-813 and 892-905",
+     "thisVersion": "e.java:467-475 (collide: bl=false and w=true; no collide: w=true); used at e.java:825-836 and 915-928",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "The gravity power-up (tiles 47-50) now also clears mGroundedFlag when touched. The bonus value is unchanged: 300, pickup sound, solid.",
+     "baseline": "Ball.java:675-683",
+     "thisVersion": "e.java:692-701 (adds this.n=false)",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Hit box of the thin strip in thinCollide, used by spikes 3-6, the exit door 9, hoop tiles 13-24 and inflators 43-46. 1.8 tests ball (gx,gy,gx+size,gy+size) against tile (x0,y0,x1,y1) with an inclusive test, so merely touching counts. 1.21 uses (gx,gy,gx+size-1,gy+size-1) against (x0,y0,x1-1,y1-1), so it needs a real pixel overlap. The thin axis is 1 px narrower on each side. The long axis is unaffected, because a tile is only tested when the ball's box overlaps it.",
+     "baseline": "Ball.java:389",
+     "thisVersion": "e.java:405",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "edgeCollide for the bottom-edge cases 14/18/22/26 now uses the ball rectangle (gx,gy,gx+size-1,gy+size-1). Before it was (gx,gy,gx+size,gy+size). The other edgeCollide cases are unchanged.",
+     "baseline": "Ball.java:428",
+     "thisVersion": "e.java:444",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Moving-spike (tile 10) hit box is shrunk. 1.8 tests ball (gx,gy,gx+size,gy+size) against spike (sx,sy,sx+24,sy+24), so touching pops the ball. 1.21 tests (gx+1,gy+1,gx+size-1,gy+size-1) against (sx+1,sy+1,sx+23,sy+23), so the ball must overlap the 24x24 spike block by at least 2 px. That is 2 px more lenient on every side. The spike movement itself is identical.",
+     "baseline": "Ball.java:491",
+     "thisVersion": "e.java:508",
+     "affectsPlay": true
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "Spawn and respawn put the ball 1 px higher: yPos = row*12 + size/2 - 1 in screen coordinates. Most starts and checkpoints sit directly under a brick: level starts 1, 2, 5, 7, 8, 9, 10 and many checkpoints. There the ball starts overlapping the ceiling by 1 px. It is blocked sideways until it has dropped 1 px, which it does on step 2 thanks to the new minimum fall speed. The camera choice (scroll left, scroll right, centred), tileX and tileY are unchanged for integer tile positions.",
+     "baseline": "BounceCanvas.java:122 (yPos=(row-tileY)*12+size/2), called from 92 and 323",
+     "thisVersion": "d.java:146 (n2 - tileY*12 - 1); called from j() d.java:114 and on respawn d.java:335",
+     "affectsPlay": true
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "The large-ball fit nudge is removed. In 1.8, if a 16-px ball spawned somewhere it did not fit, it was moved 4 px left, up, or up-left. In 1.21 there is no nudge. No start or checkpoint in the shipped levels has a solid tile in the 2x2 footprint, so this only matters for custom levels.",
+     "baseline": "BounceCanvas.java:124-134",
+     "thisVersion": "d.java:119-153 (absent)",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "screenFlip right-edge clamp is fixed. 1.8 checks tileX > W-14 and then does n2 += (tileX-W-13-1)*12 and tileX = W-14, which is wrong. For example, when tileX = W-13 (ball in column W-7 while still scrolling) n2 drops by 324 and xPos and the draw edges go negative. 1.21 checks tileX > W-13 and then does n2 += 156-(W-tileX)*12 and tileX = W-13. This only matters when the ball crosses the top or bottom screen edge near the right end of the map while scrolling.",
+     "baseline": "BounceCanvas.java:181-184",
+     "thisVersion": "d.java:185-188",
+     "affectsPlay": true
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "End of the game. 1.8 ends the game after finishing level 10 (mLevelNum >= 11 shows Game over), so level 11 is never reached in normal play. It is only reachable through the cheat keys 1/3, or through menu Continue after that game over, which restarts at level 11 with score 0 and 3 lives. 1.21 goes on to level 11 keeping score and lives, and ends only when level 11 is finished (ak > 11). That game-over screen says \"Congrats!\" (lang index 8) instead of \"Game over\". The level end still adds 5000 points and calls checkData first.",
+     "baseline": "BounceCanvas.java:385-397; BounceUI.java:135-136 (always text 11)",
+     "thisVersion": "d.java:409-418; a.java:446-451, 176-181",
+     "affectsPlay": true
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "The best-level record is capped: 1.21 stores min(level, 11). 1.8 can store 11, and a Continue after finishing level 11 tries to load J2MElvl.012.",
+     "baseline": "BounceCanvas.java:138-149",
+     "thisVersion": "a.java:433-444 (checkData moved to the UI)",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "While the Level-complete screen is up, the game keeps running in 1.21. displayLevelComplete calls stop() and then displayGame(false,0), which calls start(), clears the held directions and selects the canvas, then puts up the form. The next level is loaded on the first tick and simulated with no input for as long as the form stays on screen. The ball drops and settles, the moving spikes keep moving, and the 120-tick banner counts down. Continue only puts the canvas back on screen. In 1.8 the timer is stopped and the next level loads on the first tick after Continue.",
+     "baseline": "BounceUI.java:149-162, 194-196; BounceCanvas.java:392-395",
+     "thisVersion": "a.java:195-210 (calls this.a(false,0)), 138-147, 261-263; d.java:415-417",
+     "affectsPlay": true
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Main menu: Continue and New game work differently.\n1.8 shows Continue when a game is running or when bestLevel > 1. Continue from a stopped game restarts at bestLevel, or at the level where the last game ended, with score 0 and 3 lives.\n1.21 shows Continue only when a game is running (M==1) or a saved game exists (saved state L==1 mid-level, or L==2 at a level-complete screen). It resumes that exact state. Otherwise New game opens a level list (levels 1..bestLevel) when bestLevel > 1, and that list replaces 1.8's restart-at-best-level Continue.\nIn 1.21 the menu pre-selects item 0 whenever Continue is shown.",
+     "baseline": "BounceUI.java:79-81, 93, 168-181",
+     "thisVersion": "a.java:100-102, 114-118, 213-241, 123-136 (level list g())",
+     "affectsPlay": true
+    },
+    {
+     "area": "keys and cheats",
+     "what": "Every resume calls Ball.resetDirections, which clears held arrow keys, and every fresh start resets the new-high-score flag. In 1.8 directions are cleared only in hideNotify, and the flag is reset only by New game.",
+     "baseline": "BounceUI.java:98-105, 177-180",
+     "thisVersion": "a.java:138-147",
+     "affectsPlay": true
+    },
+    {
+     "area": "keys and cheats",
+     "what": "The select key (-5) is no longer ignored explicitly, so it goes to getGameAction like any other key. The FIRE game action (centre key or '5') now completes the current level when the cheat is enabled (mCheat set by the 7-8-7-8-9-9 sequence): it sets mExitFlag, and the level end then adds 5000 points and advances. In 1.8 FIRE and -5 do nothing.",
+     "baseline": "BounceCanvas.java:459-461, 469-485 (game actions 1/2/5/6 only)",
+     "thisVersion": "d.java:492-513 (case 8: if (an) f=true)",
+     "affectsPlay": true
+    },
+    {
+     "area": "keys and cheats",
+     "what": "New cheat: '#' (key code 35) sets gravBonusCntr = 300 (reversed gravity) when mCheat is on. The other cheats (1/3 level change, 7-8-7-8-8 invincible, 7-8-7-8-9-9 cheat mode), the soft keys -6/-7 (main menu) and the 2/4/6 movement keys are unchanged.",
+     "baseline": "BounceCanvas.java:408-487 (no case 35)",
+     "thisVersion": "d.java:481-485",
+     "affectsPlay": true
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Record store \"bounceRMS\" layout.\n1.8 has 2 records. Record 1 is 1 byte, the best level. Record 2 is 8 bytes, the best score as decimal digits, most significant first.\n1.21 has 3 records, and if getNumRecords() != 3 it adds 3 zeroed records of 1, 4 and 255 bytes. Record 1 is a byte (best level). Record 2 is a 4-byte int (best score). Record 3 is the saved game, written on exit (Bounce.destroyApp calls setGameData(3)): long timestamp; byte state (1 = playing, 2 = level-complete screen, 0 = none); bytes lives, rings, level, ballSize (12/16); ints score, tileX, tileY, ball globalX, globalY, xSpeed, ySpeed, xPos, yPos, respawnX, respawnY, speedBonus, gravBonus, jumpBonus; byte n, then n x (short row, short col, byte type) for every tile still of type 7/29/13-16/21-24 (array of 50, and level 11 has exactly 50 at its start); byte numMO, then numMO x (short offX, offY, dirX, dirY); long 0xFFFFFFFFDEADBEEF, a validity check whose failure sets state 0. A 1.8 store with 2 records is never read by 1.21.",
+     "baseline": "BounceUI.java:199-309; Bounce.java:31-38 (destroyApp only stops)",
+     "thisVersion": "a.java:267-431; Bounce.java:33-40",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Restoring a saved game (new in 1.21). With state 1 the level is reloaded. Collected rings, crystals and extra lives become their taken forms (7/29 become 0, rings become 17-20/25-28). Spike offsets and directions are restored. If the respawn x differs from the start x AND the respawn y differs from the start y (&&, not ||), the respawn tile is set to 8. The ball is rebuilt at savedGlobal + size/2 with the saved speeds, bonuses and respawn point, and the -1 px y offset applies. With state 2 the game resets at the saved level with the saved score and lives.",
+     "baseline": "none",
+     "thisVersion": "d.java:86-106, 575-659; a.java:219-232",
+     "affectsPlay": true
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Menu commands and strings. The main menu has an EXIT-type \"Exit\" command (text 10). Other screens use \"Back\" (text 7). 1.8 used one BACK \"Back\" command everywhere, and it exited the app from the main menu. The level-complete Continue command and the game-over OK command are the same strings at new lang indices. The game-over screen prints a debug line to System.out.",
+     "baseline": "BounceUI.java:76-78, 87, 133, 152",
+     "thisVersion": "a.java:96-99, 108, 174, 200, 183",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "HUD ring icons are spaced 8 px apart (getWidth()-4) instead of 11 px (getWidth()-1). The ring sprite was moved 3 px left inside its cell to match. 1.8 shows at most 11 rings on screen, so levels 9/10 (12 rings) and 11 (15 rings) overflow past x=127. 1.21 fits 15. The score font is now set explicitly. Lives (5+11n at y=99), score (64,100) and the bonus bar are unchanged.",
+     "baseline": "BounceCanvas.java:237-239, 242",
+     "thisVersion": "d.java:238-244",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "The 'Level N' banner (44,84) is drawn in paint() directly on screen, on top of the full-screen buffer. 1.8 drew it into the buffer in paint2Buffer. It looks the same.",
+     "baseline": "BounceCanvas.java:223-227",
+     "thisVersion": "d.java:267-271",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "Clear-screen flag. In 1.8, on the first paint after a level complete, the screen is filled black and the game frame is not drawn. In 1.21 the flag is set on every level load and reset, and paint fills white (-1) and then draws the frame anyway. So there is no black frame.",
+     "baseline": "BounceCanvas.java:258-261, 394, 81",
+     "thisVersion": "d.java:261-266, 83, 116",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "Exit-door drawing. Each exit tile now draws its 24x24 door image clipped to its own 12x12 cell, which fixes overdraw at the buffer wrap. While the door opens, all 4 exit tiles are marked dirty instead of only the top-left one. The open logic is unchanged: 4 px per step while visible, then mExitPos=-1.",
+     "baseline": "TileCanvas.java:478-484; BounceCanvas.java:357-360",
+     "thisVersion": "b.java:476-484; d.java:372-384",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "Sprite sheet objects_nm.png (48x72) differs in exactly one cell, col 1 row 4 (the HUD ring icon mUIRing): 45 px, the same ring drawn 3 px further left. All 23 other cells are pixel-identical (only the colour of the transparent key differs).",
+     "baseline": "x/icons/objects_nm.png (2234 bytes); used at TileCanvas.java:880",
+     "thisVersion": "x/icons/objects_nm.png (1926 bytes); used at b.java:880",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "Level J2MElvl.011 changes one tile. Row 42, col 91 goes from 1 (brick) to 97 (0x40 water + 33 ramp, solid lower-left), so the floor slopes down into the water gap at cols 92-93. Levels 001-010 are byte-identical.",
+     "baseline": "x/levels/J2MElvl.011 offset 7576: 0x01",
+     "thisVersion": "x/levels/J2MElvl.011 offset 7576: 0x61",
+     "affectsPlay": true
+    },
+    {
+     "area": "resources",
+     "what": "lang files. The order is now 0 Bounce, 1-6 instructions, 7 Back, 8 Congrats!, 9 Continue, 10 Exit, 11 Game over, 12 High score, 13 Instructions, 14 Level %U, 15 Level %U completed!, 16 New game, 17 New high score!, 18 OK. Next and Pause are dropped. The English text is identical. The language set changed from da-DK, de, fi-FI, is-IS, no-NO, sv, xx to de, fr, hu-HU, pl-PL, ro-RO, xx, zh-CN, zh-TW. German Exit changed from 'Schließen' to 'Beend.'. Local now caches the stream (mark(512)/reset).",
+     "baseline": "x/lang.xx (21 strings); Local.java:46-80",
+     "thisVersion": "x/lang.xx (19 strings); c.java:27-70",
+     "affectsPlay": false
+    },
+    {
+     "area": "sounds",
+     "what": "No difference. up.ott, pickup.ott and pop.ott are byte-identical and loaded the same way. Splash and icon PNGs are identical too.",
+     "baseline": "BounceCanvas.java:55-57",
+     "thisVersion": "d.java:56-58",
+     "affectsPlay": false
+    },
+    {
+     "area": "other",
+     "what": "MIDlet lifecycle. The UI is built in the MIDlet constructor instead of startApp. destroyApp writes the saved game and stops the timer, without System.gc(). The canvas has a start-time field that is never used, and mDebugCD is now true but also unused.",
+     "baseline": "Bounce.java:21-38",
+     "thisVersion": "Bounce.java:20-40",
+     "affectsPlay": false
+    }
+   ],
+   "physicsIdenticalToBaseline": false,
+   "notes": "Build. This is a genuine Nokia build: MIDlet-Vendor Nokia, package com.nokia.mid.appl.boun, Nokia UI API (FullCanvas, DirectGraphics, Sound). The classes are obfuscated (a-f), class-file major version 45, JAR entries dated 2004-01-23. The manifest says \"Created-By: 14.0.1 (Oracle Corporation)\", which suggests the JAR was repackaged later.\n\nScreen layout is the same as 1.8: 128x128 full canvas, a 156x96 tile ring buffer, play area at y 0-96, HUD at y 97-128 (background 0x0853AA). Sounds are Nokia OTT tones played with Sound(byte[],1).\n\nUnchanged per-step code (byte-identical after renaming): collisionDetection and its tile walk, the square and triangle pixel tests with the 12x12/16x16 masks, enlarge/shrink, popBall (lives-1, 5-tick pop), scoring (ring 500, crystal 200, extra life 1000 up to max 5, level 5000), gravity/water constants (80/4, 38/3, 42/6, -30/-2), jump -67 plus offsets, x acceleration 6 / friction 4 / cap 50 or 100, the 300-tick bonuses, the screen wrap at 156, scrollBuffer, testScroll, moving-spike movement, exit opening, and the order of the step in run(). The cheat codes 7878-8 and 7878-9-9 and the 1/3 level keys are also unchanged.\n\nNot behavioural:\n- The start ball size is now carried as 12/16 instead of 0/1 (b.java:126-127, e.java:72-79), and the respawn size moved from the canvas into the Ball (e.java:82-86, d.java:332-338). Both are equivalent to 1.8.\n- The camera choice in createBufferFocused gives the same result for integer tiles.\n\nFixes in 1.21: the screenFlip right clamp, overdraw by the exit image, HUD rings running off-screen, level 11 now part of normal play, and the best level capped at 11.\n\nNew quirks in 1.21:\n- The game runs during the Level-complete screen, so the start of the next level depends on wall-clock time: spike phase and banner timer.\n- Spawns are 1 px inside ceilings.\n- The saved-checkpoint restore uses && instead of ||.\n- A saved game remembers the ball size at save time, not at the checkpoint.\n\nFor a step-exact rules.js port of 1.21, change these from 1.8: the minimum fall speed of 10, the ceiling bounce (-vy)>>1, the new redirectBall formulas, the ramp flag on brick contact, grounded=false on the gravity pickup, the thinCollide / edgeCollide(14,18,22,26) / spike hit boxes, the -1 px spawn and no nudge, the screenFlip clamp, the level count of 11, the level-11 tile at row 42 col 91 = 97, and the FIRE and '#' cheats.\n\nScripts and normalised javap diffs are in /tmp/claude-0/-home-user/9e293dcf-c6a7-5416-93b2-b9c9546fbcbb/scratchpad/work/versions/1.21/ (norm.py, mdiff.py, n18/, n121/, cells.py, lvl.py, jumpsim.py)."
+  },
+  {
+   "version": "1.24 (Bounce_1.24_LockedRes_128x128_EnMulti; MIDlet-Version 1.24, vendor Nokia, MIDP-1.0/CLDC-1.0, Created-By 1.4.2_02 (Sun), files dated 2004-08-16, 128x128)",
+   "classMap": "Obfuscated classes mapped to the baseline (1.8) classes by what they contain. Line references use the CFR output: 1.24 = jars/Bounce_1.24_LockedRes_128x128_EnMulti/cfr/com/nokia/mid/appl/boun/*.java and 1.8 = jars/Bounce_1.8_LockedRes_128x128_EnMulti/cfr/com/nokia/mid/appl/boun/*.java. javap dumps are in scratchpad/work/versions/1.24/javap/{1.24,1.8}/.\n- Bounce stays Bounce (MIDlet).\n- a = BounceUI: menus, forms, RecordStore \"bounceRMS\" and checkData. Fields: J = mCanvas, a = mState, E = mBestLevel, w = mBestScore, j = mNewBestScore, t = mLastScore, F = saved-game state.\n- b = Ball: TRI/SMALL/LARGE masks p/y/x, collision and update. Fields: o,n = x,y in WORLD pixels; w,B = xSpeed,ySpeed; z = direction; i,g = ballSize,half; s,q = respawnX,respawnY; C = respawn ball size; h = ballState; a = jumpOffset; d,c,A = speed/grav/jump bonus counters; v = grounded; t = rubber flag; u = ramp flag; m = slideCntr; l = popCntr. Methods: a(II) = collisionDetection, a() = enlargeBall, e() = shrinkBall, d() = popBall, b() = addRing, b(I) = redirectBall, a(IIII) = squareCollide, c(IIIII) = triangleCollide, a(IIIII) = thinCollide, b(IIIII) = edgeCollide, b(IIII) = testTile, c() = update, static a(8 ints) = rectCollide.\n- c = BounceCanvas (extends e): j() = run (the game step), a(III) = resetGame, o() = createNewLevel, a(IIIII) = create ball and focus camera, a() = recentre camera (screen flip), m() = paint2Buffer, c(I) = add2Score, a(II) = restore a saved game. Fields: am = numRings, n = numLives, C = score, ab = level number, ad = level-text counter, f = exit flag, P = openExit flag, G = HUD repaint flag, O = invincible, M = cheat, X = cheat sequence, ai = incomingCall flag.\n- d = new static tables of hoop back/front tile-image indices for tile ids 13..28. These replace the per-case code in the baseline TileCanvas.drawTile and give the same indices.\n- e = TileCanvas: d(I) = loadLevel, a(IIII) = drawTile, b() = updateMovingSpikeObj, b(II) = findSpikeIndex, b(I) = horizontal scroll, l() = cleanBuffer, p() = createNewBuffer, q() = openExit, r() = loadTileImages, k()/f() = start/stop. Fields: s = tileMap, b/t = map width/height, ag = total rings, g = number of moving objects, F/A/a/h = mMOTopLeft/BotRight/Direction/Offset, V/R = camera tile column/row, af = pixel offset, i = mOpenFlag, T = \"exit drawn\" flag, al/aj and N/e = exit tile position.\n- f = Local: lang.* reader.\n- g = TileCanvas$GameTimer (period 40 ms).\n- Profile and BounceConst are gone; their constants are inlined.",
+   "differences": [
+    {
+     "area": "timing",
+     "what": "Game timer period",
+     "baseline": "30 ms: TileCanvas.java:984 timer.schedule(this,0L,30L)",
+     "thisVersion": "40 ms: g.class constructor (javap g.txt: ldc2_w 40, Timer.schedule). The splash screen still lasts 31 ticks (c.java:233).",
+     "affectsPlay": false
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "The death (pop) animation lasts 7 steps instead of 5, so the respawn and the game-over check happen 2 steps later",
+     "baseline": "Ball.java:197 popCntr = 5; Ball.java:713-723 counts it down",
+     "thisVersion": "b.java:155 l = 7; b.java:688-697 counts it down",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Speed after hitting a ceiling under normal gravity",
+     "baseline": "Ball.java:831-833: ySpeed = bl ? -20 : 20. A ceiling hit always sends the ball down at 20.",
+     "thisVersion": "b.java:797-798: B = bl2 ? -20 : (-B >> 1). The ball goes down at half its upward speed: -67 gives 33, -15 gives 7. The reversed-gravity case still gives -20. Checked with javap (ineg; iconst_1; ishr).",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "New minimum downward speed before vertical movement",
+     "baseline": "None. Ball.java:776-787 only clamps to +/-150, so ySpeed 1..9 moves 0 px. At a jump apex the ball hangs for 3 extra steps (speeds 1, 5, 9).",
+     "thisVersion": "b.java:751-753: if (B < 10 && B > 0 && !inWater && !antigravity) B = 10. This runs after the +/-150 clamp and before the vertical loop. Every apex and arc changes: 1.8 moves 0,0,0,1,1,2 px per step after the top, 1.24 moves 1,1,1,2.",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Ramp (triangle tile) redirection formulas",
+     "baseline": "Ball.java:215-242 (called only when not grounded). 35/37: x'=y, y'=x. 31/33: x'=y>>1, y'=x>>1. 34/36: x'=-y, y'=-x. 30/32: x'=-(y>>1), y'=-(x>>1).",
+     "thisVersion": "b.java:172-215, checked with javap. 35: x' = (x > -y) ? x : y. 37: x' = (-x > y) ? x : y. 34: x' = (x < y) ? x : -y. 36: x' = (x > y) ? x : -y. 31: x' = (x > -y) ? x : y>>1. 33: x' = (-x > y) ? x : y>>1. 30: x' = (x < y) ? x : -(y>>1). 32: x' = (x > y) ? x : -(y>>1). y' = x for 31/33/35/37 and y' = -x for 30/32/34/36, with no halving on the shallow ramps.",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Enlarging (inflator, and spawning as a big ball) searches for a free spot starting 1 px away instead of 2 px",
+     "baseline": "Ball.java:142-181. n starts at 2 (line 143), so the ball usually moves 2 px up.",
+     "thisVersion": "b.java:106-145. n starts at 1 (line 111), so the ball usually moves 1 px up.",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Shrinking (deflator) no longer nudges the ball",
+     "baseline": "Ball.java:183-193. After shrinking, the ball tries y+2 and then y-2.",
+     "thisVersion": "b.java:147-151 only sets size 12, half 6 and the image. The position does not change.",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "Spawn and respawn position of a big ball",
+     "baseline": "BounceCanvas.java:121-134. Centre at tile*12+8. Only if blocked, it tries -4 px in x, then y, then both. Level 3 gives (632,32), level 5 (392,392), level 11 (1712,452).",
+     "thisVersion": "c.java:113 and c.java:281 spawn at tile*12+6. The b constructor (b.java:63-67) then runs enlargeBall (n from 1), which always moves the ball. Level 3 gives (630,29), level 5 (390,392), level 11 (1710,449). Small balls spawn at tile*12+6 in both versions.",
+     "affectsPlay": true
+    },
+    {
+     "area": "ball physics",
+     "what": "The antigravity pickup clears the grounded flag",
+     "baseline": "Ball.java:675-683: gravBonusCntr=300, sound, blocked. mGroundedFlag is unchanged.",
+     "thisVersion": "b.java:647-656 also sets v=false (grounded).",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Plain brick (tile 1) sets the ramp/slide flag even when the ball mask overlaps it",
+     "baseline": "Ball.java:451-458. If squareCollide, only bl=false. mCDRampFlag is set only when the box overlaps but the mask does not.",
+     "thisVersion": "b.java:422-430 sets u=true (ramp flag) in both branches. Checked with javap.",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "collisionDetection stops at the first blocking tile",
+     "baseline": "Ball.java:122-139 tests every tile under the ball box (columns outer, rows inner) and ANDs the results. Pickups, rings, pops and the ramp/rubber flags on later tiles still fire even when an earlier tile blocks. An off-map tile also does not stop the scan (Ball.java:435-437).",
+     "thisVersion": "b.java:97-103 returns false at the first tile whose testTile is false. Side effects of the remaining tiles in that call are skipped. This includes the rest of the scan after an inflator or deflator changes the size.",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Thin-tile hit box (spikes 3-6, hoops 13-24, exit 9, inflators 43-46, tiles 17-20) is 1 px smaller on each side",
+     "baseline": "Ball.java:389 rectCollide(gx, gy, gx+size, gy+size, x1, y1, x2, y2) with inclusive comparisons (TileCanvas.java:951-953), so touching counts as a hit.",
+     "thisVersion": "b.java:352 uses a(x-g, y-g, x+g-1, y+g-1, x1, y1, x2-1, y2-1) (inclusive, b.java:874-876). At least 1 px of overlap is needed. edgeCollide (b.java:402) is unchanged.",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Moving-spike hit box is 2 px smaller on each side",
+     "baseline": "Ball.java:491: ball [gx, gx+size] against spike [sx, sx+24], inclusive.",
+     "thisVersion": "b.java:463: ball [x-g+1, x+g-1] against spike [sx+1, sx+23], inclusive. A hit needs gx <= sx+22 and sx+2 <= gx+size.",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "Vertical screen-flip trigger (a step with no ball update) and its hysteresis",
+     "baseline": "BounceCanvas.java:308-314. It flips (screenFlip, no update) when the ball centre leaves the screen: yPos < 0 or yPos > 96. The flip moves the screen 84 px, so a reverse flip needs about 14 px of travel.",
+     "thisVersion": "c.java:266-270. It recentres (a(), no update) when y-6 < R*12 or y+6 > R*12+96, so the flip comes 6 px earlier. c.java:138-143 steps R by 7 rows. A reverse flip can follow after 1-2 px, so the steps skipped near screen boundaries differ.",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "Vertical framing after spawn or respawn",
+     "baseline": "BounceCanvas.java:117: tileY = row/7*7, so the ball is on the top row when row%7==0.",
+     "thisVersion": "c.java:123 sets R=0, then c.java:138-143 gives R = 7*ceil((row-7)/7). When the row is a non-zero multiple of 7, the ball is on the bottom row of the screen above. This affects checkpoints in level 9 (col 16, row 7) and level 11 (col 97, row 21; col 108, row 28) and changes the later flip-step timing.",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "Horizontal camera",
+     "baseline": "TileCanvas.java:683-775 and BounceCanvas.java:95-115 use a scroll-zone ring buffer that keeps the ball at screen x 63/64/65 (64 after a flip). The view is clamped to [0, 12*W-128], so the right edge of the level is visible. Ball.java:908-920 wraps the ball's x coordinates in the 156-px tile buffer.",
+     "thisVersion": "e.java:586-626: camera left = clamp(ballX-64, 0, (W+1)*12-156 = 12W-144) every step (c.java:328). The recentre in c.java:128-133 clamps to 12W-156. The ball is always at screen x 64, and the last 16 px of every level (the rightmost column and 4 px of the next) are never shown. The level-1 exit at columns 110-111 is only partly visible.",
+     "affectsPlay": false
+    },
+    {
+     "area": "camera and step order",
+     "what": "A screen flip never moves the ball in the world",
+     "baseline": "BounceCanvas.java:177-187. The scroll-mode recentre clamp has a bug: n2 += (tileX - W - 13 - 1)*12 instead of (tileX - (W-14))*12. It also appears in JD-GUI BounceCanvas.java:267. A vertical flip in scroll mode with tileX > W-14 (ball within about the last 7 columns) shifts the ball 336 px left.",
+     "thisVersion": "c.java:127-145 (a()) only moves the camera. Ball coordinates are in the world, so they never change.",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "When the exit starts opening",
+     "baseline": "BounceCanvas.java:331-362. mExitPos is the buffer x of the exit's first column + 11 (TileCanvas.java:482), set when drawn. It must lie within [leftDrawEdge, rightDrawEdge], using the edges already moved by testScroll this step (BounceCanvas.java:313).",
+     "thisVersion": "c.java:289-311 needs T (set when drawn, e.java:376) and (al+1)*12 > camL and al*12 < camL+128 (e.java:628-634). It uses the previous step's camera, because the scroll in c.java:328 runs later. Coming from the left, opening starts about 10 px earlier (camL >= al*12-127 instead of about al*12-117). Opening still takes +4 px per step for 6 steps (e.java:792-799), as in TileCanvas.java:942-949.",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "The game keeps running behind the 'Level completed' screen",
+     "baseline": "BounceUI.java:149-162: displayLevelComplete stops the timer. Continue (BounceUI.java:194-196) restarts it, and the next level loads on the first tick after Continue.",
+     "thisVersion": "a.java:184-199: f() stops the timer and then calls a(false,0) (a.java:186, checked with javap), which restarts it (a.java:137). The next level loads at once (c.java:224-227) and its steps run while the form is shown, with no input: the ball spawns and settles, spikes move, and the level-text counter ad runs down. Continue (a.java:250-252) only shows the canvas again. How many steps run before the player has control depends on wall-clock time.",
+     "affectsPlay": true
+    },
+    {
+     "area": "rules, scoring, lives",
+     "what": "Number of levels and the end of the game",
+     "baseline": "BounceCanvas.java:385-391 does ++level and checks level >= 11, so the game ends after level 10 with a plain 'Game over' form (BounceUI.java:129-147). Level 11 is only reachable through Continue after that (BounceUI.java:173) or the cheat.",
+     "thisVersion": "c.java:335-339: ab++ and ab > 11, so all 11 levels are played. a.java:161-171 then shows the game-over form with 'Congrats!' (f.a(3)) instead of 'Game over'. a.java:412 caps the best level at min(level, 11).",
+     "affectsPlay": true
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "What Continue does, plus a new level select",
+     "baseline": "BounceUI.java:79 shows Continue if a game is running or bestLevel > 1. BounceUI.java:168-175: when no game is running, it restarts at bestLevel (or the level of the last game over) with 3 lives and score 0. New game always starts at level 1 (BounceUI.java:176-181).",
+     "thisVersion": "a.java:98 shows Continue if a game is running or a save exists (F==1 or F==2). a.java:208-221 resumes, or restores the full in-level snapshot (F==1, c.java:82-105), or starts the saved next level with the saved score and lives (F==2). New game opens a list 'Level 1..Level best' when best > 1 (a.java:222-230, a.java:119-130), and the chosen level starts with 3 lives and score 0.",
+     "affectsPlay": true
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Record store layout, and saving on exit",
+     "baseline": "BounceUI.java:199-309: 'bounceRMS' has 2 records. Record 1 is 1 byte (best level). Record 2 is 8 bytes, the best score as decimal digits, most significant first. Nothing is saved on exit (Bounce.java:31-38).",
+     "thisVersion": "a.java:256-408: 'bounceRMS' has 3 records; if the count is not 3, three empty records are added. Record 1: byte best level. Record 2: int best score. Record 3, written by destroyApp (Bounce.java:33-37): long time; byte state (0 none, 1 in game, 2 level-complete screen); bytes lives, rings, level, ballSize; ints score, camTileX, camTileY, ballX, ballY, xSpeed, ySpeed, 0, 0, respawnX, respawnY, speed/grav/jump counters; byte n, then n x (short row, short col, byte tile) for remaining pickups (tiles 7, 29, 13-16, 21-24, max 50); byte nSpikes, then nSpikes x (short offX, offY, dirX, dirY); long -559038737 (0xDEADBEEF, checked on read).",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Details of restoring a saved game that change play",
+     "baseline": "No saved games.",
+     "thisVersion": "c.java:82-105 and c.java:525-580. A big ball is rebuilt through enlargeBall, so it moves at least 1 px. The respawn size becomes the current size, not the size at the checkpoint. Collected checkpoints and lives become tile 0. The active checkpoint is set back to tile 8 only if both its row and column differ from the start (&& bug). Grounded flag, jumpOffset, ramp/rubber flags, slideCntr and pop state are not saved. Camera tile x/y are saved but ignored.",
+     "affectsPlay": true
+    },
+    {
+     "area": "keys and cheats",
+     "what": "New cheat: '#' gives antigravity",
+     "baseline": "Not present. In BounceCanvas.java:408-487, '#' goes to getGameAction and does nothing.",
+     "thisVersion": "c.java:412-416: with the cheat on (7-8-7-8-9-9), '#' sets c=300 (antigravity counter). There is no sound, and the grounded flag is not cleared.",
+     "affectsPlay": true
+    },
+    {
+     "area": "keys and cheats",
+     "what": "New cheat: FIRE (centre key -5 or '5') finishes the level",
+     "baseline": "BounceCanvas.java:459-461 ignores keycode -5 outright. The FIRE game action is not handled.",
+     "thisVersion": "There is no case -5 in the switch (c.java:361-447). The default branch maps FIRE (game action 8, c.java:441-444) to f=true when the cheat is on. The level ends at the end of the next step with +5000 and goes to the level-complete screen. The other cheats are unchanged: 1/3 change level, 7-8-7-8-9-8 gives invincibility.",
+     "affectsPlay": true
+    },
+    {
+     "area": "keys and cheats",
+     "what": "Held directions are cleared when resuming from the menu, and key events are synchronized with the step",
+     "baseline": "BounceUI.java:98-105 resumes without resetDirections. Directions are cleared only in hideNotify when mIncomingCall is set (BounceCanvas.java:536-544), so a key held when the soft key was pressed stays 'held'. keyPressed is not synchronized with run().",
+     "thisVersion": "a.java:138 calls c.f() (resetDirections) on every resume or start. keyPressed, keyReleased and the step all synchronize on the ball object (c.java:264, 359, 458), so key changes land between steps.",
+     "affectsPlay": true
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Main menu, forms and text",
+     "baseline": "BounceUI.java:74-96: the main menu has a 'Back' command that exits and keeps the last selected item. Instructions are six fixed paragraphs with 'key 4/6/2' (BounceUI.java:115-127). The canvas clears to black after level complete (BounceCanvas.java:258-261, 394).",
+     "thisVersion": "a.java:92-117: an 'Exit' command (type EXIT, f.a(5)); Continue is pre-selected when shown. a.java:151-159: one instructions string with %0U/%1U/%2U replaced by getKeyName(getKeyCode(LEFT/RIGHT/UP)). No black clear screen. The game-over form adds 'Congrats!' on a win.",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Locale string lookup",
+     "baseline": "Local.java:77-80 replaces only the first occurrence. Local.java:86-120 reopens the file on every call. Errors give 'NoLang' or 'Err'.",
+     "thisVersion": "f.java:70-77 replaces every occurrence. f.java:83-130 caches the stream and uses mark/reset. Errors give 'X' or 'E'.",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "HUD ring icons",
+     "baseline": "BounceCanvas.java:236-240: icons at x = 5 + n*(width-1), 11 px apart. Only about 11 fit across 128 px; levels 9 and 10 have 12 rings and level 11 has 15.",
+     "thisVersion": "c.java:176-178: x = 5 + n*(width-4), 8 px apart. The sprite cell is also redrawn (see resources), so 15 icons fit. Lives (spacing width-1, y 99), the score string at (64,100), the bonus bar and the HUD colour 0x0853AA are unchanged (c.java:169-187).",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "How tiles and the ball are drawn",
+     "baseline": "The ball is drawn into the 156x96 tile buffer and marks its tiles dirty (Ball.java:923-972). Hoop fronts come from a list filled by drawTile (TileCanvas.java:382-477, BounceCanvas.java:206-214). The exit is drawn unclipped. The buffer is copied using left/right draw edges.",
+     "thisVersion": "The ball is drawn onto the 128x128 screen image after the tile buffer (c.java:166-167, 207-218). Hoop fronts for tiles 13-28 under the ball are drawn over it (e.java:532-558). drawTile draws hoop back and front from table d (e.java:349-369). The exit is clipped to its tile (e.java:370-378). Off-map tiles draw as brick (e.java:283-286). The level text is drawn in paint at (44,84) (c.java:199-203), the same place as before.",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "Level 11 changed by one tile",
+     "baseline": "J2MElvl.011, row 42, col 91 (file offset 7575) = 0x01, a brick in the floor line beside water cells 0x40 0x40, above an inflator (0x2D) at row 43.",
+     "thisVersion": "Same cell = 0x61, which is the water flag plus ramp tile 33. The other ten level files are byte-identical.",
+     "affectsPlay": true
+    },
+    {
+     "area": "resources",
+     "what": "Sprite sheet, sounds and icons",
+     "baseline": "icons/objects_nm.png, 48x72, 2234 B",
+     "thisVersion": "objects_nm.png, 48x72, 1926 B. Pixel comparison of all 24 cells of 12x12: only cell (col 1, row 4), the HUD ring icon, differs. The same glyph is moved 3 px left (x 4..8 to x 1..5), to match the new HUD spacing. Sounds (up.ott, pickup.ott, pop.ott), bouncesplash.png, icon.png and nokiagames.png are byte-identical.",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "Language files",
+     "baseline": "lang.xx has 21 strings (6 instruction paragraphs, Back, Congrats!, Continue, Exit, Bounce, Game over, High score, Instructions, Level %U, Level %U completed!, New game, New high score!, Next, OK, Pause). Locales: da-DK, de, fi-FI, is-IS, no-NO, sv.",
+     "thisVersion": "lang.xx has 14 strings: 0 Bounce, 1 instructions (one string with %0U %1U %2U), 2 Back, 3 Congrats!, 4 Continue, 5 Exit, 6 Game over, 7 High score, 8 Instructions, 9 Level %U, 10 Level %U completed!, 11 New game, 12 New high score!, 13 OK. Locales: es-US, fr-CA, pt-BR, th-TH, zh-CN, zh-TW.",
+     "affectsPlay": false
+    },
+    {
+     "area": "other",
+     "what": "MIDlet lifecycle",
+     "baseline": "Bounce.java:21-38 builds the UI in startApp. destroyApp stops the canvas and calls System.gc().",
+     "thisVersion": "Bounce.java:20-40 builds the UI in the constructor; startApp only sets lights. destroyApp saves record 3 (a.a(3)) and then stops the timer.",
+     "affectsPlay": false
+    }
+   ],
+   "physicsIdenticalToBaseline": false,
+   "notes": "1.24 is a Nokia rework, not a third-party port: vendor Nokia, package com.nokia.mid.appl.boun, compiled with Sun JDK 1.4.2_02, obfuscated, dated 2004-08-16. The tile ids, collision masks, gravity, jump and speed constants, scoring (ring 500, checkpoint 200, life 1000, exit 5000), 3 starting lives with a cap of 5, the 300-step bonuses, the moving-spike update, findSpikeIndex, edgeCollide, squareCollide/triangleCollide maths, the bonus bar and the cheat sequences are all the same as 1.8.\n\nThe engine was rewritten around world coordinates. The ball's position is in world pixels, the camera is separate, and the ball has no xOffset or 156-px wrap. That rewrite brings changes to:\n- the ball update: ceiling speed, the new minimum downward speed of 10, ramp redirection, enlarge/shrink, the big-ball spawn position, and the pop length of 7 steps;\n- collision: early exit on the first blocking tile, smaller thin-tile and spike boxes, and tile 1 setting the ramp flag;\n- the camera: earlier vertical flips with almost no hysteresis, different framing on rows that are multiples of 7, and a right-edge clamp at 12W-144 that hides the last 16 px of each level.\n\nSo the per-step logic is NOT the same as 1.8. A 1.24 mode in rules.js needs its own ball and collision code. 1.21's CFR still has the 1.8-style screenFlip and ring-buffer code (1.21 d.java:169-178), so this rewrite seems to be new in 1.24 (worth checking against the 1.21 report).\n\nScreen layout: hard-coded 128x128 only. The play view is 128x96 (clip 0,0,128,96), drawn from a 156x96 tile ring buffer at offset af, and the HUD fills 0..128 x 97..128. No other resolutions are supported.\n\nSound: the same three Nokia OTT tone files, played through com.nokia.mid.sound.Sound(byte[], 1).play(1), unchanged.\n\nBaseline bugs fixed in 1.24:\n- 1.8 ends after level 10, so level 11 is normally unreachable.\n- 1.8's screenFlip right-edge clamp can move the ball 336 px (BounceCanvas.java:182).\n- 1.8's HUD cannot show more than about 11 ring icons.\n- 1.8's Local.replace only replaces the first occurrence.\n\nBugs introduced in 1.24:\n- The camera never shows the last 16 px of a level: (W+1)*12-156 in e.java:594-596, versus W*12-156 in the recentre at c.java:131.\n- The timer is restarted under the level-complete form, so the next level runs without input (a.java:186).\n- Restoring a game: the && when setting back the active checkpoint (c.java:93), the respawn size becomes the current size, and a big ball moves 1 px on restore.\n- The record store adds 3 new records whenever the count is not 3, so it never reads an older 2-record store and keeps growing it.\n- The flip test uses a fixed 6 px for both ball sizes.\n\nUnused or dead in 1.24: field c.L; the debug menu items 'Read RMS' and 'Write RMS' in a.java:235-241, which are never added to the menu.\n\nChecks:\n- javap confirmed the redirection formulas, the ceiling (-B)>>1, the B<10 rule (local 8 = water, local 5 = antigravity), tile 1 setting the ramp flag, pop length 7, enlarge starting at n=1, shrink not moving the ball, the camera clamp, a.f() calling a(false,0) (which starts the timer), the end checks (ab > 11 versus 1.8's level >= 11), and the key switch (no -5; FIRE = 8).\n- Level start rows: only checkpoints at rows that are multiples of 7 frame differently; no level start is affected.\n\nHelper scripts (run with python3 -I): scratchpad/work/versions/1.24/lang.py, lvl.py, cells.py. javap dumps: scratchpad/work/versions/1.24/javap/."
+  },
+  {
+   "version": "Bounce_1.8_LockedRes_132x176_EnMulti. The manifest says MIDlet-Version 1.8, Vendor Nokia, MIDP-2.0, CLDC-1.1, Created-By 14.0.1 (Oracle). In fact it is a third-party Siemens x65 port of 1.8, made by iceman345 [IHT] in 2005.",
+   "classMap": "Bounce = Bounce (the MIDlet). a = TileCanvas: abstract, loads levels, draws tiles, holds the camera and buffer, and now extends javax.microedition.lcdui.Canvas instead of Nokia FullCanvas. a$a = TileCanvas$GameTimer. b = BounceConst (constants only). c = Profile. d = Ball (12x12 and 16x16 masks, update/testTile). e = BounceCanvas (step run() = case(), HUD, keys). f = Local (reads lang.*). g = BounceUI (menus, record store).\n\nMember map, checked by declaration order and bytecode:\n- d (Ball): b xPos, g yPos, k xSpeed, p ySpeed, q xOffset, o direction, else ballSize, case mHalfBallSize, e/c respawnX/Y, char ballState, a jumpOffset, new/for/n speed/grav/jumpBonusCntr, j mGroundedFlag, f mCDRubberFlag, i mCDRampFlag, null slideCntr, long popCntr. try() update, a(IIZ) testTile, if(II) collisionDetection, a() popBall, for() enlargeBall, do() shrinkBall.\n- a (TileCanvas): M/L tileX/tileY, w/v divTileX/divTileY, e divisorLine, r rightDrawEdge, if leftDrawEdge, J scrollFlag, byte scrollOffset, C mExitPos, q tileMap, A/null map width/height, f mOpenFlag. if(III) scrollBuffer, a(II) testScroll, char() updateMovingSpikeObj, for() openExit.\n- e (BounceCanvas): R mBall, W numLives, U numRings, T mScore, ab mExitFlag, ap mOpenExitFlag, an mInvincible, ad mCheat, Z mCheatSeq. for(II) createBufferFocused, null() screenFlip, goto() paint2Buffer.\n- g (BounceUI): a() displayMainMenu, try()/a(I) get/setGameData.\n\nNew members: a.h (66.png), e.ai (head.png), e.aa (temporary Player), e.for(I) (vibrate), g.null (menu icons), g.a(Image,II) (icon cutter), g.for() (About form).",
+   "differences": [
+    {
+     "area": "camera and step order",
+     "what": "createBufferFocused, left-end branch (start or checkpoint column <= 4): the camera's right edge is set to 132 instead of 128, so the window is 132 px wide (leftDrawEdge 0 .. rightDrawEdge 132). The middle branch (15..143) and right branch (28..156) are still 128 wide. The wider window lasts through scrolling until a later screenFlip or respawn takes another branch. Once scrolling starts (ball at buffer x 64, same as 1.8), the ball sits at L+64 and the right edge at ball+68 instead of ball+64. Levels 1 and 7 start in this branch.",
+     "baseline": "BounceCanvas.java:97-101 (rightDrawEdge = 128 at :100)",
+     "thisVersion": "e.java:111-116 (this.r = 132 at :114)",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "screenFlip, 'camera parked at left end' branch (!scrollFlag && tileX-(13-divisorLine/12)==0): this branch also sets the right edge to 132 instead of 128. The other branches are unchanged: right end 28/156; scrolling 14+n2/142+n2 with ball at 78+n2.",
+     "baseline": "BounceCanvas.java:164-169 (rightDrawEdge = 128 at :168)",
+     "thisVersion": "e.java:178-183 (this.r = 132 at :182)",
+     "affectsPlay": true
+    },
+    {
+     "area": "camera and step order",
+     "what": "Knock-on effect of the 132-wide window on the scroll state machine. The scrollBuffer and testScroll code is identical; only its inputs change. Scrolling stops at the right map edge with the ball 4 px further left: scrollFlag goes false at ball world x of about 12W-68 instead of 12W-64. The resume point (scrollOffset = rightDrawEdge-64) is then 4 px right of the ball. After resuming, the window sits at ball-68 .. ball+64, so the left-end stop also happens about 4-5 px earlier (own camera re-implementation, camsim.py: stop at step 76 vs 77, left stop at ball 67 vs 62). In those 4-5 px bands scrollFlag differs, so a vertical screen flip there takes a different screenFlip branch (parked vs scrolling). This changes tileX, divisorLine, the edges and the ball's buffer xPos afterwards. The world position is normally kept by every branch, except the shared clamp bug in the scrolling branch ('n2 += (tileX - mTileMapWidth - 13 - 1) * 12'), which teleports the ball when it flips while scrolling with ball column >= W-7. In this window state the port takes the non-buggy parked branch in the last ~4 px where 1.8 would still be scrolling.",
+     "baseline": "TileCanvas.java:683-775 (scrollBuffer/testScroll); BounceCanvas.java:164-188 (screenFlip branches), clamp at :181-183",
+     "thisVersion": "a.java:657-745 (identical code); e.java:178-202, clamp at :195-197 (identical)",
+     "affectsPlay": true
+    },
+    {
+     "area": "collisions and items",
+     "what": "Exit opening starts earlier in the 132-wide state. run() starts the 6-step exit opening (openExit, +4 px per step; tile 9 stays solid until mOpenFlag) only when mExitPos lies within [leftDrawEdge, rightDrawEdge]. The test code is identical, but the right edge is 4 px further out, so the exit begins opening up to 4 px (about one step at 5 px/step) earlier relative to the ball. In camsim.py an exit at world x 371 became visible at step 54 instead of 55.",
+     "baseline": "BounceCanvas.java:331-361",
+     "thisVersion": "e.java:346-376 (identical code, different rightDrawEdge input)",
+     "affectsPlay": true
+    },
+    {
+     "area": "keys and cheats",
+     "what": "Soft keys: key codes -4 and -1 (Siemens right/left soft keys) now also leave the game for the main menu, as -6/-7 already did. On a Nokia keypad -1/-4 would be UP/RIGHT, but on the Siemens target they are the soft keys.",
+     "baseline": "BounceCanvas.java:462-466 (case -7,-6 only)",
+     "thisVersion": "e.java:487-494 (case -7,-6,-4,-1)",
+     "affectsPlay": false
+    },
+    {
+     "area": "keys and cheats",
+     "what": "Siemens joystick codes are remapped to number keys before getGameAction, in keyPressed only: -61→'4', -62→'6', -59→'2', -60→'8', -23→'5'. keyReleased is not remapped, so release relies on the device's own getGameAction for these codes. The remap happens in the default branch after the switch, so joystick-down (-60→56) never feeds the 7-8-7-8-9 cheat sequence. The cheats (78789 then 8 = invincible, then 9 = level skip with keys 1/3) are otherwise unchanged; their confirmation sounds go through Player.start in try/catch.",
+     "baseline": "BounceCanvas.java:400-511 (default branch 468-486; cheat sounds :437, :451)",
+     "thisVersion": "e.java:415-553 (remap :496-510; cheat sounds :455-460, :474-479; keyReleased :532-553 unchanged)",
+     "affectsPlay": false
+    },
+    {
+     "area": "sounds",
+     "what": "Sound API: MMAPI Players created from /sounds/*.mid ('audio/midi') replace com.nokia.mid.sound.Sound built from /sounds/*.ott. Playback is player.start() inside try/catch instead of play(1). loadSound returns a shared field (aa), so if one Player fails to load, the previously loaded Player is returned in its place. There is no fallback beep (1.8 played Sound(1000 Hz, 500 ms) x3 on load failure).",
+     "baseline": "BounceCanvas.java:55-57, 518-534; Ball.java:205, 699-701",
+     "thisVersion": "e.java:64-66, 560-571; d.java:206-212, 691-698",
+     "affectsPlay": false
+    },
+    {
+     "area": "other",
+     "what": "Losing a life now also vibrates for 100 ms via the Siemens API com.siemens.mp.game.Vibrator.triggerVibrator(100). The call is in the same try as the pop sound and only runs when not invincible. On a non-Siemens VM this would throw NoClassDefFoundError, which the catch(Exception) does not catch.",
+     "baseline": "Ball.java:195-207 (pop sound only)",
+     "thisVersion": "d.java:196-214 (Y.start(); for(100)), e.java:84-86",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "Screen layout for 132x176. Off-screen buffer is 132x176 (was 128x128). /icons/head.png (132x48 BOUNCE banner) is drawn at (0,0) every frame. The 96-px play area is drawn at y=48 (was y=0). Level label at (44,132), was (44,84). HUD bar fillRect(0,144,132,32) colour 0x0853AA, was (0,97,128,32), so there is no 1-px gap row. Lives at y=147 (was 99). Remaining-hoop icons at y=160 (was 112). Score at (68,148) (was (64,100)). Bonus bar fillRect(1,176-3*v/30,5,176), was 128-based. Only the play strip uses the camera window; when the window is 128 wide, the rightmost 4 screen columns show a not-yet-refreshed buffer column, or stale frame pixels when L=28/R=156.",
+     "baseline": "BounceCanvas.java:59, 199-249",
+     "thisVersion": "e.java:68-69, 213-264",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "The HUD shows at most 11 remaining-hoop icons; 1.8 draws mTotalNumRings - numRings icons with no limit.",
+     "baseline": "BounceCanvas.java:236-240",
+     "thisVersion": "e.java:250-254",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "New HUD decoration: an 8x5 down-arrow image (/icons/66.png, static field a.h) is drawn at (124,169), anchor 0, whenever the HUD is repainted.",
+     "baseline": "(none)",
+     "thisVersion": "a.java:45, 836; e.java:255",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "Tile images are loaded as separate PNGs (/icons/<col><row>[variant].png) instead of being cut from the objects_nm.png sprite sheet. Flipped and rotated hoop/spike variants are pre-rendered files (031/033/035, X51-X57), not runtime DirectGraphics transforms. The 16x16 large ball is /icons/30.png instead of being composed from four mirrored quarters of cell (3,0) (createLargeBallImage was removed). The background-filled variants use Image.createImage plus fillRect plus drawRegion.",
+     "baseline": "TileCanvas.java:777-789, 809-881, 889-916",
+     "thisVersion": "a.java:765-837, 845-877",
+     "affectsPlay": false
+    },
+    {
+     "area": "drawing and HUD",
+     "what": "Runtime flips and rotations (manipulateImage) now draw with drawRegion into Image.createImage(w,h), an opaque white mutable image, instead of a transparent DirectUtils.createImage(w,h,0). The transform codes map correctly (MIRROR, MIRROR_ROT180, ROT180, ROT270=Nokia 90 CCW, ROT90=Nokia 270). However, transparent pixels become white. This is visible on rubber ramps 34/35/37 (rotations of 02.png, which has alpha), where white replaces the sky/water background in the empty half. Other affected sources (31/24/32/22/13/23 and the bg-filled ramps) are opaque.",
+     "baseline": "TileCanvas.java:157-194",
+     "thisVersion": "a.java:153-187",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "Sprite art differs from the 1.8 sheet cells (compared per pixel against each cell plus the transform 1.8 applies). Identical: 02 (rubber ramp) and 12 (rubber brick). Colour quantisation only (<=2 levels): 03, 11, 22, 32. Small shading edits: 01 popped ball, 13 moving spike, 20 small ball, 21 life, 23 exit, 33 extra life, 34 used checkpoint. Redrawn: 00 ramp (red brick → orange/gold), 10 brick (red → orange/gold block), 04 checkpoint (crystal → floppy disk), 14 HUD hoop counter (ring → key), 30 large ball (16x16 hand-drawn), 31 deflator (recoloured, made opaque), 24 inflator (made opaque with sky colour baked in). The hoop halves X5/X51-X57 are hand-made and differ from exact flips of the 1.8 cells by 25-44 px. The spike variants are not exact transforms either: 035 equals a CCW rotation where 1.8 uses CW, and 031/033 differ by about 22 px. Unused extras: 00a/10a/14a/ball.png (exact copies of 1.8 cells (0,0),(1,0),(1,4),(2,0)), 04a, 032, null.png, and a modified objects_nm.png (15 cells differ from 1.8, never loaded).",
+     "baseline": "icons/objects_nm.png (48x72 sheet) cut at TileCanvas.java:809-881",
+     "thisVersion": "icons/*.png loaded at a.java:765-837",
+     "affectsPlay": false
+    },
+    {
+     "area": "resources",
+     "what": "New or changed full-screen images. bouncesplash.png is 132x176 and reads 'SIEMENS x65 / BOUNCE / iceman345 IHT (c) 2005 www.iceman.ru' (1.8: 128x128). head.png is new (132x48 banner). coloricons.png is new (7 icons of 16x16; the first 6 are used for the menu). nokiagames.png and icon.png are identical.",
+     "baseline": "BounceCanvas.java:47, 64-70",
+     "thisVersion": "e.java:56, 69, 74-80; g.java:101-107",
+     "affectsPlay": false
+    },
+    {
+     "area": "sounds",
+     "what": "Sound data: up/pickup/pop are 125-bpm MIDI files (480 ticks/qn, program 0 piano, velocity 56) with the same note names and rhythm as the OTT tones (hoop: C E G C at 120 ms each; pickup: C 240, G 120, C 240 ms; pop: G 59, B 59, C 120 ms). Every note is flattened into one octave (MIDI 48-59, C3-B3). The OTT tones use scale-2/scale-3 notes an octave or more apart (e.g. hoop C(s3) E(s2) G(s2) C(s3)), so the pitch contour changes.",
+     "baseline": "sounds/up.ott, pickup.ott, pop.ott",
+     "thisVersion": "sounds/up.mid, pickup.mid, pop.mid",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Main menu: two items added after Instructions: 'About' (hard-coded English; shows 'Game Bounce (Nokia vendor) was ported from Nokia mobile by iceman345 (c) 2005 [IHT]. iceman345@narod.ru') and 'Exit' (lang string 9, quits from the menu). Every item gets a 16x16 icon cut from coloricons.png. The Back command is no longer added to the main menu List, so exit is only through the Exit item. The menu build is wrapped in try/catch ('Error gen menu'). Continue/New game/High score/Instructions logic, Back on the other forms, game-over and level-complete forms are unchanged.",
+     "baseline": "BounceUI.java:68-71, 74-96 (addCommand at :87), 164-197",
+     "thisVersion": "g.java:78-83, 86-131, 164-171, 208-250",
+     "affectsPlay": false
+    },
+    {
+     "area": "menus, saving, text",
+     "what": "Text: lang.ru (Russian, 21 strings) is added. It describes floppy disks instead of crystals and blue balls for extra lives. All other lang.* files are byte-identical to 1.8. The record store is unchanged: 'bounceRMS', record 1 = best level byte, record 2 = 8 decimal digit bytes of the best score.",
+     "baseline": "lang.xx/de/da-DK/fi-FI/is-IS/no-NO/sv; BounceUI.java:199-309",
+     "thisVersion": "same files plus lang.ru; g.java:252-358 (identical bytecode apart from layout)",
+     "affectsPlay": false
+    },
+    {
+     "area": "other",
+     "what": "Platform: MIDP-2 Canvas with setFullScreenMode(true) instead of Nokia FullCanvas. mWidth/mHeight are read in the constructor before full-screen mode is set, so the splash centring and black clears in paint() may use the non-full-screen height. The Nokia-only DeviceControl.setLights(0,100) backlight call in startApp is removed. The manifest gains MIDlet-Icon and declares MIDP-2.0/CLDC-1.1.",
+     "baseline": "TileCanvas.java:29-30, 85-88; BounceUI.java:64-65; Bounce.java:21-26 (setLights :25); BounceCanvas.java:251-265",
+     "thisVersion": "a.java:28-29, 85-88; g.java:73-75; Bounce.java:22-26; e.java:266-280",
+     "affectsPlay": false
+    },
+    {
+     "area": "other",
+     "what": "BounceConst values were edited, with no runtime effect: SCREEN_WIDTH 132, SCREEN_HEIGHT 144, HALF_SCREEN_WIDTH 66, BUFFER_HEIGHT 144, TILE_DIRTY 132; sound names still say .ott. No class references b, the code uses inlined literals, and the code still uses 64, 96, 156 and 0x80/128 everywhere.",
+     "baseline": "BounceConst.java:58-71",
+     "thisVersion": "b.java:58-71",
+     "affectsPlay": false
+    }
+   ],
+   "physicsIdenticalToBaseline": false,
+   "notes": "Who made it: a third-party port for the Siemens x65 series (CX65/S65/M65, 132x176). The About text, splash and Siemens Vibrator API show this, as do MMAPI MIDI sounds and the Siemens soft-key and joystick codes. Credited to iceman345 [IHT], 2005.\n- It was recompiled and re-obfuscated. Loops have the condition at the top, local-variable slots differ, and the classes are preverified (StackMap, class version 45.3).\n- The JAR was later repacked with a JDK 14 jar tool.\n\nHow the comparison was done: every method of both builds was disassembled with javap. Member names were mapped to 1.8's, local variables renumbered, and methods compared as instruction sequences and as multisets of basic blocks (script: /tmp/claude-0/-home-user/9e293dcf-c6a7-5416-93b2-b9c9546fbcbb/scratchpad/work/versions/v1.8-132x176/bcdiff.py).\n\nIdentical, or differing only in block layout or local-variable slots:\n- Ball: update, testTile apart from the sound call, collisionDetection, square/triangle/thin/edge collide, redirect, enlarge/shrink, respawn, directions, paint/dirtyTiles. testTile's tile 0 now falls to the switch default, which is equivalent. update's ±1 step now has an i2b cast, which has no effect.\n- TileCanvas: loadLevel, createMovingObj, updateMovingSpikeObj, findSpikeIndex, drawTile, cleanBuffer, createNewBuffer, scrollBuffer, testScroll, createExitTileObject/openExit, rectCollide.\n- BounceCanvas: run() (step order unchanged), resetGame, createNewLevel, checkData, add2Score, zeroString, keyReleased, hideNotify, paint.\n- BounceUI record-store code and Local.\n- Timer: Timer.schedule(…, 0, 30 ms), same as 1.8.\n- Level files 001-011 are byte-identical to 1.8.\n\nThe only per-step logic change is the camera's right edge, 132 instead of 128, in the left-end branches of createBufferFocused and screenFlip. It moves the right-end scroll stop and resume points and the left-end stop after a resume by about 4 px. It can flip which screenFlip branch runs in those narrow bands, and it lets the exit start opening about one step earlier. The ball's world position stays the same except through the screenFlip clamp bug that 1.8 also has.\n\nBugs kept from 1.8:\n- screenFlip clamp: n2 += (tileX - W - 13 - 1)*12, which should be (tileX-(W-14))*12. It teleports the ball when it flips while scrolling within 7 columns of the right edge.\n- At xPos == divisorLine, screenFlip and collisionDetection disagree.\n- tileY is used instead of divTileY in update's water check.\n\nBugs added by the port:\n- White backgrounds on runtime-rotated transparent sprites (rubber ramps 34/35/37).\n- The 4-px stale strip at the right of the 132-px screen when the window is 128 wide.\n- No Back/Exit soft command on the main menu.\n- Vibrator call crashes on non-Siemens VMs.\n- Shared-field Player loading.\n\nOther scripts in the same folder:\n- imgcmp.py: compares each port tile PNG with the matching 1.8 sheet cell.\n- bestfit.py: finds the closest flip/rotation for the pre-rendered hoop and spike PNGs.\n- montage.png: side-by-side picture of 1.8 vs port tiles.\n- sounds.py: decodes the OTT and MIDI sound files.\n- lang.py: dumps lang.* strings.\n- camsim.py: my own re-implementation of the 1.8 camera code, comparing a 128 vs 132 right edge; none of the jar's code was run.\n\nCFR paths: target …/jars/Bounce_1.8_LockedRes_132x176_EnMulti/cfr/com/nokia/mid/appl/boun/, baseline …/jars/Bounce_1.8_LockedRes_128x128_EnMulti/cfr/com/nokia/mid/appl/boun/."
+  }
+ ],
+ "synth": {
+  "versionTable": [
+   {
+    "version": "1.01 (128x128, MIDlet-Version 1.01, files dated 2002-10-02)",
+    "tickMs": 40,
+    "obfuscated": false,
+    "maker": "Nokia official build (com.nokia.mid.appl.boun, Created-By 1.3.1.02 Hewlett-Packard, same toolchain as 1.8); earliest build in the set",
+    "playDifferencesFrom18": [
+     "Game timer 40 ms instead of 30 ms. The step sequence is unchanged, but the game runs 25% slower in real time.",
+     "No +/-150 clamp on xSpeed/ySpeed before the vertical loop, so stacked rubber jumps, jump bonus and ramp redirects can go past 150.",
+     "A landing does not end the vertical loop (javap: goto 854 = i++, where 1.8 has goto 946 = loop exit). The loop bound |ySpeed|/10 is re-read, so the ball can rebound upward in the same step. That clears grounded, so there is no jump on that landing.",
+     "Ceiling rebound ySpeed is 6 instead of 20, so the rest of that step's vertical loop is skipped.",
+     "When a big ball leaves water, ySpeed is halved with idiv (rounds toward 0) instead of ishr; this differs for odd negative speeds.",
+     "No wall bounce: when blocked horizontally with the ramp flag set, xSpeed is kept (1.8 sets xSpeed = -(xSpeed>>1)).",
+     "Plain ramps 30-33 redirect at full speed (x=y, y=x or x=-y, y=-x); 1.8 halves both on 30-33.",
+     "collisionDetection with the centre above the buffer (y<0) snaps the mask to -12*(|y|/12+1), so hits above the top edge are tested at the wrong height.",
+     "No hoop rims (no edgeCollide). Active hoops 21-24 always collect. 13-16 collect for the small ball and are solid for the big one. Collected 17-20 are solid only for the big ball; 25-28 can be passed through.",
+     "Collecting a hoop writes plain 145-156, which drops the tile's 0x40 water bit (wet hoops in levels 3, 5, 7, 8, 11 turn into air).",
+     "The closed exit door (tile 9) can be passed through; 1.8 makes it solid until it is open.",
+     "testTile masks only 0x40 (bipush -65), not the 0x80 dirty bit. Any tile with a stale 0x80 counts as empty: off-buffer moving-spike tiles, the exit tile while it opens, tiles left behind after a respawn elsewhere.",
+     "A vertical screen flip in the parked left-edge state with divisorLine<156 leaves a ball left of the divisor at its old xPos, (156-divisorLine) px too far left.",
+     "When xPos wraps by 156, scrollOffset is not shifted, so the point where scrolling resumes at map edges differs."
+    ],
+    "otherDifferences": [
+     "No BounceConst class; constants are inlined in Ball, TileCanvas and BounceCanvas. Field names myParent/myBall.",
+     "Moving-spike redraw is throttled by mMODrawFlag (drawing only, but it is what leaves stale 0x80 on spike tiles).",
+     "No hoop sound on the second half of a hoop (tiles 24, 16, 22, 14); different pickup.ott and up.ott tones.",
+     "The left soft key (-6) does nothing in game. There is no hideNotify pause and no resetDirections.",
+     "pauseApp stops the timer and writes RMS, and startApp does not restart it. The RMS layout is the same 2-record format as 1.8.",
+     "Static-spike sprite cell differs (blue-grey thorn); lang.xx says 'High scores'; different language set.",
+     "Same as 1.8: all 11 level files, masks, gravity/jump/speed constants, scoring, the run() step order, camera scroll code, and 10-level campaign end (mLevelNum >= 11)."
+    ]
+   },
+   {
+    "version": "1.8 (128x128, MIDlet-Version 1.8, files dated 2002-12-10): BASELINE",
+    "tickMs": 30,
+    "obfuscated": false,
+    "maker": "Nokia official build (HP JDK 1.3.1.02 toolchain), unobfuscated with LineNumberTables; JD-GUI decompilation with original names available",
+    "playDifferencesFrom18": [],
+    "otherDifferences": [
+     "Baseline reference for js/rules.js.",
+     "Quirks a step-exact port must keep: the run ends after level 10 (++mLevelNum >= 11 leads to Game over). Level 11 is reachable only through menu Continue (restarts at level 11 with 3 lives, 0 points) or the 7-8-7-8-9-9 cheat with keys 1/3.",
+     "screenFlip right-edge clamp bug: n2 += (tileX - W - 13 - 1)*12. A vertical flip while scrolling within about 7 columns of the right map edge moves the ball about 336 px left of where it should be.",
+     "mCDRampFlag is sticky: it is set by near-miss bricks, rubber and ramps and cleared only when the slide or step-up consumes it.",
+     "The reversed-gravity '-20' ceiling arm is unreachable: with gravity reversed, every blocked vertical move takes the landing branch.",
+     "The HUD draws one ring icon per remaining ring at 11 px spacing, so more than about 11 overflow (levels 9-11 have 12, 12 and 15).",
+     "No saved game. RMS 'bounceRMS' has 2 records: best level (1 byte) and best score (8 decimal-digit bytes)."
+    ]
+   },
+   {
+    "version": "1.9 (128x128, MIDlet-Version 1.9, files dated 2002-12-12)",
+    "tickMs": 30,
+    "obfuscated": false,
+    "maker": "Nokia official build, same source tree as 1.8 with some m-prefix renames; built with Sun JDK 1.3.1_02",
+    "playDifferencesFrom18": [
+     "Ball physics (update, testTile, all collide routines, masks), screenFlip, scrolling, spikes, run() order and keys/cheats are the same bytecode as 1.8.",
+     "Spawn, respawn and resume put the ball 1 px higher (centre y = row*12 + size/2 - 1). At 7 of 11 level starts the ball begins 1 px inside the ceiling brick, and every later step is offset.",
+     "The big-ball spawn test and 4-px nudge are removed. No shipped spawn point ever triggers the nudge, so this matters only for custom levels.",
+     "After winning (finishing level 10), mState stays 1, so the main-menu Continue loads level 11 with the current score and lives (1.8 restarts level 11 with 3 lives and 0 points).",
+     "New feature: the game state is saved on exit (destroyApp) and Continue resumes the snapshot. It does not restore jumpOffset, grounded, ramp/rubber flags, slideCntr or spike phases, and the ball comes back 1 px higher.",
+     "Save bugs: exiting after Game over saves lives=-1 as a valid save. The 40-entry item array overflows on level 11 (50 items), so level 11 is never saved.",
+     "New game opens a level-select list (1..best level) once best level > 1."
+    ],
+    "otherDifferences": [
+     "RMS now has 3 records: byte best level, int best score, and the snapshot. A 1.8 store is never read.",
+     "All 4 exit tiles are redrawn while the door opens, each clipped to 12x12 (the opening timing is unchanged).",
+     "No black clear frame after level complete.",
+     "Different language packs (tl-PH, vi-VN, zh-CN, zh-TW); lang.xx, sprites, sounds and levels are identical to 1.8."
+    ]
+   },
+   {
+    "version": "1.12 (128x128, MIDlet-Version 1.12, files dated 2003-02-14)",
+    "tickMs": 30,
+    "obfuscated": false,
+    "maker": "Nokia official build (HP JDK 1.3.1.02), continues the 1.9 source (same renames, save system and -1 spawn)",
+    "playDifferencesFrom18": [
+     "Inherits every 1.9 change: spawn 1 px higher, no big-ball nudge, save-on-exit and resume, level select.",
+     "redirectBall rewritten. The ball keeps its xSpeed when it already points along the slope faster than the deflected value, and the new ySpeed is never halved, also on plain ramps 30-33. Examples: tile 32 at (x50, y10) gives (50, -50) where 1.8 gives (-5, -25); tile 36 gives (50, -50) where 1.8 gives (-10, -50).",
+     "Ceiling hit under normal gravity: ySpeed = (-ySpeed)>>1 instead of 20, so -67 rebounds at 33. The loop keeps running on the new speed.",
+     "All 11 levels are played: the test is mLevelNum > 11. Score and lives carry into level 11, and the end screen says 'Congrats!'.",
+     "Cheat: with the 7-8-7-8-9-9 cheat on, game action FIRE (keypad 5) finishes the level (+5000). Key code -5 is still swallowed.",
+     "Save also stores moving-spike offsets and directions. Game over invalidates the save. The item array holds 50, so level 11 fits."
+    ],
+    "otherDifferences": [
+     "HUD ring icons at 8 px spacing, with the ring sprite cell shifted 3 px left, so all 15 rings fit. New sprite sheet (the same file is used by 1.18, 1.21 and 1.24).",
+     "White clear on level load instead of a black frame after level complete.",
+     "Best level capped at 11.",
+     "Different language packs; lang.xx and lang.de identical to 1.8."
+    ]
+   },
+   {
+    "version": "1.18 (128x128, MIDlet-Version 1.18, class files dated 2003-10-10)",
+    "tickMs": 40,
+    "obfuscated": true,
+    "maker": "Nokia build, obfuscated (a=BounceUI, b=TileCanvas, c=Local, d=BounceCanvas, e=Ball, f=GameTimer). JAR later repacked (Created-By 14.0.1 Oracle).",
+    "playDifferencesFrom18": [
+     "Game timer 40 ms: 25% slower in real time.",
+     "Inherits the 1.9 and 1.12 changes: spawn 1 px higher, no nudge, the 1.12 redirect formulas, the ceiling (-v)>>1, 11 levels, save/resume and level select.",
+     "New minimum fall speed: if 0 < ySpeed < 10 and the ball is not in water, ySpeed = 10. Antigravity is not checked, so with antigravity on the ball sinks about 1 px per step after a ceiling rebound instead of settling on the ceiling. The jump apex hovers 2 steps instead of 5, and a held-jump cycle on flat ground takes 33 steps instead of 35.",
+     "Brick (tile 1) sets mCDRampFlag on a real hit as well as on a near miss, so 1-px slides, step-ups and the wall bounce happen more often against bricks.",
+     "The next level loads and runs, with no input, behind the 'Level completed' form. The number of steps depends on wall-clock time (spike phase, level banner, settling ball).",
+     "Cheats: '#' sets antigravity for 300 steps. FIRE, including the centre key -5, finishes the level.",
+     "Bug: Continue on the level-complete form leaves mState=5, so after the first completed level a pause or incoming call gives a menu without Continue."
+    ],
+    "otherDifferences": [
+     "The save adds a kind byte (1 in game, 2 on the level-complete screen) and is otherwise the 1.12 layout.",
+     "lang files re-indexed, with 'Next' and 'Pause' dropped. The main menu has an Exit command.",
+     "The 'Level N' banner is drawn in paint(); white clear on load; exit clip.",
+     "Levels, sounds and sprite sheet identical to 1.12."
+    ]
+   },
+   {
+    "version": "1.21 (128x128, MIDlet-Version 1.21, class files dated 2004-01-23)",
+    "tickMs": 40,
+    "obfuscated": true,
+    "maker": "Nokia build, same obfuscation mapping as 1.18. JAR later repacked (Created-By 14.0.1 Oracle).",
+    "playDifferencesFrom18": [
+     "Game timer 40 ms.",
+     "Inherits the 1.18 changes (spawn -1, no nudge, 1.12 redirect, ceiling (-v)>>1, brick ramp flag, 11 levels, the next level running behind the level-complete form, '#' and FIRE cheats). Two of them are adjusted: the minimum fall speed now also skips antigravity, which fixes the 1.18 sinking, and level-complete Continue sets the state back to 1.",
+     "thinCollide (spikes 3-6, exit 9, hoops 13-24, inflators 43-46) needs a real pixel overlap, which makes the thin axis 1 px narrower on each side.",
+     "edgeCollide bottom rims (tiles 14, 18, 22, 26) use a ball box 1 px smaller.",
+     "Moving-spike hit box: the ball must overlap the 24x24 block by at least 2 px, where 1.8 counts touching.",
+     "Touching the antigravity pickup (47-50) also clears grounded.",
+     "screenFlip right-edge clamp fixed: tileX > W-13 gives n2 += 156-(W-tileX)*12, removing the 1.8 teleport.",
+     "Level 11: row 42, col 91 changes from brick 0x01 to 0x61 (water + ramp 33).",
+     "Held directions are cleared on every resume."
+    ],
+    "otherDifferences": [
+     "Save gains a timestamp and a 0xDEADBEEF trailer check.",
+     "Unused debug menu items 'Read RMS' and 'Write RMS'.",
+     "Different language set; German Exit text changed; Local caches the stream."
+    ]
+   },
+   {
+    "version": "1.24 (128x128, MIDlet-Version 1.24, files dated 2004-08-16)",
+    "tickMs": 40,
+    "obfuscated": true,
+    "maker": "Nokia build, rewritten engine (world coordinates), obfuscated, Sun JDK 1.4.2_02",
+    "playDifferencesFrom18": [
+     "Game timer 40 ms.",
+     "Keeps the later rules: 1.12 redirect, ceiling (-v)>>1, minimum fall speed (skips water and antigravity), brick ramp flag, the 1.21 thin and spike hit boxes, grounded cleared on the antigravity pickup, 11 levels, next level running behind the level-complete form, '#' and FIRE cheats, the 1.21 level 11 tile, directions cleared on resume.",
+     "Does not keep two of them: the 1.21 smaller edgeCollide box is reverted to the 1.8 size, and the small ball spawns at row*12+6 again (no -1).",
+     "Ball, camera and collisions use world pixels: there is no 156-px ring-buffer wrap, and a flip never moves the ball, so the 1.8 336-px clamp bug is gone.",
+     "collisionDetection returns at the first blocking tile, so side effects of the remaining tiles (pickups, flags, rings, pops) are skipped that call.",
+     "The pop (death) lasts 7 steps instead of 5.",
+     "enlargeBall searches from 1 px instead of 2. shrinkBall no longer nudges the ball.",
+     "A big ball spawns at tile*12+6 and is then enlarged, so it always moves at least 1 px. Level 3 start is (630,29), against (632,32) in 1.8.",
+     "A vertical flip happens when the centre is within 6 px of the view edge, with about 2 px of hysteresis. Rows that are non-zero multiples of 7 are framed on the bottom row of the screen above.",
+     "The camera keeps the ball at x 64 and clamps at 12W-144, so the last 16 px of every level are never shown.",
+     "The exit starts opening about 10 px earlier when approached from the left, because the test uses the previous step's camera.",
+     "Key events are synchronised with the game step."
+    ],
+    "otherDifferences": [
+     "Hoop fronts are drawn from a table and the ball is drawn on the screen image. Off-map tiles draw as brick.",
+     "Instruction text is one string with key names; lang.xx has 14 strings; locales es-US, fr-CA, pt-BR, th-TH, zh-CN, zh-TW.",
+     "Save layout as 1.21 (timestamp + DEADBEEF)."
+    ]
+   },
+   {
+    "version": "1.8 132x176 (manifest says MIDlet-Version 1.8 / Nokia, MIDP-2.0; files dated 2005-01-29)",
+    "tickMs": 30,
+    "obfuscated": true,
+    "maker": "Third-party Siemens x65 port of 1.8 by iceman345 [IHT], 2005 (About screen and splash), recompiled and re-obfuscated",
+    "playDifferencesFrom18": [
+     "Ball physics, testTile, collision, scrolling code and run() order are equal to 1.8: pop 5, +/-150 clamp, ceiling 20, halved plain ramps, break after landing, same masks and levels.",
+     "The camera's right edge is 132 instead of 128 in the left-end branches of createBufferFocused and screenFlip (levels 1 and 7 start there). The 132-px window persists through scrolling, so the right-end scroll stop and resume and the left-end stop shift by about 4 px. In those bands a vertical flip can take the other screenFlip branch.",
+     "The exit can start opening up to about 4 px earlier, because the visibility test uses the wider right edge."
+    ],
+    "otherDifferences": [
+     "132x176 layout: banner on top, play strip at y=48, HUD at y=144. HUD capped at 11 ring icons.",
+     "MIDI sounds through MMAPI; Siemens soft-key and joystick codes; 100 ms vibration on death (Siemens API).",
+     "Tiles loaded as separate redrawn PNGs (crystal becomes a floppy disk, HUD ring a key); rubber ramps lose transparency.",
+     "Menu adds About and Exit; lang.ru added; RMS layout as 1.8."
+    ]
+   }
+  ],
+  "lineage": "One Nokia source line, plus one third-party port branched from 1.8. The evidence is file dates, shared renames and resources, and method-level bytecode diffs.\n\n1. 1.01 (2 Oct 2002, 40 ms) is the earliest. It is the same unobfuscated com.nokia.mid.appl.boun code, without BounceConst.\n\n2. 1.8 (10 Dec 2002, 30 ms) is a bug-fix release of 1.01 on the same HP toolchain. It adds the +/-150 clamp, the loop exit after a landing, the ceiling 20, the wall bounce, halved plain ramps, hoop rims, a solid closed exit, the water bit kept on hoops, the 0x80 mask, the left-flip fix and the pause-on-hide.\n\n3. 1.9 (12 Dec 2002, 30 ms, Sun JDK) is 1.8 with fields renamed to an m-prefix style. It adds the save/resume system, a level select, the -1 px spawn, removal of the nudge, and clipped exit drawing. Ball physics are byte-identical to 1.8.\n\n4. 1.12 (14 Feb 2003, 30 ms) continues 1.9: the same renames, save code, resetTiles and -1 spawn. It adds the new redirectBall, the (-v)>>1 ceiling, the 11-level campaign, the FIRE cheat, spike state in the save, and the 8-px HUD ring row with a new sprite sheet. That sheet is byte-identical in 1.12, 1.18, 1.21 and 1.24. 1.12 also returns to the HP toolchain.\n\n5. 1.18 (10 Oct 2003) is the first obfuscated build and switches to 40 ms. A normalised opcode diff against 1.12 shows only two Ball changes: the minimum fall speed (water check only) and the brick ramp flag. It also adds the '#' and FIRE cheats, runs the next level behind the level-complete form, re-indexes the lang files, and introduces the mState=5 bug.\n\n6. 1.21 (23 Jan 2004) uses the same obfuscation names as 1.18, and its CFR diff is small. Changes: thinCollide, the bottom edge rims and the spike box shrink by 1-2 px; the antigravity pickup clears grounded; the minimum fall speed skips antigravity; the screenFlip clamp is fixed; Continue resets the state; directions are cleared on resume; the save gets a timestamp and DEADBEEF; one level 11 tile changes.\n\n7. 1.24 (16 Aug 2004, Sun JDK 1.4.2) rewrites the engine in world coordinates. It inherits the 1.21-only rules (hit boxes, grounded on the antigravity pickup, minimum fall speed guard, DEADBEEF save, level 11 tile), but reverts the edgeCollide change and the -1 small-ball spawn. It adds pop 7, enlarge from 1 px, no shrink nudge, early-exit collision, and a new flip and camera.\n\nSide branch: the 1.8 132x176 build (2005) is iceman345's Siemens port, made from the 1.8 128x128 code. It keeps 1.8's physics, RMS and lang files; adds lang.ru; widens the left-end camera to 132; and replaces the sounds, keys and sprites.\n\nThe 1.18 and 1.21 JARs were repacked later (Created-By 14.0.1 Oracle). Their class files keep their original dates.",
+  "recommendation": "Make Nokia 1.8 128x128 (30 ms tick) the reference for js/rules.js. Use the 1.8 level files: they are byte-identical in 1.01-1.18 and in the port.\n\nWhy 1.8:\n1. Its code is the most reliable source: unobfuscated, with original names from JD-GUI and a full CFR/javap match.\n2. Its per-step code is shared exactly by 1.9 (only the spawn y differs) and by the Siemens port (only the camera width differs). The same engine therefore covers three of the eight builds and the whole Dec 2002 line.\n3. It is the first build with 1.01's collision bugs fixed: passable closed exit, no hoop rims, bounce-loop rebound, ceiling 6, 0x80 mask, lost water bits.\n4. It has no wall-clock-dependent behaviour. From 1.18 on, the next level runs behind the level-complete form for as many ticks as the player takes to press Continue, which a deterministic remake cannot reproduce faithfully.\n\nWhat most players had cannot be settled from these JARs. The dates suggest 1.8/1.9 for the early-2003 128x128 Series 40 phones and 1.18-1.24 for 2004 handsets; confirming that needs outside evidence such as firmware dumps.\n\nTrade-offs of 1.8 the remake inherits:\n- The campaign ends after level 10. Level 11 is reachable only via Continue after Game over (3 lives, 0 points) or the cheat.\n- The HUD overflows past about 11 rings on levels 9-11.\n- Rare screenFlip clamp teleport near the right map edge while scrolling.\n- Touch-counts spike and thin hit boxes, and a sticky ramp flag.\n- No saved game.\nKeep all of these in strict mode. If fixes are wanted, offer them as explicit opt-in flags, not as defaults.\n\nIf a later ruleset is wanted, make it a separate, labelled mode built as deltas on 1.8:\n- 1.9: spawnYOffset -1 and no nudge.\n- 1.12: also the new redirectBall, the (-v)>>1 ceiling and 11 levels.\n- 1.18: also the minimum fall speed (water check only) and the brick ramp flag.\n- 1.21: also the thin, edge and spike box changes, grounded cleared on the antigravity pickup, the antigravity guard on the minimum fall speed, the flip-clamp fix, the level 11 tile and 40 ms.\n\n1.24 cannot be expressed as a delta (world coordinates, early-exit collisions, 7-step pop, new camera and flips) and would need its own engine. 1.01 is a buggy pre-release. The 132x176 build is a third-party port.",
+  "spotChecks": [
+   "Timer periods, from javap of every GameTimer: ldc2_w 40 in 1.01, 1.18 (f), 1.21 (f) and 1.24 (g); 30 in 1.8, 1.9, 1.12 and the port (a$a). Confirmed. The reports disagreed on whether 40 ms affects play (1.01 and 1.21 said yes, 1.18 and 1.24 said no). The table treats it the same way everywhere: the step sequence is unchanged, but real-time speed is 25% slower.",
+   "1.01 vertical loop (javap Ball.update). 1.8 jumps to 946 (loop exit) after a landing; 1.01 jumps to 854 (i++). Ceiling: bipush -20/20 against -6/6. No clamp in 1.01: offset 415 goes straight to the loop test. Water halving: idiv at 1.01 offset 524, ishr at 1.8 offset 598. All confirmed.",
+   "1.01 testTile mask: bipush -65 iand only, where 1.8 has bipush -65 iand sipush -129 iand. Confirmed. Also confirmed in CFR: plain hoop values 145-156, no edgeCollide calls, closed exit with no else branch, full-speed plain ramps, no wall-bounce else, no scrollOffset shift, the left-edge flip branch, and soft key -6 swallowed.",
+   "Floor versus ceiling looked like a disagreement: 1.01's report says 1.8 breaks after a bounce, while 1.12/1.18 say the loop continues after a ceiling hit. Both are right. 1.8 breaks only after a landing; a ceiling hit continues the loop on the new speed.",
+   "Correction: the reversed-gravity arms (1.01 '-6', 1.8 '-20', and the -20 that 1.18 and 1.24 describe as 'unchanged') are unreachable. With gravity reversed, both n2>0 and n2<0 enter the landing branch first. The 1.01 entry's 'or the floor under reversed gravity' should be dropped.",
+   "1.01 left-edge flip: with xPos == divisorLine the claim of a divisorLine-px error holds against the true world position. 1.8 itself is off by 156 there, because collisionDetection maps xPos == divisorLine to the right segment. Kept, with that caveat.",
+   "-1 px spawn: 'n2 - tileY*12 - 1' is in 1.9 (BounceCanvas.java:142), 1.12 (:145), 1.18 and 1.21 (d.java:146). Confirmed. 1.24 spawns at row*12+6 with no -1. Minor correction to 1.9: a ball under a ceiling first moves on the 4th update (ySpeed 0, 4, 8, 12), not on frame 3. With the minimum fall speed (1.18+) it moves on the 2nd.",
+   "Big-ball nudge removal: confirmed absent in 1.9 through 1.21. Its effect is corrected to 'none with the shipped levels'. The only candidate, the L11 checkpoint (143,45), is boxed in by deflators 39-42 (map dump). Deflators shrink on bounding-box contact, and tiles are tested column-major and top-down, so a 16-px ball always touches a deflator before or while it first overlaps the checkpoint. A big respawn there therefore looks unreachable, and the 1.18 report's 'deflator shrinks the ball before frame 1' should not occur in practice. This was reasoned from the code and the map, not run.",
+   "1.9 win path: displayGameOver no longer sets mState, and gameOver() is used only on death. Continue then calls displayGame(false); run() sees mLoadLevelFlag and createNewLevel keeps lives and score. Confirmed in CFR.",
+   "1.9 save: destroyApp calls saveGameData(3), which always writes -6 and uses an int[40][3] buffer. My level scan: L1-L10 have 15-35 save-relevant tiles at the start and L11 has exactly 50. So 1.9 can never save level 11, and the 50-entry array in 1.12+ just fits. Confirmed.",
+   "1.9 to 1.12 Ball CFR diff: only redirectBall and the ceiling line change (javap ineg/iconst_1/ishr). 1.12 has neither the minimum fall speed nor the brick flag change. Checked the 1.12 ramp examples by hand: tile 32 at (50,10) gives 1.8 (-5,-25) and 1.12 (50,-50). Confirmed.",
+   "End-of-game test: >= 11 in 1.01, 1.8, 1.9 and the port; > 11 in 1.12, 1.18, 1.21 and 1.24. Level files load as J2MElvl.%03d of mLevelNum, starting at 1. Confirmed.",
+   "Cheats: 1.12 has case 8 (FIRE) and still swallows -5. 1.18, 1.21 and 1.24 drop the -5 case and add case 35 ('#', antigravity counter = 300). Confirmed. Correction to the 1.21 report: invincibility is 7-8-7-8-9 then 8 (not 7-8-7-8-8), the same in every version.",
+   "1.12 to 1.18 normalised opcode diff (my ops.py) of update, testTile, thinCollide and collisionDetection: the only additions are the water bool with the minimum fall speed, and putfield w=true in the tile-1 hit branch (javap offsets 334-336). Confirmed.",
+   "Minimum fall speed disagreement: 1.18 has 's<10 && s>0 && !water'; 1.21 and 1.24 add '&& !antigravity'. Both reports are right. The 1.18 antigravity sinking follows from the code.",
+   "1.18 to 1.21 CFR diff, same obfuscation names: thinCollide size-1 and tile-1; bottom-rim edgeCollide size-1; spike box +1/-1; antigravity pickup sets grounded=false; the minimum fall speed guard; the screenFlip clamp fix (W-13, n2 += 156-(W-tileX)*12); level-complete Continue sets state 1; resetDirections in displayGame; save timestamp and DEADBEEF. So the 1.18 report's 'screenFlip identical to 1.8' is also right.",
+   "Edge-rim disagreement: 1.24's edgeCollide uses (x-g, y-g, x+g, y+g) for every case, the 1.8 size. 1.21's smaller bottom-rim box was reverted in 1.24. Both reports are right; the table lists it as not inherited.",
+   "1.24, all in CFR: pop l=7; enlarge from n=1; shrink only resizes; collisionDetection returns false at the first failing tile, and testTile keeps a local bl; spawn at tile*12+6 followed by enlarge for 16 px; flip test y-6 < R*12 or y+6 > R*12+96 with 7-row steps; camera clamp (W+1)*12-156 in scrolling and W*12-156 in recentre; exit test (al+1)*12 > camL && al*12 < camL+128 before the scroll call. That works out to opening when camL >= al*12-127, against about al*12-117 in 1.8, so 10 px earlier from the left and the same from the right. Level 1: W=112, exit col 110, so the camera stops at 1200 and only 8 px of the exit show. Confirmed.",
+   "Level 11 difference: cmp shows one byte, 1-based 7576 = 0-based 7575, 0x01 to 0x61, at row 42 col 91 (W=178). The two reports' offsets agree; one is 1-based. Level md5s: all other files are identical across all 8 builds, and .011 matches between 1.21 and 1.24.",
+   "Jump timing: my vertical-loop sim gives a held-jump cycle of 35 steps without the minimum fall speed and 33 with it, both with a 51-px apex. The apex hovers 5 steps against 2. This matches the 1.21 and 1.24 reports.",
+   "1.18 level-complete: the Continue command only calls setCurrent (state stays 5), and displayMainMenu shows Continue only if L==1 or a save exists. Confirmed. In 1.21 the same command sets M=1, so the bug is fixed there. Both builds, and 1.24, restart the timer under the form (stop, then a(false,0)). Confirmed.",
+   "132x176 port: r=132 in the left-end branches of createBufferFocused and screenFlip (e.java:114, :182). testScroll and scrollBuffer shift both edges, so the 132 width persists. Ball constants and the landing break match 1.8, and the HUD cap is 11. The mechanism is confirmed. The exact step numbers in the report (stop at step 76 vs 77, left stop at ball 67 vs 62) come from the reporter's own camera sim and were not re-run here.",
+   "HUD and resources: ring spacing (w-1) in 1.01, 1.8 and 1.9, (w-4) in 1.12, 1.18, 1.21 and 1.24. objects_nm.png md5: 1.8 = 1.9, and 1.12 = 1.18 = 1.21 = 1.24, which supports the lineage. OTT sounds are identical from 1.8 to 1.24; 1.01's up and pickup differ. Confirmed. My javap dumps and helper scripts (hdr.py, count.py, jump.py, ops.py) are in /tmp/claude-0/-home-user/9e293dcf-c6a7-5416-93b2-b9c9546fbcbb/scratchpad/work/versions/synth/."
+  ]
+ }
+}

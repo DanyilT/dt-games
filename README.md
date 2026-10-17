@@ -1,4 +1,5 @@
 # Bounce
+[![bounce@v1.0.0](https://img.shields.io/badge/bounce-v1.0.0-blue)](https://github.com/DanyilT/dt-games/releases/tag/bounce@v1.0.0)
 
 Nokia's Bounce (version 1.24, 2004): roll and jump the red rubber ball through 11 levels, through every hoop and out of the door. It plays on a phone's screen with a Nokia keypad under it, as it did on the phone: the same levels, the same sprites, the same physics step for step, and its three tunes, played as notes in the browser.
 
@@ -98,7 +99,11 @@ Then open http://localhost:8000.
 
 `test/index.html` is a replay test: a bot plays Bounce through the page's own keys and its keypad (often two fingers at once), each level along a route that wins it, and sometimes strays off it to lose, and each run it finishes is played again with `js/rules.js` (what GameHub's server checks runs with), which must come out as the game said. Serve the folder as above and open http://localhost:8000/test/ (or http://localhost:8000/test/?start to start at once). The game there saves under a name of its own, so your best scores and game in progress stay as they were. *Copy the runs as JSON* gives the runs in the shape of GameHub's test fixtures.
 
-`js/rules.js` was also checked against the original game's own code, outside this repository: its class files run on Java with stand-ins for the phone, and `js/rules.js` had to give the same state after every step (the ball, the score, the camera, the exit, the moving spikes, every tile that changed) over 132 random plays and 50 routes that reach every pump, deflater, power-up and exit, and win every level.
+`js/rules.js` was also checked against the original game's own code: its class files run on Java with stand-ins for the phone, and `js/rules.js` had to give the same state after every step (the ball, the score, the camera, the exit, the moving spikes, every tile that changed) over 132 random plays and 50 routes that reach every pump, deflater, power-up and exit, and win every level. The stand-ins and the tools are in `.research/` (below); the original's files and the traces aren't in this repository.
+
+## 🔎 The research
+
+`.research/` has what we found out about the original Bounce while remaking it: where its eight JARs are (and their checksums), how 1.24 works (the ball's update in full, the step, the screen, the exit, menus, saves, cheats, the look and sound), every version (1.01 to 1.24) compared, the 11 levels (their file format, every tile, each level drawn with its numbers), the routes through them, the tools, and the reference's stand-ins for the phone ([.research/README.md](.research/README.md)). It isn't part of the game: the site doesn't serve it (`_redirects` sends it to the game) and GameHub's Download leaves it out.
 
 ## 💿 Get just this game
 
@@ -114,7 +119,7 @@ This game's code is licensed under the [MIT License](LICENSE), except for what i
 
 - `img/objects.png`, Bounce's sprite sheet, and the icons made from it (`img/icon.svg`, `img/icon-no-bg.svg` and `img/apple-touch-icon.png`: its ball, a pixel at a time);
 - `img/favicon.svg` and `img/icon-32.png`, Bounce's own icon from the phone;
-- the levels (the `LEVELS` maps and moving spikes in `js/rules.js`), and the shapes of the ball and the ramps there;
+- the levels (the `LEVELS` maps and moving spikes in `js/rules.js`, and their pictures in `.research/levels/`), and the shapes of the ball and the ramps there;
 - the three tunes, as notes (`TUNES` in `js/bounce.js`), and the phone's words (`TEXT` there: the menus and the instructions).
 
 This remake isn't made or endorsed by Nokia.

@@ -1,6 +1,6 @@
 # dt-games
 
-Classic browser games in plain HTML, CSS and JavaScript: **Snake**, **Tetris**, **Minesweeper**, **Sudoku**, **Flappy Bird**, **Tic-Tac-Toe** and **Solitaire**. No frameworks, no build step, nothing to install. They play on a computer (keyboard and mouse) or on a phone (touch), and they're all in my **[GameHub](https://gamehub.foo)**. <u>dt</u> stands for <u>DanyilT</u> (me).
+Classic browser games in plain HTML, CSS and JavaScript: **Snake**, **Tetris**, **Minesweeper**, **Sudoku**, **Flappy Bird**, **Tic-Tac-Toe**, **Solitaire** and **Bounce**. No frameworks, no build step, nothing to install. They play on a computer (keyboard and mouse) or on a phone (touch), and they're all in my **[GameHub](https://gamehub.foo)**. <u>dt</u> stands for <u>DanyilT</u> (me).
 
 Every game lives on its own branch, at the root of that branch, with no history shared with the others. This branch, `main`, only has this overview: this README, and the overview page, `index.html`, with its icons and link-preview picture in `img/`.
 
@@ -15,6 +15,7 @@ Every game lives on its own branch, at the root of that branch, with no history 
 | Flappy Bird | [`flappy-bird`](https://github.com/DanyilT/dt-games/tree/flappy-bird) | [GameHub](https://gamehub.foo/g/flappy-bird) · [direct](https://flappy-bird.dt-games.pages.dev) | `git clone --branch flappy-bird --single-branch https://github.com/DanyilT/dt-games.git flappy-bird` |
 | Tic-Tac-Toe | [`tic-tac-toe`](https://github.com/DanyilT/dt-games/tree/tic-tac-toe) | [GameHub](https://gamehub.foo/g/tic-tac-toe) · [direct](https://tic-tac-toe.dt-games.pages.dev) | `git clone --branch tic-tac-toe --single-branch https://github.com/DanyilT/dt-games.git tic-tac-toe` |
 | Solitaire   | [`solitaire`](https://github.com/DanyilT/dt-games/tree/solitaire)     | [GameHub](https://gamehub.foo/g/solitaire) · [direct](https://solitaire.dt-games.pages.dev)     | `git clone --branch solitaire --single-branch https://github.com/DanyilT/dt-games.git solitaire`     |
+| Bounce      | [`bounce`](https://github.com/DanyilT/dt-games/tree/bounce)           | [GameHub](https://gamehub.foo/g/bounce) · [direct](https://bounce.dt-games.pages.dev)           | `git clone --branch bounce --single-branch https://github.com/DanyilT/dt-games.git bounce`           |
 
 Each branch's README has the game's controls and features.
 
@@ -58,7 +59,7 @@ LICENSE                 MIT
 
 And follows the same rules:
 
-- **The same `<head>` basics:** charset, viewport, title, description, `theme-color` (the page's background, for the browser's bar on phones), the link-preview tags (`og:` and `twitter:card`, with `img/desktop-screenshot.png` as the picture), the icons (`img/icon.svg`, with `img/icon-32.png` for browsers without SVG icons, and `img/apple-touch-icon.png`; Minesweeper's is `img/icons/mine.svg`), and the two stylesheets, `css/page.css` first.
+- **The same `<head>` basics:** charset, viewport, title, description, `theme-color` (the page's background, for the browser's bar on phones), the link-preview tags (`og:` and `twitter:card`, with `img/desktop-screenshot.png` as the picture), the icons (`img/icon.svg`, with `img/icon-32.png` for browsers without SVG icons, and `img/apple-touch-icon.png`; Minesweeper's is `img/icons/mine.svg`, and Bounce's tab icon is `img/favicon.svg`, the phone's own Bounce icon), and the two stylesheets, `css/page.css` first.
 - **Relative paths only**, so a game runs from any address: its branch's root, a subfolder, or `localhost`. The one exception is the link-preview tags (`og:url`, `og:image`), which need the game's full address; they're only read by the sites that show previews.
 - **Plain scripts:** `<script>` tags, no modules, no build step, no dependencies. (Sudoku's font, Tetris's GAME OVER font, Flappy Bird's pixel font and Tic-Tac-Toe's handwriting come from Google Fonts; without them, the page falls back to a system font.)
 - **One code style:** 4 spaces, LF line endings, UTF-8, a newline at the end of every file (`.editorconfig`). In JavaScript: semicolons, single quotes, `const` or `let` for every variable, and a comment above each function.
@@ -74,7 +75,7 @@ And follows the same rules:
 - **The shared files:** `js/gamehub.js`, `sw.js`, `_headers`, `tools/offline-json.mjs`, `test/check.js`, `LICENSE` and `.editorconfig` must be the same in every game (the last two in `main` too). From the folder with all the branches (below), this prints how many versions of each there are, which should be 1:
 
   ```bash
-  for f in js/gamehub.js sw.js _headers tools/offline-json.mjs test/check.js LICENSE .editorconfig; do echo "$f: $(for b in snake tetris minesweeper sudoku flappy-bird tic-tac-toe solitaire; do git -C main rev-parse --short "$b:$f"; done | sort -u | wc -l | tr -d ' ') version(s)"; done
+  for f in js/gamehub.js sw.js _headers tools/offline-json.mjs test/check.js LICENSE .editorconfig; do echo "$f: $(for b in snake tetris minesweeper sudoku flappy-bird tic-tac-toe solitaire bounce; do git -C main rev-parse --short "$b:$f"; done | sort -u | wc -l | tr -d ' ') version(s)"; done
   ```
 
   It compares the committed files, so commit first (or compare the working copies with `md5`).
@@ -89,7 +90,7 @@ cd dt-games
 echo "gitdir: ./.bare" > .git
 git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
 git fetch origin
-for branch in main snake tetris minesweeper sudoku flappy-bird tic-tac-toe solitaire; do git worktree add "$branch" "$branch"; done
+for branch in main snake tetris minesweeper sudoku flappy-bird tic-tac-toe solitaire bounce; do git worktree add "$branch" "$branch"; done
 ```
 
 ## 📄 License

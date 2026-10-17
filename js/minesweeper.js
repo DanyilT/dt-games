@@ -16,13 +16,15 @@
  * - Auto-reveal of empty cells
  * - Win condition check
  * - Game over condition when clicking on a mine
+ * - Sounds, made in the browser (Web Audio): a cell opening, a flag, the mine going off, the win; Game › Sound turns them
+ *   on or off
  * - GameHub's panel and replays (js/gamehub.js): each board is a run, with the mines placed from the run's seed, and every
  *   open and flag recorded with its time, so GameHub can play it again
  *
  * Instructions:
  * - Click on a cell to reveal it.
  * - Right-click (or long-press on mobile) to flag/unflag a cell.
- * - Use the reset button to restart the game.
+ * - Use the face button (or N) to start a new game.
  * - Select a difficulty level to change the game settings.
  * - Use the keyboard arrow keys to navigate the board. (extend controls)
  *
@@ -239,7 +241,9 @@ function handleCellClick(row, col) {
     }
     beginRun();
     run.input(cellInput(row, col, false));
+    const before = soundState();
     openCell(row, col);
+    moveSound(before);
 }
 
 // Handle right click event: the player flags a cell (or opens around a number)
@@ -249,7 +253,80 @@ function handleRightClick(row, col) {
     }
     beginRun();
     run.input(cellInput(row, col, true));
+    const before = soundState();
     flagCell(row, col);
+    moveSound(before);
+}
+
+// --- Sounds, made in the browser (no files): a cell opening (a sweep when many do), a flag, the mine, the win ---
+
+let audio = null;
+
+// A short tone: its wave, its pitch from start to end (Hz), how long (s) and how loud, after a delay (s)
+function tone(wave, from, to, length, volume, delay = 0) {
+    const start = audio.currentTime + delay;
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
+    oscillator.type = wave;
+    oscillator.frequency.setValueAtTime(from, start);
+    oscillator.frequency.exponentialRampToValueAtTime(to, start + length);
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + length);
+    oscillator.connect(gain).connect(audio.destination);
+    oscillator.start(start);
+    oscillator.stop(start + length);
+}
+
+// A burst of noise, fading (the mine going off)
+function boom() {
+    const length = 0.6;
+    const buffer = audio.createBuffer(1, Math.round(audio.sampleRate * length), audio.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length) ** 2;
+    const source = audio.createBufferSource();
+    source.buffer = buffer;
+    const filter = audio.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 900;
+    const gain = audio.createGain();
+    gain.gain.value = 0.5;
+    source.connect(filter).connect(gain).connect(audio.destination);
+    source.start();
+    tone('sine', 120, 40, 0.5, 0.25);
+}
+
+// Play a sound, if Game › Sound is on (not in a replay)
+function sound(kind) {
+    if (gameData?.sound === false || GameHub.replaying) return;
+    try {
+        audio ??= new AudioContext();
+        if (audio.state === 'suspended') audio.resume();
+        if (kind === 'open') tone('square', 900, 700, 0.03, 0.04);
+        if (kind === 'sweep') tone('triangle', 400, 1200, 0.18, 0.06);
+        if (kind === 'flag') tone('triangle', 700, 1000, 0.07, 0.07);
+        if (kind === 'boom') boom();
+        if (kind === 'win') [523, 659, 784, 1047].forEach((pitch, i) => tone('square', pitch, pitch, 0.12, 0.05, i * 0.1));
+    } catch (error) {
+        // No Web Audio here: no sounds
+    }
+}
+
+// What a click's sound depends on: the cells open and flagged before it
+function soundState() {
+    let flags = 0;
+    board.forEach((cells) => cells.forEach((cell) => {
+        if (cell.isFlagged) flags++;
+    }));
+    return { revealed: game.revealedCount, flags };
+}
+
+// A click's sound: the end, or cells opening (a sweep when many do), or a flag put down or taken up
+function moveSound(before) {
+    const after = soundState();
+    if (game.over) sound(game.won ? 'win' : 'boom');
+    else if (after.revealed - before.revealed > 1) sound('sweep');
+    else if (after.revealed > before.revealed) sound('open');
+    else if (after.flags !== before.flags) sound('flag');
 }
 
 // Open a cell (js/rules.js), at the run's time: the first open puts the mines in, and starts the timer

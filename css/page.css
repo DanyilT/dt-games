@@ -348,6 +348,55 @@ body {
     }
 }
 
+/* The instructions (in the Help dialog): the controls lined up in a table with no lines, the mouse, the touch and the
+   keys on the left, what they do on the right */
+.modal-content h2 {
+    margin: 0 0 6px;
+    font-size: 14px;
+}
+
+.modal-content h3 {
+    margin: 12px 0 4px;
+    font-size: 12px;
+}
+
+.modal-content ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.keys {
+    border-collapse: collapse;
+}
+
+.keys th {
+    padding: 10px 0 3px;
+    text-align: left;
+}
+
+.keys td {
+    padding: 3px 0;
+    vertical-align: baseline;
+}
+
+.keys td:first-child {
+    padding-right: 14px;
+    white-space: nowrap;
+}
+
+/* A key: a raised grey button, as Windows drew them */
+.modal-content kbd {
+    display: inline-block;
+    min-width: 14px;
+    padding: 0 4px;
+    border: 2px outset #ffffff;
+    background-color: #c0c0c0;
+    color: black;
+    font: 11px 'MS Sans Serif', 'Tahoma', 'Arial', sans-serif;
+    line-height: 15px;
+    text-align: center;
+}
+
 @media screen and (max-width: 400px) {
     .window-title-bar .title h1 {
         font-size: 14px;

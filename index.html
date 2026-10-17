@@ -42,11 +42,13 @@
             <div class="menu-item">
                 <span class="menu-title" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-controls="game-menu">Game</span>
                 <div class="menu-dropdown" id="game-menu" role="menu" aria-label="Game">
-                    <div class="menu-option" role="menuitem" tabindex="-1" onclick="document.getElementById('reset-button').click()">New Game</div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" onclick="document.getElementById('reset-button').click()">New Game (N)</div>
                     <div class="menu-separator" role="separator"></div>
                     <div class="menu-option difficulty-option" role="menuitemradio" tabindex="-1" aria-checked="false" data-level="beginner">Beginner</div>
                     <div class="menu-option difficulty-option" role="menuitemradio" tabindex="-1" aria-checked="false" data-level="intermediate">Intermediate</div>
                     <div class="menu-option difficulty-option" role="menuitemradio" tabindex="-1" aria-checked="false" data-level="expert">Expert</div>
+                    <div class="menu-separator" role="separator"></div>
+                    <div class="menu-option selected" role="menuitemcheckbox" tabindex="-1" aria-checked="true" id="sound-option">Sound</div>
                     <div class="menu-separator" role="separator"></div>
                     <div class="menu-option" role="menuitem" tabindex="-1" id="exit-game">Exit</div>
                 </div>
@@ -54,7 +56,7 @@
             <div class="menu-item">
                 <span class="menu-title" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-controls="help-menu">Help</span>
                 <div class="menu-dropdown" id="help-menu" role="menu" aria-label="Help">
-                    <div class="menu-option" role="menuitem" tabindex="-1" id="instructions-button">Instructions (i)</div>
+                    <div class="menu-option" role="menuitem" tabindex="-1" id="instructions-button">Instructions (I)</div>
                     <div class="menu-option" role="menuitem" tabindex="-1" id="about-button">About Minesweeper</div>
                 </div>
             </div>
@@ -77,31 +79,34 @@
 </main>
 <div class="instructions">
     <h2>How to Play Minesweeper</h2>
-    <p>The goal is to reveal all cells that don't contain mines.</p>
-    <hr>
-    <h3>Mouse Controls:</h3>
-    <p>• <b>Left-click</b> to reveal a cell</p>
-    <p>• <b>Right-click</b> to place or remove a flag</p>
-    <p>• Click on a revealed cell to quickly reveal surrounding cells (if correctly flagged)</p>
-    <hr>
-    <h3>Touch & Toggle Mode:</h3>
-    <p>• Use the flag button (next to Help) to switch between <b>reveal</b> and <b>flag modes</b></p>
-    <hr>
-    <h3>Keyboard Controls:</h3>
-    <p>• <b>Arrow keys</b> to move selection</p>
-    <p>• <b>Space</b> to activate selected cell</p>
-    <p>• <b>Shift+Space</b> to flag selected cell</p>
-    <p>• <b>R</b> key to restart game</p>
-    <p>• <b>M</b> key to toggle between reveal/flag modes</p>
-    <p>• <b>1</b>, <b>2</b>, <b>3</b> keys to change difficulty (Beginner, Intermediate, Expert)</p>
-    <p>• <b>I</b> key to show/hide these instructions</p>
-    <p>• <b>Escape</b> key to close dialogs</p>
-    <p>• <b>Tab</b> to the Game and Help menus, <b>Enter</b> to open one, <b>arrow keys</b> to choose, <b>Enter</b> to pick</p>
-    <hr>
-    <h3>Tips:</h3>
-    <p>• The numbers indicate how many mines are in the adjacent cells</p>
-    <p>• Use flags to mark where you think mines are located</p>
-    <p>• The counter at the top shows the number of mines minus the number of flags</p>
+    <p>Open every cell that doesn't hide a mine.</p>
+    <!-- The controls, lined up: the mouse, the touch and the keys on the left, what they do on the right -->
+    <table class="keys">
+        <tr><th colspan="2">Mouse</th></tr>
+        <tr><td><b>Left-click</b></td><td>Open a cell</td></tr>
+        <tr><td><b>Right-click</b></td><td>Place or take off a flag</td></tr>
+        <tr><td><b>Click</b> a number</td><td>Open the cells round it, once its mines are flagged</td></tr>
+        <tr><th colspan="2">Touch</th></tr>
+        <tr><td><b>Tap</b></td><td>Open a cell (or flag it, in flag mode)</td></tr>
+        <tr><td><b>Long-tap</b></td><td>Flag a cell (or open it, in flag mode)</td></tr>
+        <tr><td>The <b>flag button</b></td><td>Flag mode on or off (it's next to Help)</td></tr>
+        <tr><th colspan="2">Keyboard</th></tr>
+        <tr><td><kbd>↑</kbd> <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd></td><td>Move the selection</td></tr>
+        <tr><td><kbd>Space</kbd></td><td>Open the selected cell</td></tr>
+        <tr><td><kbd>Shift</kbd> + <kbd>Space</kbd></td><td>Flag the selected cell</td></tr>
+        <tr><td><kbd>N</kbd></td><td>New game</td></tr>
+        <tr><td><kbd>M</kbd></td><td>Flag mode on or off</td></tr>
+        <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td><td>Beginner, Intermediate, Expert</td></tr>
+        <tr><td><kbd>I</kbd></td><td>Show or hide these instructions</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>The Game menu (or close a dialog, or a menu)</td></tr>
+        <tr><td><kbd>Tab</kbd> <kbd>Enter</kbd></td><td>The Game and Help menus: <kbd>Tab</kbd> to one, <kbd>Enter</kbd> to open it, the arrows to choose, <kbd>Enter</kbd> to pick</td></tr>
+    </table>
+    <h3>Tips</h3>
+    <ul>
+        <li>A number tells you how many mines are in the cells round it.</li>
+        <li>Flag the cells you're sure hide a mine.</li>
+        <li>The counter at the top left shows the mines, less your flags.</li>
+    </ul>
 </div>
 <footer style="display: none">&copy; Dany | Minesweeper | 2025-2026 <hr> <a href="https://github.com/DanyilT/dt-games/tree/minesweeper" target="_blank" rel="noopener">source code</a></footer>
 <!-- Minesweeper Code -->

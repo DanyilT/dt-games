@@ -42,13 +42,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Close any open modal with Escape
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.modal-overlay').forEach(modal => {
-                if (isModalOpen(modal)) {
-                    hideModal(modal);
-                }
-            });
+        // Escape closes a dialog, or a menu open (with the mouse); otherwise it opens the Game menu, with the keyboard on
+        // its first option (a menu that has the keyboard closes itself: its keys don't reach here)
+        if (e.key === 'Escape' && !e.repeat) {
+            const open = [...document.querySelectorAll('.modal-overlay')].filter(isModalOpen);
+            const openMenus = menus.filter((menu) => menu.classList.contains('open'));
+            if (open.length) open.forEach(hideModal);
+            else if (openMenus.length) openMenus.forEach((menu) => closeMenu(menu));
+            else openMenu(menus[0], 'first');
         }
     });
 
@@ -221,8 +222,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const dialogOpen = [...document.querySelectorAll('.modal-overlay')].some(m => m.open);
         if (dialogOpen && e.key !== 'Escape') return;
 
-        // Restart game with 'r' key
-        if (e.key === 'r') {
+        // A new game with 'n'
+        if (e.key === 'n') {
             document.getElementById('reset-button').click();
         }
 
@@ -397,6 +398,21 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!menu.contains(e.target)) closeMenu(menu);
         });
     });
+
+    // Game › Sound: ticked while the sounds are on (saved)
+    const soundOption = document.getElementById('sound-option');
+    function showSound() {
+        const on = gameData?.sound !== false;
+        soundOption.classList.toggle('selected', on);
+        soundOption.setAttribute('aria-checked', String(on));
+    }
+    soundOption.addEventListener('click', () => {
+        if (!gameData) return;
+        gameData.sound = gameData.sound === false;
+        saveGameData(gameData);
+        showSound();
+    });
+    document.addEventListener('minesweeper:loaded', showSound);
 
     // Initialize win indicators on page load
     updateWinIndicators();

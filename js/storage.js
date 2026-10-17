@@ -3,9 +3,10 @@
  *
  * The game saves one object:
  *     { "level": "beginner", "wins": { "beginner": 3, "intermediate": 1, "expert": 0 },
- *       "bestTimes": { "beginner": 42, "intermediate": 187, "expert": null }, "game": { … } | null }
+ *       "bestTimes": { "beginner": 42, "intermediate": 187, "expert": null }, "sound": true, "game": { … } | null }
  * level is the difficulty picked, wins counts the wins on each level (the stars in the Game menu), and bestTimes keeps the
- * fastest win on each level, in seconds (the timer's time), or null before the first win. game is the board under way,
+ * fastest win on each level, in seconds (the timer's time), or null before the first win. sound says whether the sounds
+ * are on (Game › Sound). game is the board under way,
  * kept after each click (and when the page is hidden or closed) so it carries on next time: its state (js/rules.js
  * saveState()), its run so far (js/gamehub.js run.save()) and the timer's time, in ms.
  * js/gamehub.js keeps it: in this browser (localStorage, key minesweeperGameData), and in the player's GameHub account
@@ -18,6 +19,7 @@ function defaultGameData() {
         level: 'beginner',
         wins: { beginner: 0, intermediate: 0, expert: 0 },
         bestTimes: { beginner: null, intermediate: null, expert: null },
+        sound: true,
         game: null
     };
 }
@@ -37,6 +39,9 @@ function checkGameData(saved) {
         if (Number.isInteger(time) && time >= 0) {
             data.bestTimes[level] = time;
         }
+    }
+    if (typeof saved?.sound === 'boolean') {
+        data.sound = saved.sound;
     }
     // The board under way: checked in full when it's loaded (GameRules.loadState(), GameHub.resumeRun())
     const game = saved?.game;

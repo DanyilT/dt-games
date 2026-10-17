@@ -18,9 +18,9 @@ Test your logic and luck in this classic minesweeper game. Clear the board witho
 | <kbd>Shift</kbd> + <kbd>Space</kbd> | Flag the selected cell |
 | <kbd>M</kbd> | Switch between reveal and flag mode |
 | <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | Difficulty: Beginner / Intermediate / Expert |
-| <kbd>R</kbd> | Restart |
+| <kbd>N</kbd> | New game |
 | <kbd>I</kbd> | Show or hide the instructions |
-| <kbd>Esc</kbd> | Close dialogs (and menus) |
+| <kbd>Esc</kbd> | Open the Game menu (or close a dialog, or a menu) |
 | The window's □ | Full screen on or off (_ and × take it out, and so does Game → Exit in full screen) |
 | <kbd>Tab</kbd> to Game or Help, then <kbd>Enter</kbd> | Open the menu: <kbd>↑</kbd> <kbd>↓</kbd> choose, <kbd>Enter</kbd> picks, <kbd>←</kbd> <kbd>→</kbd> go to the other menu |
 
@@ -42,12 +42,13 @@ On a phone or tablet:
 - Menus, window buttons and dialogs that work with the keyboard and screen readers (the Help dialogs keep the keyboard until they close)
 - Fits the screen: when there isn't room for the whole board, only the board scrolls
 - Carries on where you left off: the board you're playing is saved after each click
+- Sounds made in the browser (Web Audio): a cell opening, a flag, the mine going off, the win; Game › Sound turns them on or off
 - Mobile-friendly
 - Easter Egg
 
 ## 💾 Saved data
 
-The game saves everything as one object: `{ "level": "beginner", "wins": { "beginner": 3, "intermediate": 1, "expert": 0 }, "bestTimes": { "beginner": 42, "intermediate": 187, "expert": null }, "game": { … } | null }`.
+The game saves everything as one object: `{ "level": "beginner", "wins": { "beginner": 3, "intermediate": 1, "expert": 0 }, "bestTimes": { "beginner": 42, "intermediate": 187, "expert": null }, "sound": true, "game": { … } | null }`. `sound` says whether Game › Sound is on.
 `level` is the difficulty you picked, `wins` counts your wins on each level (the stars in the Game menu), and `bestTimes` keeps your fastest win on each level, in seconds (`null` until you've won it).
 `game` is the board you're playing, kept after each click (and when you switch away or close the page) so it comes back next time: its cells (`state`), the run so far for GameHub (`run`, see below) and the timer's time. It's taken out when the board is won or lost, or you start another.
 It's kept in the browser, in `localStorage` under `minesweeperGameData`, and in your GameHub account when you play in GameHub signed in (see below).

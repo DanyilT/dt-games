@@ -1,0 +1,252 @@
+/* The game itself: the phone's screen, and the keypad under it, whose keys light up while they're held. Everything is
+   sized from --screen (the screen's width, set by js/bounce.js), so the keypad grows with the screen. */
+
+.phone {
+    --unit: calc(var(--screen) / 128); /* One of the phone's pixels */
+    --bezel: calc(var(--unit) * 5);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: calc(var(--screen) + var(--bezel) * 2);
+    gap: calc(var(--unit) * 4);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* The screen: the canvas in a dark frame, its pixels kept square and sharp */
+.screen {
+    position: relative;
+    padding: var(--bezel);
+    background: linear-gradient(#2b3036, #1a1e22);
+    border-radius: calc(var(--unit) * 7);
+    box-shadow: 0 calc(var(--unit) * 2) 0 rgba(23, 49, 74, 0.35), inset 0 0 0 2px #3c434b;
+}
+
+.screen canvas {
+    display: block;
+    width: var(--screen);
+    height: var(--screen);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background-color: #0853aa;
+    border-radius: 2px;
+    touch-action: none; /* A tap on a menu picks the item: no scroll or zoom */
+    cursor: default;
+}
+
+/* The call key's field for a code (js/qwerty.js): a bar over the bottom of the screen, in the phone's blue */
+.code-entry {
+    position: absolute;
+    right: var(--bezel);
+    bottom: var(--bezel);
+    left: var(--bezel);
+    display: flex;
+    align-items: center;
+    gap: calc(var(--unit) * 2);
+    padding: calc(var(--unit) * 2) calc(var(--unit) * 3);
+    background-color: #0853aa;
+    border-top: calc(var(--unit) * 0.6) solid #fff;
+}
+
+.code-entry[hidden] {
+    display: none;
+}
+
+.code-entry label {
+    font-size: max(14px, calc(var(--unit) * 4.5));
+    font-weight: 700;
+    color: #fff;
+}
+
+.code-entry input {
+    flex: 1;
+    min-width: 0;
+    padding: calc(var(--unit) * 0.8) calc(var(--unit) * 1.5);
+    font: inherit;
+    font-size: max(16px, calc(var(--unit) * 4.5)); /* 16 px at least: a phone doesn't zoom in on it */
+    color: #1a1a1a;
+    background-color: #fff;
+    border: none;
+    border-radius: 2px;
+    outline: none;
+}
+
+/* The keypad: soft keys and the navi key on top, call and end beside it, then the digits */
+.keypad {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr 1fr;
+    grid-template-rows: repeat(2, calc(var(--unit) * 12)) repeat(4, calc(var(--unit) * 11.5));
+    gap: calc(var(--unit) * 2.6) calc(var(--unit) * 3.4);
+    padding: calc(var(--unit) * 5) calc(var(--unit) * 6) calc(var(--unit) * 7);
+    background: linear-gradient(#3d454e, #262b31);
+    border-radius: calc(var(--unit) * 8) calc(var(--unit) * 8) calc(var(--unit) * 18) calc(var(--unit) * 18);
+    box-shadow: 0 calc(var(--unit) * 2) 0 rgba(23, 49, 74, 0.35), inset 0 1px 0 #59626c;
+    touch-action: none; /* Fingers hold keys: no scroll, zoom or long-press menu */
+}
+
+.keypad button {
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    color: #1d2a36;
+    border: none;
+    cursor: pointer;
+    touch-action: none;
+}
+
+.key {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(#f6f8fa, #c9d1d8);
+    border-radius: calc(var(--unit) * 5);
+    box-shadow: 0 calc(var(--unit) * 0.9) 0 #7d8892;
+    transition: background-color 60ms, box-shadow 60ms;
+}
+
+.digit {
+    font-size: max(15px, calc(var(--unit) * 6.4));
+    font-weight: 700;
+    line-height: 1;
+}
+
+.digit small {
+    font-size: max(8px, calc(var(--unit) * 2.6));
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: #4f6170;
+}
+
+.soft {
+    border-radius: calc(var(--unit) * 4) calc(var(--unit) * 4) calc(var(--unit) * 8) calc(var(--unit) * 8);
+}
+
+.soft .dash {
+    display: block;
+    width: 45%;
+    height: max(3px, calc(var(--unit) * 1.1));
+    background-color: #4f6170;
+    border-radius: 2px;
+}
+
+.soft-left {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.soft-right {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.call,
+.end {
+    grid-row: 2;
+}
+
+.call {
+    grid-column: 1;
+}
+
+.end {
+    grid-column: 3;
+}
+
+.call svg,
+.end svg {
+    width: calc(var(--unit) * 7);
+    height: calc(var(--unit) * 7);
+}
+
+.call svg {
+    fill: #1f9d3a;
+}
+
+.end svg {
+    fill: #d42a20;
+}
+
+/* The navi key: an oval rocker, four ways, with select in the middle */
+.navi {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: grid;
+    grid-template-columns: 1fr 1.1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    padding: calc(var(--unit) * 0.8);
+    background: linear-gradient(#f6f8fa, #c9d1d8);
+    border-radius: 50%;
+    box-shadow: 0 calc(var(--unit) * 0.9) 0 #7d8892;
+}
+
+.navi button {
+    font-size: max(10px, calc(var(--unit) * 3.6));
+    color: #4f6170;
+    background: transparent;
+    border-radius: calc(var(--unit) * 3);
+}
+
+.navi-up {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.navi-left {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.navi-select {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 12% !important;
+    background: linear-gradient(#dde3e8, #b3bdc6) !important;
+    border-radius: 50% !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.navi-right {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.navi-down {
+    grid-column: 2;
+    grid-row: 3;
+}
+
+/* A key held: lit, as a phone's keypad light, and pressed in */
+.keypad .lit,
+.keypad .key.lit {
+    color: #04324f;
+    background: linear-gradient(#c8f3ff, #7fdcff);
+    box-shadow: 0 0 calc(var(--unit) * 4) #6fd6ff, 0 calc(var(--unit) * 0.3) 0 #3b9fca;
+}
+
+.navi .lit {
+    background: radial-gradient(circle, #c8f3ff, #7fdcff) !important;
+    box-shadow: 0 0 calc(var(--unit) * 3) #6fd6ff;
+}
+
+.key.lit {
+    transform: translateY(calc(var(--unit) * 0.6));
+}
+
+.key.lit small {
+    color: #04324f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .key {
+        transition: none;
+    }
+}
+
+/* The Easter egg (js/qwerty.js): the keypad's light goes green-grey too */
+.qwerty .keypad .lit,
+.qwerty .keypad .key.lit {
+    background: linear-gradient(#e2ebcf, #b5c69a);
+    box-shadow: 0 0 calc(var(--unit) * 4) #c8d8a8;
+}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-game="bounce">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bounce: replay test</title>
+    <meta name="description" content="A bot plays Bounce through the page's own keys and keypad, and every run is checked with js/rules.js.">
+    <meta name="robots" content="noindex">
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; margin: 0 auto; padding: 1rem; max-width: 900px; }
+        h1 { margin-bottom: 0.25rem; }
+        form { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 1rem 0; }
+        input { width: 5em; }
+        iframe { display: block; width: 100%; height: 760px; border: 1px solid #ccc; }
+        #summary { font-weight: bold; }
+        #log { font-size: 0.85em; max-height: 50vh; overflow-y: auto; }
+        .failed { color: #b00020; font-weight: bold; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Bounce: replay test</h1>
+    <p>A bot plays Bounce here through the page's own keys and its keypad (sometimes two fingers at once), stepping the
+        game itself. Each run the game finishes is played again with <code>GameRules.simulate()</code> (<code>js/rules.js</code>,
+        what GameHub's server checks runs with), and must come out as the game said. The game here saves under a name of its
+        own, so your best scores and game in progress stay as they were.</p>
+    <form onsubmit="return false">
+        <label>Games <input type="number" id="games" min="1" max="1000"></label>
+        <button type="button" id="start">Start</button>
+        <button type="button" id="copy" disabled>Copy the runs as JSON</button>
+    </form>
+    <p id="summary" role="status">Press Start (or open this page with <code>?start</code>).</p>
+    <iframe id="game" title="Bounce, played by the bot"></iframe>
+    <ol id="log"></ol>
+    <h2>Speed</h2>
+    <p>How long <code>GameRules.simulate()</code> takes on this device to play each level's winning route again.</p>
+    <button type="button" id="time">Time simulate()</button>
+    <pre id="times"></pre>
+</main>
+<!-- This game's bot, then the harness (the same file in every game) -->
+<script src="bot.js"></script>
+<script src="check.js"></script>
+<!-- The speed test: the game's rules, played along the bot's routes -->
+<script src="../js/rules.js"></script>
+<script>
+    document.getElementById('time').addEventListener('click', () => {
+        document.getElementById('times').textContent = window.ReplayBot.timeSimulate(GameRules).join('\n');
+    });
+</script>
+</body>
+</html>

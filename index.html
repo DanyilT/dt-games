@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bounce</title>
+    <meta name="description" content="Nokia's Bounce, the red rubber ball rolling and jumping through 11 levels, on a phone's screen with its keypad under it.">
+    <meta name="theme-color" content="#b0e0f0">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DanyilT Games">
+    <meta property="og:title" content="Bounce">
+    <meta property="og:description" content="Nokia's Bounce, the red rubber ball rolling and jumping through 11 levels, on a phone's screen with its keypad under it.">
+    <meta property="og:url" content="https://bounce.dt-games.pages.dev/">
+    <meta property="og:image" content="https://bounce.dt-games.pages.dev/img/desktop-screenshot.png">
+    <meta property="og:image:width" content="1440">
+    <meta property="og:image:height" content="900">
+    <meta property="og:image:alt" content="Bounce: the red ball between brick walls and hoops, on a phone's screen above its keypad">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="img/icon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+    <link rel="stylesheet" href="css/page.css">
+    <link rel="stylesheet" href="css/game.css">
+    <!-- GameHub support, before the game's own scripts: saves, the frame view, and centring the play area -->
+    <script src="js/gamehub.js" data-game="bounce"></script>
+</head>
+<body>
+<main class="game-container">
+    <header class="title">
+        <img src="img/icon-no-bg.svg" alt="" width="36" height="36">
+        <h1>Bounce</h1>
+    </header>
+    <!-- The phone: its screen, and the keypad (js/keypad.js) -->
+    <div class="phone" data-play-area>
+        <div class="screen">
+            <canvas id="screen" width="128" height="128" role="img" aria-label="Bounce, on the phone's screen: roll with 4 and 6 (or ← and →), jump with 2 (or ↑)"></canvas>
+            <!-- The call key's field, to type a code in (js/qwerty.js) -->
+            <form class="code-entry" id="codeEntry" hidden>
+                <label for="codeInput">Code</label>
+                <input id="codeInput" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done">
+            </form>
+        </div>
+        <div class="keypad" id="keypad" aria-label="The phone's keypad">
+            <button class="key soft soft-left" data-key="soft-left" tabindex="-1" aria-label="Left soft key: the menu" aria-keyshortcuts="Escape"><span class="dash"></span></button>
+            <div class="navi" role="group" aria-label="Navi key">
+                <button class="navi-up" data-key="up" tabindex="-1" aria-label="Up">▲</button>
+                <button class="navi-left" data-key="left" tabindex="-1" aria-label="Left">◀</button>
+                <button class="navi-select" data-key="select" tabindex="-1" aria-label="Select"></button>
+                <button class="navi-right" data-key="right" tabindex="-1" aria-label="Right">▶</button>
+                <button class="navi-down" data-key="down" tabindex="-1" aria-label="Down">▼</button>
+            </div>
+            <button class="key soft soft-right" data-key="soft-right" tabindex="-1" aria-label="Right soft key"><span class="dash"></span></button>
+            <button class="key call" data-key="call" tabindex="-1" aria-label="Call">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.2 15.2 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>
+            </button>
+            <button class="key end" data-key="end" tabindex="-1" aria-label="End">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1a1 1 0 0 1-.56.9 11.5 11.5 0 0 0-2.66 1.85 1 1 0 0 1-1.4 0L.29 13.08a1 1 0 0 1 0-1.41A16.9 16.9 0 0 1 12 7c4.57 0 8.71 1.8 11.71 4.67a1 1 0 0 1 0 1.41l-2.48 2.49a1 1 0 0 1-1.4 0 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z"/></svg>
+            </button>
+            <button class="key digit" data-key="1" tabindex="-1">1<small>.,?!</small></button>
+            <button class="key digit" data-key="2" tabindex="-1">2<small>abc</small></button>
+            <button class="key digit" data-key="3" tabindex="-1">3<small>def</small></button>
+            <button class="key digit" data-key="4" tabindex="-1">4<small>ghi</small></button>
+            <button class="key digit" data-key="5" tabindex="-1">5<small>jkl</small></button>
+            <button class="key digit" data-key="6" tabindex="-1">6<small>mno</small></button>
+            <button class="key digit" data-key="7" tabindex="-1">7<small>pqrs</small></button>
+            <button class="key digit" data-key="8" tabindex="-1">8<small>tuv</small></button>
+            <button class="key digit" data-key="9" tabindex="-1">9<small>wxyz</small></button>
+            <button class="key digit" data-key="star" tabindex="-1" aria-label="Star">*<small>+</small></button>
+            <button class="key digit" data-key="0" tabindex="-1">0<small>␣</small></button>
+            <button class="key digit" data-key="hash" tabindex="-1" aria-label="Hash">#<small>⇧</small></button>
+        </div>
+    </div>
+    <aside class="instructions" id="instructions">
+        <button type="button" class="close-instructions" id="closeInstructions" aria-label="Close the instructions" aria-keyshortcuts="I">✕ (I)</button>
+        <h2>How to play</h2>
+        <p>Roll the red ball through every hoop in the level: then the door (the exit, striped red) opens, and the ball goes through it to the next level. Spikes pop the ball, and so do the moving spikes.</p>
+        <p>A crystal is where the ball comes back after a pop, and a crystal ball is a spare ball. Rubber floors bounce the ball higher. A pump makes the ball big (big balls float in water, small ones sink, and some hoops are too small for them), and a deflater makes it small again. Power-ups last 12 seconds: speed, a higher jump, and gravity upside down.</p>
+        <h3>Keys</h3>
+        <table>
+            <tr><th>Phone</th><th>Keyboard</th><th></th></tr>
+            <tr><td><kbd>4</kbd> or <kbd>◀</kbd></td><td><kbd>←</kbd> <kbd>A</kbd></td><td>Roll left</td></tr>
+            <tr><td><kbd>6</kbd> or <kbd>▶</kbd></td><td><kbd>→</kbd> <kbd>D</kbd></td><td>Roll right</td></tr>
+            <tr><td><kbd>2</kbd> or <kbd>▲</kbd></td><td><kbd>↑</kbd> <kbd>W</kbd> <kbd>Space</kbd></td><td>Jump (hold it to keep bouncing)</td></tr>
+            <tr><td>The left soft key</td><td><kbd>Esc</kbd></td><td>The menu (the game waits)</td></tr>
+            <tr><td>The right soft key</td><td><kbd>Backspace</kbd></td><td>Back</td></tr>
+            <tr><td><kbd>▲</kbd> <kbd>▼</kbd>, then select</td><td><kbd>↑</kbd> <kbd>↓</kbd>, then <kbd>Enter</kbd></td><td>Choose on a menu</td></tr>
+            <tr><td></td><td><kbd>M</kbd></td><td>Sound on or off</td></tr>
+            <tr><td><kbd>0</kbd></td><td><kbd>I</kbd></td><td>These instructions, shown or hidden</td></tr>
+        </table>
+        <p>On a touch screen, the keypad takes several fingers at once: hold 6 and 2 together to jump to the right. On the menus, tap what you want.</p>
+        <p>The game is saved when the menu opens and at the start of each level, so it carries on next time.</p>
+        <!-- Shown with the Easter egg (js/qwerty.js): the phone's cheats -->
+        <p class="cheats">
+            <kbd>7</kbd><kbd>8</kbd><kbd>7</kbd><kbd>8</kbd><kbd>9</kbd><kbd>8</kbd> to make the ball invincible.<br>
+            <kbd>7</kbd><kbd>8</kbd><kbd>7</kbd><kbd>8</kbd><kbd>9</kbd><kbd>9</kbd> to unlock new cheats: <kbd>1</kbd> to go back to the previous level, <kbd>3</kbd> to go to the next level, <kbd>5</kbd> to finish a level and <kbd>#</kbd> to make ball reverse the gravity.
+        </p>
+    </aside>
+    <!-- JavaScript for this page -->
+    <script src="js/buttons-handler.js"></script>
+    <script src="js/extend-controls.js"></script>
+</main>
+<footer style="display: none">&copy; Dany | Bounce | 2026 | Bounce, its levels, sprites and tunes are Nokia's (&copy; Nokia). <hr> <a href="https://github.com/DanyilT/dt-games/tree/bounce">source code</a></footer>
+<!-- Bounce Code -->
+<script src="js/rules.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/font.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/keypad.js"></script>
+<script src="js/bounce.js"></script>
+<!-- Very important script -->
+<script src="js/qwerty.js"></script>
+</body>
+</html>

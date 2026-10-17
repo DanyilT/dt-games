@@ -1,0 +1,166 @@
+/* The page around the game: the layout, the title and the instructions (and GameHub's frame view) */
+
+:root {
+    --screen: 384px; /* The phone's screen, 128 px scaled up whole (js/bounce.js fitScreen() sets it) */
+    --sky: #b0e0f0;
+    --ink: #17314a;
+    --brick: #b8321f;
+}
+
+body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    margin: 0;
+    background-color: var(--sky);
+    color: var(--ink);
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 12px 24px;
+}
+
+/* The title, on the left over the phone, with the ball before it */
+.title {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    width: calc(var(--screen) * 138 / 128); /* The phone's width (css/game.css) */
+    margin: 0.3em 0 0.5em;
+}
+
+.title img {
+    width: 2.25em;
+    height: 2.25em;
+    image-rendering: pixelated;
+}
+
+h1 {
+    margin: 0;
+    font-size: 2em;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--brick);
+    text-shadow: 0 2px 0 #fff;
+}
+
+.instructions {
+    position: relative;
+    box-sizing: border-box;
+    width: min(100%, 560px);
+    margin-top: 28px;
+    padding: 1em 1.2em;
+    font-size: 0.95em;
+    line-height: 1.45;
+    background-color: #e9f7fc;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+}
+
+.instructions[hidden] {
+    display: none;
+}
+
+.instructions h2 {
+    margin-top: 0;
+    font-size: 1.25em;
+}
+
+/* The close button, at the instructions' top right (I does the same) */
+.close-instructions {
+    position: absolute;
+    top: 0.7em;
+    right: 0.7em;
+    padding: 0.2em 0.55em;
+    font: inherit;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--ink);
+    background-color: #fff;
+    border: 1px solid #8aa4b5;
+    border-bottom-width: 2px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.close-instructions:hover {
+    background-color: #f2fbff;
+}
+
+/* The phone's cheats, only with the Easter egg on (js/qwerty.js) */
+.instructions .cheats {
+    display: none;
+    margin-bottom: 0;
+    padding-top: 0.8em;
+    border-top: 1px dashed #8aa4b5;
+}
+
+.qwerty .instructions .cheats {
+    display: block;
+}
+
+.instructions h3 {
+    margin: 1em 0 0.4em;
+    font-size: 1.05em;
+}
+
+.instructions table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.instructions th,
+.instructions td {
+    padding: 0.25em 0.4em;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #c4dde8;
+}
+
+.instructions kbd {
+    display: inline-block;
+    min-width: 1.2em;
+    padding: 0 0.3em;
+    font-family: inherit;
+    font-size: 0.9em;
+    text-align: center;
+    background-color: #fff;
+    border: 1px solid #8aa4b5;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+}
+
+/* The Easter egg (js/qwerty.js): the page in grey too, as on a black-and-white phone */
+.qwerty body {
+    --sky: #aab79a;
+    --ink: #1f2a1c;
+    --brick: #2a3626;
+}
+
+.qwerty .instructions {
+    background-color: #c3ceb2;
+}
+
+.qwerty .title img {
+    filter: grayscale(1) contrast(1.3);
+}
+
+/* GameHub's frame view (js/gamehub.js sets data-gamehub-view on <html>): the phone only (its screen and the keypad), as
+   big as the frame allows (js/bounce.js fits it), in the middle, on the sky's colour; the frame's sizes in GameHub's
+   games table decide how big. */
+[data-gamehub-view] body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+[data-gamehub-view] .game-container {
+    padding: 0;
+}
+
+[data-gamehub-view] .game-container > :not(.phone) {
+    display: none;
+}
